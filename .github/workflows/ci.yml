@@ -50,7 +50,10 @@ jobs:
           DB_PASSWORD: owner
           DB_NAME: anesis
           POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
-          AUTH_TYPE: plain
+          # trust : pas de vérif de mot de passe côté pooler (Postgres 16 stocke un secret SCRAM que
+          # `plain` ne sait pas valider → ECONNRESET). Le pooler ouvre le backend comme le rôle du
+          # client (anesis_app), lui-même en trust côté Postgres. Auth réseau seulement — RLS intacte.
+          AUTH_TYPE: trust
           MAX_CLIENT_CONN: "100"
         ports: ["6432:6432"]
     env:
