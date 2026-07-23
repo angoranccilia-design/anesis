@@ -1,7 +1,12 @@
 /**
- * Roster canonique ANESIS — les 11 agents (Partie B du brief).
+ * Roster canonique ANESIS — 13 agents : les 12 métier (Partie B) + `planner` (système, T0).
  * L'agent est identifié par un slug stable (pas un uuid) : le roster est fixe.
  * Le niveau d'autonomie ci-dessous est le DÉFAUT de l'agent ; chaque action peut le surcharger.
+ * `art-director` (T5) est DISTINCT de `content-creator` : fonction STRATÉGIQUE au niveau du mandat
+ * (univers de marque, repositionnement), non rattachée à un LossLineItem — là où content-creator est
+ * de l'exécution routée depuis un Objective chiffré. Les deux coexistent volontairement.
+ * `planner` (T0) dérive objectifs+tâches à partir d'une thèse attachée (étape 3), comme analyst/
+ * orchestrator/underwriter c'est un agent système (plomberie), pas un agent client.
  */
 import type { AutonomyTier } from "./autonomy.js";
 import type { EventType, TickType } from "./event.js";
@@ -17,7 +22,9 @@ export type AgentId =
   | "lifecycle"
   | "media-buyer"
   | "rate-distribution"
-  | "content-creator";
+  | "content-creator"
+  | "art-director"
+  | "planner";
 
 export interface RosterEntry {
   readonly role: string; // libellé d'interface, anglais britannique
@@ -36,6 +43,8 @@ export const ROSTER: Record<AgentId, RosterEntry> = {
   "media-buyer": { role: "Media Buyer", defaultTier: "T4" },
   "rate-distribution": { role: "Rate & Distribution", defaultTier: "T4" },
   "content-creator": { role: "Content Creator", defaultTier: "T5" },
+  "art-director": { role: "Art Director", defaultTier: "T5" },
+  planner: { role: "Planner", defaultTier: "T0" },
 };
 
 export const AGENT_IDS = Object.keys(ROSTER) as AgentId[];

@@ -26,6 +26,9 @@ importers:
       '@anesis/events':
         specifier: workspace:*
         version: link:../events
+      '@anesis/planning':
+        specifier: workspace:*
+        version: link:../planning
       '@anesis/policy':
         specifier: workspace:*
         version: link:../policy
@@ -102,6 +105,22 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.2.17
         version: 0.2.17
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@26.1.1)
+
+  packages/planning:
+    dependencies:
+      '@anesis/assessment':
+        specifier: workspace:*
+        version: link:../assessment
+      '@anesis/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

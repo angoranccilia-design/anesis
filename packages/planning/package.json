@@ -1,0 +1,24 @@
+{
+  "name": "@anesis/planning",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS planning — pure, deterministic derivation of thesis → objectives → tasks. No DB, no LLM.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anesis/core": "workspace:*",
+    "@anesis/assessment": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

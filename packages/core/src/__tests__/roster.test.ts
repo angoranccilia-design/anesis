@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AGENT_IDS, ROSTER } from "../agent.js";
 
-describe("roster canonique (11 agents)", () => {
-  it("compte exactement 11 agents", () => {
-    expect(AGENT_IDS).toHaveLength(11);
+describe("roster canonique (13 agents)", () => {
+  it("compte exactement 13 agents", () => {
+    expect(AGENT_IDS).toHaveLength(13);
   });
 
   it("affecte les niveaux d'autonomie par défaut du §7", () => {
@@ -18,10 +18,15 @@ describe("roster canonique (11 agents)", () => {
     expect(ROSTER["media-buyer"].defaultTier).toBe("T4");
     expect(ROSTER["rate-distribution"].defaultTier).toBe("T4");
     expect(ROSTER["content-creator"].defaultTier).toBe("T5");
+    // Directrice Artistique — même régime T5 (touche à la voix de marque), distincte de content-creator.
+    expect(ROSTER["art-director"].defaultTier).toBe("T5");
+    // Planner — agent système (étape 3), dérive objectifs+tâches ; T0 comme les autres coordinateurs.
+    expect(ROSTER.planner.defaultTier).toBe("T0");
   });
 
   it("les libellés de rôle sont en anglais britannique", () => {
     expect(ROSTER["rate-distribution"].role).toBe("Rate & Distribution");
     expect(ROSTER["content-creator"].role).toBe("Content Creator");
+    expect(ROSTER["art-director"].role).toBe("Art Director");
   });
 });

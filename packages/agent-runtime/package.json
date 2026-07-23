@@ -18,6 +18,7 @@
     "@anesis/core": "workspace:*",
     "@anesis/db": "workspace:*",
     "@anesis/events": "workspace:*",
+    "@anesis/planning": "workspace:*",
     "@anesis/policy": "workspace:*"
   },
   "devDependencies": {

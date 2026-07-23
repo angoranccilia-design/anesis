@@ -1,9 +1,10 @@
-/** @anesis/agent-runtime — runtime minimal + les 3 agents de preuve (Analyst, Orchestrator, Media Buyer). */
+/** @anesis/agent-runtime — runtime minimal + agents (Analyst, Orchestrator, Media Buyer, Planner). */
 export { AgentRuntime, type RuntimeOptions } from "./runtime.js";
 export type { Agent, AgentContext, ToolIntent, Trigger } from "./types.js";
 export { analyst } from "./agents/analyst.js";
 export { orchestrator } from "./agents/orchestrator.js";
 export { mediaBuyer } from "./agents/media-buyer.js";
+export { planner } from "./agents/planner.js";
 export {
   assessOneProperty,
   assessProspectBatch,
