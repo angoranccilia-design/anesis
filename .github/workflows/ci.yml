@@ -55,7 +55,9 @@ jobs:
           POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
           AUTH_TYPE: trust
           MAX_CLIENT_CONN: "100"
-        ports: ["6432:6432"]
+        # edoburu/pgbouncer écoute sur le port 5432 DANS le conteneur → on publie l'hôte 6432 vers le
+        # conteneur 5432 (et non 6432:6432, qui ne pointait sur rien → ECONNRESET).
+        ports: ["6432:5432"]
     env:
       # Migrations en direct (propriétaire) ; tests applicatifs à TRAVERS le pooler transaction, comme anesis_app.
       ANESIS_TEST_DATABASE_URL: postgres://anesis_owner:owner@localhost:5432/anesis
