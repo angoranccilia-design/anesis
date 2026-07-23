@@ -42,11 +42,12 @@ jobs:
         image: edoburu/pgbouncer:latest
         env:
           DB_HOST: postgres
-          # PgBouncer s'authentifie au backend comme anesis_app (rôle applicatif) et accepte le même
-          # couple côté client. anesis_app reçoit son login au démarrage du test (alter role dans le
-          # beforeAll) ; PgBouncer ouvre sa connexion backend paresseusement, donc après cet alter.
-          DB_USER: anesis_app
-          DB_PASSWORD: app
+          # auth_user = anesis_owner (SUPERUSER) : indispensable pour l'auth_query de PgBouncer, qui lit
+          # pg_shadow (réservé au superuser) pour valider le mot de passe du client. Le CLIENT, lui, se
+          # connecte comme anesis_app (voir ANESIS_TEST_APP_DATABASE_URL) → PgBouncer ouvre alors le
+          # backend comme anesis_app (RLS active). anesis_app reçoit login+password dans le beforeAll.
+          DB_USER: anesis_owner
+          DB_PASSWORD: owner
           DB_NAME: anesis
           POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
           AUTH_TYPE: plain
