@@ -31,12 +31,16 @@ run("isolation sur vrai Postgres + pooler transaction (deux connexions concurren
       await admin.query("insert into loss_lines (id,mandate_id,thesis_id,pillar,annual_loss_pence,root_cause) values ($1,$2,$3,'x',1,'x') on conflict do nothing", [`ll-${m}`, m, `th-${m}`]);
       await admin.query("insert into objectives (id,mandate_id,loss_line_id,title,target_recovery_pence) values ($1,$2,$3,'o',1) on conflict do nothing", [`obj-${m}`, m, `ll-${m}`]);
     }
+    // 0002 crée anesis_app en NOLOGIN (le login est géré par la plateforme en prod : Supabase/Neon).
+    // Pour rejouer fidèlement le pooler transaction, on lui donne un login le temps du test : les
+    // connexions applicatives s'authentifient DIRECTEMENT comme anesis_app à travers le pooler,
+    // exactement comme en prod. On évite `set role` — il ne survit pas au pooling transaction
+    // (chaque transaction peut atterrir sur un backend différent où l'état de session est perdu).
+    await admin.query("alter role anesis_app with login password 'app'");
     c1 = new pg.Client({ connectionString: APP_URL });
     c2 = new pg.Client({ connectionString: APP_URL });
     await c1.connect();
     await c2.connect();
-    await c1.query("set role anesis_app");
-    await c2.query("set role anesis_app");
   });
 
   afterAll(async () => {

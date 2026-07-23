@@ -19,9 +19,9 @@ jobs:
       - run: pnpm -r test
 
   # Réserve 1 — rejeu de l'isolation sur un VRAI Postgres à travers PgBouncer en mode TRANSACTION.
-  # Informatif pour l'instant : `SET ROLE` en pooling transaction demande encore un ajustement (le
-  # poser DANS chaque transaction). `continue-on-error` pour ne pas faire échouer le workflow tant
-  # que ce point n'est pas réglé — le job `unit` reste la porte réelle.
+  # Migrations en connexion directe propriétaire (5432) ; requêtes applicatives à travers le pooler
+  # transaction (6432), authentifiées DIRECTEMENT comme anesis_app — jamais `set role` (qui ne survit
+  # pas au pooling transaction). C'est le modèle de connexion réel de production.
   db-real-postgres:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -39,17 +39,20 @@ jobs:
         image: edoburu/pgbouncer:latest
         env:
           DB_HOST: postgres
-          DB_USER: anesis_owner
-          DB_PASSWORD: owner
+          # PgBouncer s'authentifie au backend comme anesis_app (rôle applicatif) et accepte le même
+          # couple côté client. anesis_app reçoit son login au démarrage du test (alter role dans le
+          # beforeAll) ; PgBouncer ouvre sa connexion backend paresseusement, donc après cet alter.
+          DB_USER: anesis_app
+          DB_PASSWORD: app
           DB_NAME: anesis
           POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
           AUTH_TYPE: plain
           MAX_CLIENT_CONN: "100"
         ports: ["6432:6432"]
     env:
-      # Migrations en connexion directe (propriétaire) ; tests applicatifs à TRAVERS le pooler transaction.
+      # Migrations en direct (propriétaire) ; tests applicatifs à TRAVERS le pooler transaction, comme anesis_app.
       ANESIS_TEST_DATABASE_URL: postgres://anesis_owner:owner@localhost:5432/anesis
-      ANESIS_TEST_APP_DATABASE_URL: postgres://anesis_owner:owner@localhost:6432/anesis
+      ANESIS_TEST_APP_DATABASE_URL: postgres://anesis_app:app@localhost:6432/anesis
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
