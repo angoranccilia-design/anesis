@@ -1,0 +1,23 @@
+{
+  "name": "@anesis/assessment",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS assessment engine (Gate 1) — strictly separated collect / score (pure, deterministic) / report (LLM). No DB.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anesis/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

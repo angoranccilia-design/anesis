@@ -1,0 +1,26 @@
+{
+  "name": "@anesis/policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS autonomy policy — T0..T5 authorisation, retention/approval regimes, event-driven emergency stop.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anesis/core": "workspace:*",
+    "@anesis/db": "workspace:*",
+    "@anesis/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

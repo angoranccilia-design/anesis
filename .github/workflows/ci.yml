@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Tests rapides (PGlite) — modèle de domaine + persistance en Postgres WASM.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+
+  # Réserve 1 — rejeu de l'isolation sur un VRAI Postgres à travers PgBouncer en mode TRANSACTION.
+  db-real-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: anesis_owner
+          POSTGRES_PASSWORD: owner
+          POSTGRES_DB: anesis
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U anesis_owner" --health-interval 5s --health-timeout 5s --health-retries 10
+      pgbouncer:
+        image: edoburu/pgbouncer:latest
+        env:
+          DB_HOST: postgres
+          DB_USER: anesis_owner
+          DB_PASSWORD: owner
+          DB_NAME: anesis
+          POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
+          AUTH_TYPE: plain
+          MAX_CLIENT_CONN: "100"
+        ports: ["6432:6432"]
+    env:
+      # Migrations en connexion directe (propriétaire) ; tests applicatifs à TRAVERS le pooler transaction.
+      ANESIS_TEST_DATABASE_URL: postgres://anesis_owner:owner@localhost:5432/anesis
+      ANESIS_TEST_APP_DATABASE_URL: postgres://anesis_owner:owner@localhost:6432/anesis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      # real-postgres.test.ts s'active parce que ANESIS_TEST_DATABASE_URL est défini.
+      - run: pnpm --filter @anesis/db test

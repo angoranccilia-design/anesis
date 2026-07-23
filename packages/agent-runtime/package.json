@@ -1,0 +1,29 @@
+{
+  "name": "@anesis/agent-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS minimal agent runtime + the three proof agents (Analyst, Orchestrator, Media Buyer).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anesis/assessment": "workspace:*",
+    "@anesis/core": "workspace:*",
+    "@anesis/db": "workspace:*",
+    "@anesis/events": "workspace:*",
+    "@anesis/policy": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
