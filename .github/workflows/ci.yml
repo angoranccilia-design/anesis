@@ -22,9 +22,9 @@ jobs:
   # Migrations en connexion directe propriétaire (5432) ; requêtes applicatives à travers le pooler
   # transaction (6432), authentifiées DIRECTEMENT comme anesis_app — jamais `set role` (qui ne survit
   # pas au pooling transaction). C'est le modèle de connexion réel de production.
+  # Porte réelle : bloquante (plus de continue-on-error) — l'isolation est prouvée sur un vrai Postgres.
   db-real-postgres:
     runs-on: ubuntu-latest
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16
