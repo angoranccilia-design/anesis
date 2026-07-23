@@ -46,13 +46,13 @@ jobs:
           # pg_shadow (réservé au superuser) pour valider le mot de passe du client. Le CLIENT, lui, se
           # connecte comme anesis_app (voir ANESIS_TEST_APP_DATABASE_URL) → PgBouncer ouvre alors le
           # backend comme anesis_app (RLS active). anesis_app reçoit login+password dans le beforeAll.
-          DB_USER: anesis_owner
-          DB_PASSWORD: owner
+          # anesis_app DANS la userlist (DB_USER) → PgBouncer le reconnaît sans auth_query ; trust →
+          # aucune vérif scram (qui provoquait l'ECONNRESET). Le client se connecte comme anesis_app,
+          # PgBouncer ouvre le backend comme anesis_app (trust côté Postgres). RLS intacte.
+          DB_USER: anesis_app
+          DB_PASSWORD: app
           DB_NAME: anesis
           POOL_MODE: transaction        # ← mode exigé par set_config(..., true)
-          # trust : pas de vérif de mot de passe côté pooler (Postgres 16 stocke un secret SCRAM que
-          # `plain` ne sait pas valider → ECONNRESET). Le pooler ouvre le backend comme le rôle du
-          # client (anesis_app), lui-même en trust côté Postgres. Auth réseau seulement — RLS intacte.
           AUTH_TYPE: trust
           MAX_CLIENT_CONN: "100"
         ports: ["6432:6432"]
