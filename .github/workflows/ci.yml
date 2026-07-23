@@ -32,6 +32,9 @@ jobs:
           POSTGRES_USER: anesis_owner
           POSTGRES_PASSWORD: owner
           POSTGRES_DB: anesis
+          # trust = auth réseau simple (le pooler se connecte comme anesis_app sans négociation scram).
+          # N'affecte QUE l'authentification, jamais la RLS/les rôles — le cœur de ce qu'on teste.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U anesis_owner" --health-interval 5s --health-timeout 5s --health-retries 10
