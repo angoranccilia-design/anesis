@@ -56,7 +56,8 @@ async function propose(ctx: AgentContext): Promise<void> {
 async function execute(ctx: AgentContext, payload: { approvalId: string }): Promise<void> {
   const { rows } = await ctx.client.query("select * from approvals where id = $1", [payload.approvalId]);
   const row = rows[0];
-  if (!row || row.status !== "granted") return;
+  // garde d'appartenance : n'exécute QUE sa propre approbation (coexistence multi-agents, étape 4)
+  if (!row || row.status !== "granted" || row.tool_call_name !== "redeploy_budget") return;
 
   await ctx.resumeRun(row.run_id as AgentRunId);
 

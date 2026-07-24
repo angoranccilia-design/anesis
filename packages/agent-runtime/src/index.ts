@@ -7,6 +7,7 @@ export { mediaBuyer } from "./agents/media-buyer.js";
 export { planner } from "./agents/planner.js";
 export { conversion } from "./agents/conversion.js";
 export { socialOps } from "./agents/social-ops.js";
+export { lifecycle } from "./agents/lifecycle.js";
 export { signMandate, type SignMandateInput, type SignMandateResult } from "./onboarding.js";
 export { runCampaign, type CampaignReport, type RunCampaignOptions } from "./campaign.js";
 export {
