@@ -1,4 +1,4 @@
-# Runbook — Campagne de diagnostics du 4 août
+# Runbook — Campagne de diagnostics du lundi 3 août 2026
 
 Objectif : évaluer ~150 établissements hôteliers UK (Porte 1), sur données publiques réelles, et
 produire la liste des **qualifiés / refusés / à revoir**. Tout le code est prêt et testé ; il reste à

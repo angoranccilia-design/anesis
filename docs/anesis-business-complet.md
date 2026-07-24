@@ -297,7 +297,7 @@ Le modèle distingue déjà, dans le domaine technique, un rôle **fondatrice** 
 
 Construit et testé (CI verte) : `packages/planning` (répartition de la perte par pilier sans dérive d'arrondi, seuil de matérialité, un objectif par poste, une tâche routée par objectif — fonction pure, déterministe, sans IA sur les chiffres) et l'agent `planner` (déclenché sur `mandate.thesis_attached`, idempotent).
 
-Maillon restant avant que la chaîne tourne réellement (pas seulement en test) : le runtime qui construit la thèse à la signature du mandat et émet `mandate.thesis_attached` n'est pas encore câblé. Séquence retenue : (1) fermer ce maillon en premier — petit chantier, referme la boucle de bout en bout ; (2) préparer la campagne de diagnostics du 4 août (sources réelles, token Apify) — date dure, et c'est elle qui produit la traction qui manque le plus au dossier ; (3) étape 4 (migration des 8 agents restants du roster) attend après, elle profitera des premiers résultats réels de la campagne.
+Maillon restant avant que la chaîne tourne réellement (pas seulement en test) : le runtime qui construit la thèse à la signature du mandat et émet `mandate.thesis_attached` n'est pas encore câblé. Séquence retenue : (1) fermer ce maillon en premier — petit chantier, referme la boucle de bout en bout ; (2) préparer la campagne de diagnostics du lundi 3 août (sources réelles, token Apify) — date dure, et c'est elle qui produit la traction qui manque le plus au dossier ; (3) étape 4 (migration des 8 agents restants du roster) attend après, elle profitera des premiers résultats réels de la campagne.
 
 ---
 

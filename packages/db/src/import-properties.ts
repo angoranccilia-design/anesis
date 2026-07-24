@@ -1,5 +1,5 @@
 /**
- * Import en lot d'établissements (campagne du 4 août) → Property(prospect).
+ * Import en lot d'établissements (campagne du 3 août) → Property(prospect).
  * Déduplication par domaine de site web (normalizeDomain), dans le lot ET contre l'existant.
  * Les prospects sans site web ne sont pas dédupliqués (pas de clé).
  */

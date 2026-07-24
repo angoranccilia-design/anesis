@@ -1,5 +1,5 @@
 /**
- * Orchestrateur de la campagne de diagnostics (4 août). Enchaîne, sur un Postgres réel :
+ * Orchestrateur de la campagne de diagnostics (3 août). Enchaîne, sur un Postgres réel :
  *   import prospects (dédup domaine) → lot d'évaluation (underwriter, sources RÉELLES via UnderwriterDeps)
  *   → comptes de sortie + file de revue manuelle à traiter.
  * PUR de tout secret : les IO passent par `deps.fetchObservations` (construit ailleurs depuis l'env).

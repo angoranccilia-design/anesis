@@ -56,7 +56,7 @@ export interface Property {
   readonly updatedAt: Iso8601;
 }
 
-/** Ligne d'import CSV → Property(prospect). Champs de l'import de campagne (4 août). */
+/** Ligne d'import CSV → Property(prospect). Champs de l'import de campagne (3 août). */
 export interface PropertyImportRow {
   readonly name: string;
   readonly city?: string;

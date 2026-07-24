@@ -3,7 +3,7 @@
  * Lance l'acteur en synchrone et lit le premier item du dataset. Extraction DÉFENSIVE des champs
  * (les noms varient selon l'acteur : reviewsCount/reviews_count, totalScore/rating…).
  *
- * ⚠️ Avant le lot du 4 août : confirmer le quota/coût par requête du plan Apify (voir apify.ts).
+ * ⚠️ Avant le lot du 3 août : confirmer le quota/coût par requête du plan Apify (voir apify.ts).
  * Un lot de 150 propriétés doit rester dans une fenêtre de coût raisonnable, vérifiée AVANT lancement.
  */
 import type { SignalSource } from "./types.js";

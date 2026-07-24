@@ -1,5 +1,5 @@
 /**
- * Pré-vol Apify — À EXÉCUTER AVANT le lot du 4 août.
+ * Pré-vol Apify — À EXÉCUTER AVANT le lot du 3 août.
  * Un lot de 150 propriétés = 150 exécutions de l'acteur d'avis. Cette vérification interroge le compte
  * Apify (limites mensuelles vs usage courant) pour confirmer qu'un tel lot reste dans une fenêtre de
  * coût raisonnable — plutôt que de le découvrir après coup. Ne lance PAS le lot ; elle informe.

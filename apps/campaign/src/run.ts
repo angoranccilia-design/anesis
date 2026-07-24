@@ -1,9 +1,9 @@
 /**
- * CLI de campagne — À EXÉCUTER pour le lot de diagnostics du 4 août, sur le Postgres ANESIS réel.
+ * CLI de campagne — À EXÉCUTER pour le lot de diagnostics du 3 août, sur le Postgres ANESIS réel.
  *
  *   node --env-file=.env dist/run.js [chemin/prospects.csv|.json]
  *
- * Secrets UNIQUEMENT via l'environnement (jamais en argument) — voir docs/campagne-4-aout-runbook.md :
+ * Secrets UNIQUEMENT via l'environnement (jamais en argument) — voir docs/campagne-3-aout-runbook.md :
  *   DATABASE_URL, PAGESPEED_API_KEY, APIFY_TOKEN, APIFY_REVIEWS_ACTOR.
  * Le schéma doit déjà être déployé (deployDatabase, en connexion propriétaire) — ce CLI se connecte
  * comme rôle applicatif et n'applique PAS les migrations.

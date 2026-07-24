@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { apifyPreflight } from "../apify.js";
 import { fakeHttp } from "./fake-http.js";
 
-describe("apifyPreflight — pré-vol quota avant le lot du 4 août", () => {
+describe("apifyPreflight — pré-vol quota avant le lot du 3 août", () => {
   it("calcule le reste mensuel et confirme si positif", async () => {
     const http = fakeHttp({
       get: () => ({ status: 200, body: { data: { current: { monthlyUsageUsd: 12.5 }, limits: { maxMonthlyUsageUsd: 49 } } } }),

@@ -89,7 +89,7 @@ export interface BatchResult {
 }
 
 /**
- * Lot du 4 août — évalue les prospects. Idempotent et REPRENABLE : ne traite que les Property à l'état
+ * Lot du 3 août — évalue les prospects. Idempotent et REPRENABLE : ne traite que les Property à l'état
  * 'prospect' ; une fois évaluée, une Property en sort et n'est plus reprise (l'état joue le rôle du
  * journal d'idempotence). Une reprise après interruption ne retraite pas ce qui est déjà fait.
  */
