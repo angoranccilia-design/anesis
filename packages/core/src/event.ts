@@ -48,6 +48,7 @@ export type EventType =
   | "artifact.approved"
   | "artifact.rejected"
   | "content.published"
+  | "retention.scheduled"
   | "measurement.recorded"
   | "measurement.deviation_detected"
   | "external.review_received"
@@ -86,6 +87,7 @@ export const EVENT_TYPES: readonly EventType[] = [
   "artifact.approved",
   "artifact.rejected",
   "content.published",
+  "retention.scheduled",
   "measurement.recorded",
   "measurement.deviation_detected",
   "external.review_received",
@@ -130,6 +132,7 @@ export interface EventPayloadMap {
   "artifact.approved": { artifactId: ArtifactId; by: OperatorId };
   "artifact.rejected": { artifactId: ArtifactId; by: OperatorId; reason: string };
   "content.published": { artifactId: ArtifactId; channel: string };
+  "retention.scheduled": { runId: AgentRunId; actionName: string };
   "measurement.recorded": { measurementId: MeasurementId; metric: string; actual: number };
   "measurement.deviation_detected": { measurementId: MeasurementId; metric: string; deviationPct: number };
   "external.review_received": { mandateId: MandateId; source: string; rating: number };

@@ -121,8 +121,11 @@ Deux options (je ne modifie pas le planner sans ton accord) :
 - **Déclencheur** : `weekly.tick` (traite une file de partenaires prospects du mandat).
 - **Action** : `contact_partner` (T2, réversible) via la retenue durable §1b (2h + alerte).
 - **DB** : nouvelle table `partners` (id, mandate_id, name, kind `pms|broker|guide`, contact, status,
-  contacted_at). ⚠️ **Décision** : partenaires **rattachés au mandat** (RLS) — cohérent avec T2 qui exige
-  un contexte de mandat (un run système est limité à T0). OK, ou tu vois les partenaires au niveau firme ?
+  contacted_at). ⚠️ **SIMPLIFICATION CONNUE (validée, à revisiter)** : `partners` est **rattaché au
+  mandat** (RLS). Or un partenaire (PMS, courtier, label type Pride of Britain) est en réalité une
+  relation de **firme** qui touchera plusieurs mandats (« land & expand », Partie 14). Tant qu'UN SEUL
+  mandat existe, la collision n'arrive pas. **À revisiter** (modèle firme/multi-tenant) dès qu'un
+  partenaire couvre >1 mandat — décision documentée aussi en tête de `0009_partners.sql`, pas silencieuse.
 - **Idempotence** : ne recontacte pas un partenaire déjà `contacted` (garde sur `status`).
 
 ### lifecycle — T3 (blocking_approval) · KPI : LTV client hôtel
