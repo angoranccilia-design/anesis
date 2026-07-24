@@ -6,6 +6,7 @@ export { orchestrator } from "./agents/orchestrator.js";
 export { mediaBuyer } from "./agents/media-buyer.js";
 export { planner } from "./agents/planner.js";
 export { signMandate, type SignMandateInput, type SignMandateResult } from "./onboarding.js";
+export { runCampaign, type CampaignReport, type RunCampaignOptions } from "./campaign.js";
 export {
   assessOneProperty,
   assessProspectBatch,
