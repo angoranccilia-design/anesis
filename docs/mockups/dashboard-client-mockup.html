@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ANESIS ACQUISITION — Mockup espace client</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep: #1c3829;
+    --green-mid: #2f5240;
+    --gold: #b08d57;
+    --gold-light: #dcc79a;
+    --cream: #f7f3ea;
+    --ivory: #fffdf8;
+    --text-dark: #1c2620;
+    --text-muted: #6b7268;
+    --line: #e4ddc9;
+    --danger: #b3543f;
+    --ok: #3c6e4f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--text-dark);
+    font-family: 'Inter', sans-serif;
+    padding: 40px 0 80px;
+  }
+  .page {
+    max-width: 880px;
+    margin: 0 auto 48px;
+    background: var(--ivory);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  header.brand {
+    background: var(--green-deep);
+    color: var(--ivory);
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .contact-line {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .contact-line a { color: var(--green-mid); text-decoration: none; }
+  header.brand .brandblock { display: flex; align-items: center; gap: 14px; }
+  .monogram {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .monogram span {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--gold-light);
+  }
+  header.brand .mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+  }
+  header.brand .mark span {
+    color: var(--gold-light);
+  }
+  header.brand .tag {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-top: 4px;
+  }
+  header.brand .prop {
+    text-align: right;
+    font-size: 13px;
+    color: var(--gold-light);
+  }
+  header.brand .prop strong {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    color: var(--ivory);
+    font-weight: 500;
+  }
+  .content { padding: 36px 40px 8px; }
+  h2.section {
+    font-family: 'Playfair Display', serif;
+    font-weight: 500;
+    font-size: 19px;
+    color: var(--green-deep);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+    margin: 0 0 20px;
+  }
+  .top-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 32px;
+    margin-bottom: 36px;
+  }
+  .score-card {
+    background: var(--green-deep);
+    color: var(--ivory);
+    border-radius: 6px;
+    padding: 22px;
+    text-align: center;
+  }
+  .score-card .label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+  }
+  .score-card .score {
+    font-family: 'Playfair Display', serif;
+    font-size: 44px;
+    margin: 6px 0 2px;
+  }
+  .score-card .score span { font-size: 18px; color: var(--gold-light); }
+  .score-card .sub { font-size: 12px; color: var(--gold-light); }
+  .loss-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 18px 24px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--cream);
+  }
+  .loss-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .loss-card .value {
+    font-family: 'Playfair Display', serif;
+    font-size: 34px;
+    color: var(--danger);
+    margin: 4px 0;
+  }
+  .loss-card .note { font-size: 13px; color: var(--text-muted); }
+
+  .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 36px; }
+  .pillar {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .pillar .row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .pillar .row .name { color: var(--text-dark); font-weight: 500; }
+  .pillar .row .amt { color: var(--danger); font-weight: 500; }
+  .bar-track { background: var(--line); border-radius: 20px; height: 8px; overflow: hidden; }
+  .bar-fill { background: var(--gold); height: 100%; border-radius: 20px; }
+
+  table.objectives { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+  table.objectives th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 6px;
+  }
+  table.objectives td { padding: 12px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .agent-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: var(--cream);
+    border: 1px solid var(--gold-light);
+    color: var(--green-mid);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .progress-cell { width: 160px; }
+  .progress-track { background: var(--line); border-radius: 20px; height: 6px; }
+  .progress-fill { background: var(--ok); height: 100%; border-radius: 20px; }
+  .progress-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .report-summary {
+    background: var(--cream);
+    border-left: 3px solid var(--gold);
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    font-family: 'Playfair Display', serif;
+    color: var(--text-dark);
+  }
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+  .metric {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .metric .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+  .metric .value { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--green-deep); margin: 4px 0 2px; }
+  .metric .delta { font-size: 12px; }
+  .metric .delta.up { color: var(--ok); }
+  .metric .delta.down { color: var(--danger); }
+
+  .note-perso {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-muted);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin: 24px 0 8px;
+  }
+  footer.brand {
+    padding: 16px 40px 28px;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .disclaimer {
+    max-width: 880px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 0 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="disclaimer" style="margin-bottom:24px;">Mockup à usage interne — établissement, chiffres et échanges fictifs, uniquement pour illustrer l'espace client et le rapport mensuel.</div>
+
+<!-- PAGE 1 — DASHBOARD CLIENT -->
+<div class="page">
+  <header class="brand">
+    <div class="brandblock">
+      <div class="monogram"><span>A</span></div>
+      <div>
+        <div class="mark">ANESIS <span>ACQUISITION</span></div>
+        <div class="tag">Hospitality Acquisition Firm</div>
+      </div>
+    </div>
+    <div class="prop">
+      Espace client
+      <strong>The Foxcombe Arms</strong>
+      Cotswolds, Royaume-Uni
+    </div>
+  </header>
+
+  <div class="content">
+    <h2 class="section">Diagnostic — Leak Index</h2>
+    <div class="top-row">
+      <div class="score-card">
+        <div class="label">Leak Index</div>
+        <div class="score">62<span>/100</span></div>
+        <div class="sub">Établissement qualifié</div>
+      </div>
+      <div class="loss-card">
+        <div class="label">Perte mensuelle estimée</div>
+        <div class="value">&pound;8,400 / mois</div>
+        <div class="note">Soit environ &pound;100,800 sur 12 mois de revenu direct laissé sur la table, aux tarifs et à l'occupation actuels.</div>
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="row"><span class="name">Vitesse du site</span><span class="amt">&pound;1,900/mois</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div>
+      </div>
+      <div class="pillar">
+        <div class="row"><span class="name">R&eacute;putation / avis</span><span class="amt">&pound;1,400/mois</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%"></div></div>
+      </div>
+      <div class="pillar">
+        <div class="row"><span class="name">D&eacute;pendance OTA</span><span class="amt">&pound;3,300/mois</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:78%"></div></div>
+      </div>
+      <div class="pillar">
+        <div class="row"><span class="name">Retargeting publicitaire</span><span class="amt">&pound;1,800/mois</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:90%"></div></div>
+      </div>
+    </div>
+
+    <h2 class="section">Objectifs actifs — mandat Domination</h2>
+    <table class="objectives">
+      <tr><th>Objectif</th><th>Agent responsable</th><th>Cible de r&eacute;cup&eacute;ration</th><th class="progress-cell">Progression</th></tr>
+      <tr>
+        <td>Corriger le temps de r&eacute;ponse du site</td>
+        <td><span class="agent-tag">Conversion</span></td>
+        <td>&pound;1,140/mois</td>
+        <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:40%"></div></div><div class="progress-label">40% atteint</div></td>
+      </tr>
+      <tr>
+        <td>Relever la note et le volume d'avis</td>
+        <td><span class="agent-tag">Reputation</span></td>
+        <td>&pound;840/mois</td>
+        <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:65%"></div></div><div class="progress-label">65% atteint</div></td>
+      </tr>
+      <tr>
+        <td>R&eacute;&eacute;quilibrer le mix de canaux (OTA)</td>
+        <td><span class="agent-tag">Rate &amp; Distribution</span></td>
+        <td>&pound;2,970/mois</td>
+        <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:20%"></div></div><div class="progress-label">20% atteint</div></td>
+      </tr>
+      <tr>
+        <td>D&eacute;ployer le reciblage publicitaire</td>
+        <td><span class="agent-tag">Media Buyer</span></td>
+        <td>&pound;1,620/mois</td>
+        <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:55%"></div></div><div class="progress-label">55% atteint</div></td>
+      </tr>
+    </table>
+  </div>
+  <footer class="brand">
+    <span>Donn&eacute;es mesur&eacute;es en continu &mdash; mandat d&eacute;marr&eacute; le 01/01/2026</span>
+    <span class="contact-line">ANESIS ACQUISITION LTD &nbsp;&middot;&nbsp; <a href="mailto:contact@anesisacquisition.co.uk">contact@anesisacquisition.co.uk</a> &nbsp;&middot;&nbsp; anesisacquisition.co.uk</span>
+  </footer>
+</div>
+
+<!-- PAGE 2 — RAPPORT MENSUEL -->
+<div class="page">
+  <header class="brand">
+    <div class="brandblock">
+      <div class="monogram"><span>A</span></div>
+      <div>
+        <div class="mark">ANESIS <span>ACQUISITION</span></div>
+        <div class="tag">Rapport mensuel &mdash; Mois 3</div>
+      </div>
+    </div>
+    <div class="prop">
+      P&eacute;riode
+      <strong>01/03/2026 &ndash; 31/03/2026</strong>
+      The Foxcombe Arms
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="report-summary">
+      &laquo;&nbsp;Troisi&egrave;me mois cons&eacute;cutif de progression sur les r&eacute;servations directes. La correction du site et le reciblage publicitaire commencent &agrave; produire un effet mesurable ; la d&eacute;pendance OTA reste le chantier le plus lent &agrave; bouger, comme pr&eacute;vu &agrave; la signature. On maintient le cap sur ce pilier le mois prochain.&nbsp;&raquo;
+      <div style="font-family:'Inter',sans-serif; font-size:12px; color:var(--text-muted); margin-top:10px; font-style:normal;">&mdash; Note de l'&eacute;quipe Anesis, jointe au rapport g&eacute;n&eacute;r&eacute; par l'agent Analyst</div>
+    </div>
+
+    <h2 class="section">R&eacute;el vs r&eacute;f&eacute;rence de d&eacute;part</h2>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="label">R&eacute;servations directes</div>
+        <div class="value">&pound;61,200</div>
+        <div class="delta up">+13.3% vs r&eacute;f&eacute;rence (&pound;54,000)</div>
+      </div>
+      <div class="metric">
+        <div class="label">Tarif moyen (ADR)</div>
+        <div class="value">&pound;162</div>
+        <div class="delta up">+&pound;4 vs r&eacute;f&eacute;rence (&pound;158)</div>
+      </div>
+      <div class="metric">
+        <div class="label">Part des r&eacute;servations OTA</div>
+        <div class="value">42%</div>
+        <div class="delta up">-9 pts vs r&eacute;f&eacute;rence (51%)</div>
+      </div>
+    </div>
+
+    <div class="note-perso">Prochain rendez-vous t&eacute;l&eacute;phonique&nbsp;: le 10/04/2026. Ligne WhatsApp d&eacute;di&eacute;e disponible entre-temps pour toute question.</div>
+  </div>
+  <footer class="brand">
+    <span>Rapport g&eacute;n&eacute;r&eacute; par l'agent Analyst, relu et annot&eacute; avant envoi</span>
+    <span class="contact-line">ANESIS ACQUISITION LTD &nbsp;&middot;&nbsp; <a href="mailto:contact@anesisacquisition.co.uk">contact@anesisacquisition.co.uk</a> &nbsp;&middot;&nbsp; anesisacquisition.co.uk</span>
+  </footer>
+</div>
+
+</body>
+</html>

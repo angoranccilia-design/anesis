@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { AGENT_IDS, ROSTER } from "../agent.js";
 
-describe("roster canonique (13 agents)", () => {
-  it("compte exactement 13 agents", () => {
-    expect(AGENT_IDS).toHaveLength(13);
+describe("roster canonique (12 agents métier)", () => {
+  it("compte exactement 12 agents (planner n'est PAS un agent métier)", () => {
+    expect(AGENT_IDS).toHaveLength(12);
+    expect(AGENT_IDS).not.toContain("planner"); // utilitaire système, hors roster
   });
 
   it("affecte les niveaux d'autonomie par défaut du §7", () => {
@@ -20,8 +21,6 @@ describe("roster canonique (13 agents)", () => {
     expect(ROSTER["content-creator"].defaultTier).toBe("T5");
     // Directrice Artistique — même régime T5 (touche à la voix de marque), distincte de content-creator.
     expect(ROSTER["art-director"].defaultTier).toBe("T5");
-    // Planner — agent système (étape 3), dérive objectifs+tâches ; T0 comme les autres coordinateurs.
-    expect(ROSTER.planner.defaultTier).toBe("T0");
   });
 
   it("les libellés de rôle sont en anglais britannique", () => {

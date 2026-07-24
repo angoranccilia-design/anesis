@@ -15,8 +15,8 @@
 import { randomUUID } from "node:crypto";
 import {
   iso,
-  type AgentId,
   type AgentRunId,
+  type RunnableAgentId,
   type CorrelationId,
   type EventId,
   type EventPayloadMap,
@@ -45,7 +45,7 @@ class RuntimeContext implements AgentContext {
 
   constructor(
     private readonly rt: AgentRuntime,
-    readonly agentId: AgentId,
+    readonly agentId: RunnableAgentId,
     readonly mandateId: MandateId | null,
     readonly correlationId: CorrelationId,
     readonly trigger: Trigger,
@@ -232,7 +232,7 @@ export class AgentRuntime {
    * Utilisé par l'underwriter pour évaluer des prospects qui n'ont pas encore de mandat.
    */
   async runSystem<T>(
-    agentId: AgentId,
+    agentId: RunnableAgentId,
     correlationId: CorrelationId,
     fn: (ctx: AgentContext) => Promise<T>,
   ): Promise<T> {

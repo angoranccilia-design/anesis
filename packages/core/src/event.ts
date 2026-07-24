@@ -22,7 +22,7 @@ import type {
   TaskId,
   ThesisId,
 } from "./primitives.js";
-import type { AgentId } from "./agent.js";
+import type { AgentId, RunnableAgentId } from "./agent.js";
 import type { AutonomyTier } from "./autonomy.js";
 
 export type EventType =
@@ -155,7 +155,7 @@ export interface DomainEvent<T extends EventType = EventType> {
   readonly type: T;
   readonly payload: EventPayloadMap[T];
   readonly mandateId: MandateId | null;
-  readonly emittedBy: AgentId | OperatorId | "system";
+  readonly emittedBy: RunnableAgentId | OperatorId | "system"; // inclut les agents système (planner)
   readonly emittedAt: Iso8601;
   readonly audience: EventAudience;
   readonly correlationId: CorrelationId;

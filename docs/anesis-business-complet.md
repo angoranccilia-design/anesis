@@ -34,6 +34,8 @@ Un hôtel indépendant britannique perd de l'argent de trois façons qu'il ne me
 
 Vous ne segmentez plus par type de bien (hôtel, spa, glamping) mais par situation économique. Un country house hotel et un lodge de glamping haut de gamme partagent le même problème s'ils partagent ce profil. Le déploiement géographique se fait en trois vagues : Sud-Ouest et Cotswolds d'abord (la plus forte densité, votre zone d'installation), puis Sud-Est et Nord, puis Écosse et Pays de Galles, puis l'Europe continentale à partir de l'année 2-3.
 
+*Note : certaines analyses externes suggèrent d'argumenter « pourquoi Londres ». Ça ne correspond pas à votre ICP (Londres = hôtellerie urbaine, chaînes, tarification différente) ni à votre zone d'installation réelle (Sud-Ouest/Cotswolds, hôtellerie indépendante rurale/expérientielle). Le siège social peut être administrativement à Londres sans que ce soit un argument de marché — à ne pas confondre dans le dossier.*
+
 ## Pourquoi le Royaume-Uni, pas le Canada
 
 Quatre raisons, dans cet ordre : la dépendance aux plateformes de réservation y est structurellement plus lourde qu'en Amérique du Nord, donc le problème que vous chiffrez vaut plus cher ; votre modèle exige une présence physique (vous dirigez des séances photo, vous rencontrez les propriétaires) et la densité géographique britannique rend ça possible alors que le Canada l'aurait rendu ruineux ; l'hôtellerie indépendante britannique tourne toute l'année, ce qui permet d'employer une équipe à temps plein, alors que l'Atlantique canadien est saisonnier ; et le Royaume-Uni est une porte d'entrée vers l'Europe entière, alors que le Canada n'ouvre que sur un marché américain dominé par les chaînes. Ne mentionnez jamais votre situation personnelle comme raison de venir — le raisonnement doit toujours partir du problème, jamais de vous.
@@ -124,20 +126,28 @@ Chaque action qu'un agent peut entreprendre porte un niveau, selon ce qu'une err
 
 ## Les douze agents
 
-| Agent | Rôle | Autonomie |
-|---|---|---|
-| Orchestrator | Chef d'équipe, distribue le travail, écrit le rapport hebdomadaire | Totale |
-| Underwriter | Exécute l'analyse et produit la Thèse d'Acquisition | Totale |
-| Analyst | Mesure le réel contre le prévu chaque jour, détecte les écarts | Totale |
-| Social Ops | Programme et publie le contenu déjà approuvé | Relecture après coup |
-| Conversion | Recommande des corrections du site et du parcours de réservation | Relecture après coup |
-| Reputation | Rédige et publie les réponses aux avis Google | Délai de 2h |
-| Partnerships | Contacte les partenaires potentiels (PMS, courtiers, guides) | Délai de 2h |
-| Lifecycle | Prépare les séquences email vers les clients de l'établissement | Accord obligatoire |
-| Media Buyer | Construit et ajuste les campagnes Meta et Google Ads | Accord obligatoire |
-| Rate & Distribution | Surveille la parité tarifaire, propose la stratégie de distribution | Accord obligatoire |
-| Content Creator | Rédige textes, calendrier, briefs de production | Accord obligatoire |
-| **Creative Director** *(nouveau)* | Propose la direction visuelle et la veille des tendances par établissement | Interne, jamais publié directement |
+| Agent | Rôle | Autonomie | KPI principal |
+|---|---|---|---|
+| Orchestrator | Chef d'équipe, distribue le travail, écrit le rapport hebdomadaire | Totale | % tâches assignées dans les temps |
+| Underwriter | Exécute l'analyse et produit la Thèse d'Acquisition | Totale | Précision Leak Index vs réel |
+| Analyst | Mesure le réel contre le prévu chaque jour, détecte les écarts | Totale | Détection précoce d'anomalies |
+| Social Ops | Programme et publie le contenu déjà approuvé | Relecture après coup | Délai de publication |
+| Conversion | Recommande des corrections du site et du parcours de réservation | Relecture après coup | Impact sur le taux de conversion |
+| Reputation | Rédige et publie les réponses aux avis Google | Délai de 2h | Note moyenne Google |
+| Partnerships | Contacte les partenaires potentiels (PMS, courtiers, guides) | Délai de 2h | Partenariats signés |
+| Lifecycle | Prépare les séquences email vers les clients de l'établissement | Accord obligatoire | LTV client hôtel |
+| Media Buyer | Construit et ajuste les campagnes Meta et Google Ads | Accord obligatoire | ROAS, CPA |
+| Rate & Distribution | Surveille la parité tarifaire, propose la stratégie de distribution | Accord obligatoire | % de réservations directes |
+| Content Creator | Rédige textes, calendrier, briefs de production | Accord obligatoire | Performance créas (CTR, conversion) |
+| **Creative Director** *(nouveau)* | Propose la direction visuelle et la veille des tendances par établissement | Interne, jamais publié directement | Attribution créative au revenu |
+
+### Cadence de l'équipe créative (orientée revenu)
+
+Principe : l'équipe créative ne produit pas « du beau » pour être beau — uniquement du contenu qui génère des réservations mesurables.
+
+**Ce qui se fait** : 1 shooting/trimestre (photo + vidéo), 10 à 20 assets par shooting, 3 à 5 nouvelles créas testées par mois, 8 à 12 posts par mois maximum, 2 à 3 stories par semaine, A/B testing créatif systématique.
+
+**Ce qui ne se fait pas** : gestion Instagram complète, animation quotidienne sans objectif, réponse aux DM (sauf conversion), calendrier lifestyle sans lien direct avec les réservations, publier pour l'engagement ou la viralité en soi.
 
 **Deux limites honnêtes à connaître :** comparer automatiquement le prix du site à celui des plateformes n'a pas de connexion simple — ça se fait à la main au départ. Et répondre automatiquement aux avis TripAdvisor n'est pas possible techniquement — l'agent rédige, un humain colle la réponse.
 
@@ -210,6 +220,165 @@ Vous ne vendez jamais le logiciel lui-même à personne. C'est une infrastructur
 **Scalable :** la courbe des minutes humaines par mandat, qui descend avec le temps — la preuve que l'entreprise grandit sans grossir au même rythme en effectifs.
 
 **Créateur d'emplois :** cinq postes réels, chacun justifié par l'architecture même du système, pas ajoutés pour cocher une case.
+
+---
+
+# PARTIE 10 — POSITIONNEMENT & VISION À 10 ANS
+
+## Ce que nous ne sommes pas
+
+Agence marketing · Éditeur de logiciel (SaaS) · Consultant en revenue management · Gestionnaire de réseaux sociaux · Prestataire de services classiques.
+
+## Ce que nous sommes
+
+AI Hospitality Underwriting Firm · Revenue Recovery Company · Firme de souscription de revenu hôtelier.
+
+## Phrase de positionnement
+
+> « Anesis souscrit des établissements hôteliers indépendants comme un assureur souscrit un risque : nous mesurons, chiffrons en £, décidons d'accepter ou de refuser, puis récupérons ce revenu sous contrat avec une part de notre rémunération indexée sur le résultat réellement obtenu. »
+
+## Différenciation clé
+
+| Agence classique | Anesis Acquisition |
+|---|---|
+| Vente de temps/prestations | Souscription de risque |
+| Paiement fixe, pas de résultat garanti | Rémunération partiellement liée au résultat |
+| Accepte tous les clients | Refuse les dossiers non éligibles |
+| Pas de responsabilité financière | Prend la responsabilité financière de ce qu'elle avance |
+| Facture du marketing | Facture de la récupération de revenu |
+
+## Vision à 10 ans
+
+- **2026 (Année 1)** : 10 hôtels sous mandat, UK (Sud-Ouest)
+- **2028 (Année 3)** : 50 hôtels sous mandat, UK complet
+- **2031 (Année 5)** : 150+ hôtels, Europe (France, Italie, Espagne)
+- **2036 (Année 10)** : référence mondiale de la souscription de revenu hôtelier
+
+## L'actif qui se construit avec le temps (la donnée comparative)
+
+Chaque mandat ajoute des données de performance réelles (vitesse, avis, dépendance OTA, réservations directes, réponse aux campagnes) à un ensemble qu'aucun établissement isolé, ni aucune agence généraliste, ne possède. Plus Anesis sert d'établissements, plus ce corpus comparatif grandit — et plus il devient possible de dire à un client où il se situe réellement face à des pairs similaires, pas seulement face à lui-même dans le temps. Cette donnée comparative accumulée est, avec le temps, un actif en soi, indépendant du service rendu à un mandat donné — et un actif que la concurrence ne peut pas rattraper simplement en copiant la méthode, puisqu'il faut le nombre de mandats et le temps pour l'accumuler.
+
+**Pourquoi ce n'est pas copiable en lisant simplement ce document** : l'avantage n'est pas un agent isolé ni un prompt — n'importe qui peut écrire « réponds aux avis Google ». L'avantage est la combinaison assemblée : moteur de souscription + gouvernance T0–T5 + scoring déterministe + attribution créative + orchestration + modèle économique en trois lignes, plus les données qui s'accumulent en l'exploitant. Copier un agent ne copie pas le système.
+
+**Land and expand** : chaque mandat commence sur un seul établissement, mais la relation est pensée pour grandir avec lui — vers un groupe de propriétés, une petite chaîne, ou un portefeuille détenu par le même investisseur. C'est moins cher à vendre (le client connaît déjà la méthode) et ça accélère la vague 2/3 du déploiement géographique sans prospection supplémentaire.
+
+## Une firme conçue pour ne pas dépendre d'une seule personne
+
+Le modèle distingue déjà, dans le domaine technique, un rôle **fondatrice** (seule à approuver les décisions les plus engageantes et à déclencher un arrêt d'urgence global) d'un rôle **opératrice** plus large, prévu pour être occupé par d'autres personnes sans changement de architecture. L'ordre d'embauche des cinq premiers postes (Partie 5) suit la même logique : chaque poste reprend, une fois occupé, un pan entier de ce que la fondatrice validerait seule au départ (direction artistique, contenu, achat média). Le système est donc pensé, dès le départ, pour que l'exécution quotidienne devienne progressivement indépendante d'une seule personne — la fondatrice reste décisionnaire sur l'engageant (argent, image de marque), pas sur l'ensemble de l'opérationnel.
+
+---
+
+# PARTIE 11 — INNOVATIONS IA À DÉVELOPPER
+
+- **Leak Index™** *(opérationnel, évolution proposée)* — calcul déterministe de la perte mensuelle. Inputs actuels : vitesse du site (PageSpeed), volume et note des avis (Google, TripAdvisor), structure du site (UX), pixel de reciblage, dépendance OTA (scraping Booking/Expedia), performance publicitaire (Meta Ads Library). Outputs : Leak Index /100, perte mensuelle décomposée par pilier, décision (qualifié/décliné/à revoir), motif clair en cas de refus.
+
+  **Trou identifié (2026-07) : aucun pilier ne mesure l'exploitation d'Instagram/Facebook.** Un établissement perd de l'argent des deux côtés — absence ou faiblesse de contenu (trafic gratuit jamais capté), ou au contraire contenu viral (ex. un reel à 2M de vues) qui ne convertit rien faute de parcours de réservation solide derrière. Le second cas est partiellement vu par le pilier vitesse/conversion ; le premier n'est mesuré nulle part aujourd'hui.
+
+  **Proposition : 5e pilier « Réseaux sociaux ».** Mesure l'exploitation d'Instagram/Facebook comme canal d'acquisition gratuit — même logique que le pilier retargeting (son absence est une fuite, pas une case marketing à part). Signaux : abonnés rapportés à la taille/gamme de l'établissement, fréquence de publication, taux d'engagement moyen, présence de vidéo/reels. Source de données : même infrastructure que les avis (scraping via Apify), extension de l'existant plutôt que nouveau chantier. Repondération proposée pour garder un total de 100 % : vitesse 20 %, avis 20 %, OTA 25 %, retargeting 15 %, réseaux sociaux 20 % — l'OTA reste dominant (cohérent avec la validation marché, Partie 14), le social entre avec un poids réel. À valider puis implémenter dans `packages/assessment` (non fait à ce jour).
+- **Creative Attribution AI™** *(R&D, priorité haute)* — relier chaque contenu au revenu généré (ex. type d'illustration : « les vidéos avec cheminée génèrent +34 % de réservations »).
+- **Pricing Intelligence AI™** *(Année 2)* — optimisation dynamique des tarifs.
+- **OTA Shield Agent™** *(Année 2)* — surveillance et protection contre les fuites vers les OTA.
+
+---
+
+# PARTIE 12 — ROADMAP TECHNIQUE (3 PREMIERS MOIS)
+
+- **Mois 1 — Fondations** : moteur de permissions (T0–T5), domaine complet, base de données isolée par mandat, bus de messages inter-agents, Leak Index™ branché sur sources publiques, agents Underwriter & Analyst. *Livrable : moteur de diagnostic fonctionnel.*
+- **Mois 2 — Agents minimaux + traction** : Orchestrator, Media Buyer, Social Ops, Reputation, interface client MVP, site public, Compliance Agent. *Cible : 60+ diagnostics, 7 qualifiés, 2 LOI.*
+- **Mois 3 — Préparation endorsement** : Creative Attribution AI v1, Human Time Optimizer, tests automatisés finaux, documentation complète, dossier d'endorsement prêt.
+
+**Priorités de développement (ordre)** : 1. Moteur de permissions T0–T5 · 2. Leak Index™ · 3. Creative Attribution AI™ · 4. Compliance Agent™ · 5. Human Time Optimizer Agent™.
+
+**Principe pour toute nouvelle capacité future (prédiction, détection de fuite OTA, relance de réservation abandonnée, etc.) : le roster reste à 12.** Ces capacités sont des versions plus avancées des agents déjà nommés (Partie 5), pas de nouveaux agents — par exemple Analyst détecte l'écart aujourd'hui, une version future du même agent le prédit ; Rate & Distribution surveille la parité aujourd'hui, une version future détecte et corrige les fuites OTA plus tôt. On fait grandir les 12, on n'en ajoute pas un 13e à chaque nouvelle idée.
+
+**Exception posée et documentée (étape 3, 2026-07) : l'agent `planner`.** Transforme automatiquement une thèse signée en objectifs et tâches routées. Ce n'est pas un 13e agent du roster business : il n'a ni KPI, ni employé qui le pilote, ni rôle dans l'argumentaire de création d'emploi — c'est un utilitaire système interne, déclenché une fois par mandat sur `mandate.thesis_attached`. Le chiffre « 12 » reste donc exact pour le roster opérationnel ; `planner` s'ajoute à côté, dans la même catégorie que la plomberie technique (bus d'événements, moteur de politique), pas dans la vitrine des 12 métiers.
+
+## Étape 3 — statut (2026-07-24)
+
+Construit et testé (CI verte) : `packages/planning` (répartition de la perte par pilier sans dérive d'arrondi, seuil de matérialité, un objectif par poste, une tâche routée par objectif — fonction pure, déterministe, sans IA sur les chiffres) et l'agent `planner` (déclenché sur `mandate.thesis_attached`, idempotent).
+
+Maillon restant avant que la chaîne tourne réellement (pas seulement en test) : le runtime qui construit la thèse à la signature du mandat et émet `mandate.thesis_attached` n'est pas encore câblé. Séquence retenue : (1) fermer ce maillon en premier — petit chantier, referme la boucle de bout en bout ; (2) préparer la campagne de diagnostics du 4 août (sources réelles, token Apify) — date dure, et c'est elle qui produit la traction qui manque le plus au dossier ; (3) étape 4 (migration des 8 agents restants du roster) attend après, elle profitera des premiers résultats réels de la campagne.
+
+---
+
+# PARTIE 13 — PROJECTIONS FINANCIÈRES
+
+| Indicateur / Poste | Année 1 (10 mandats) | Année 2 (30 mandats) | Année 3 (50 mandats) |
+|---|---|---|---|
+| Revenu total | £460 000 | £1 608 000 | £2 680 000 |
+| Coûts humains | £180 000 | £480 000 | £750 000 |
+| Coûts techniques & marketing | £75 000 | £170 000 | £260 000 |
+| Marge nette estimée | ~£205 000 (44 %) | ~£770 000 (48 %) | ~£1 340 000 (50 %) |
+
+---
+
+# PARTIE 14 — VALIDATION MARCHÉ UK
+
+- **Taille du marché** : ~8 500 hôtels indépendants au UK. ICP cible (12–80 clés, ADR > £140, >35 % OTA) : ~2 800 établissements. Taux de pénétration visé année 3 : 1,8 %.
+- **Dépendance OTA** : moyenne UK de 38 % (jusqu'à 65 % pour l'ICP). Commission OTA : 15–20 %.
+- **Opportunité** : perte moyenne estimée à 20–30 % du revenu direct. Valeur créée par mandat/an : £70 000–£150 000.
+
+## Plan d'acquisition commerciale (comment on signe réellement les mandats)
+
+Sur ~2 800 établissements dans l'ICP UK, viser 10 mandats en année 1 est un taux de conversion très faible (0,4 %) — mais encore faut-il générer le volume de contact initial qui permet d'y arriver. Trois canaux, pas un seul :
+
+- **Inbound** — le diagnostic gratuit (Porte 1) est lui-même l'aimant : formulaire sur le site public, campagne ciblée vers l'ICP (recherche + réseaux), objectif de volume aligné sur le Mois 2 de la roadmap (60+ diagnostics → 7 qualifiés).
+- **Outbound structuré** — contact direct vers les établissements identifiés hors ICP-inbound (recherche + qualification manuelle au départ, avant tout outil dédié), séquencé email puis appel, jamais l'inverse.
+- **Partenariats** — PMS (systèmes de gestion hôtelière), consultants indépendants en hôtellerie, guides et labels (ex. Pride of Britain, Small Luxury Hotels) : apporteurs d'affaires naturels, déjà en contact avec l'ICP exact.
+
+**Volumes attendus (à valider avec l'usage réel)** : pour 10 mandats signés en année 1, prévoir un ordre de grandeur de 150 à 250 prises de contact (inbound + outbound + partenariats confondus) compte tenu du filtre ICP puis du taux de signature après Thèse d'Acquisition. Chiffre à ajuster dès les premières semaines de campagne, pas à figer maintenant.
+
+## Validation empirique du Leak Index (avant même le premier mandat UK)
+
+Avant d'avoir des clients UK, il existe déjà un moyen de tester si le score correspond à un résultat réel : recalculer, a posteriori, ce que le Leak Index aurait donné sur les clients déjà servis sous KAIROS (glamping, spa, SAFIR) à partir de leurs données publiques d'origine, puis comparer au résultat réellement obtenu (22x ROAS, +372 % Instagram, +156 % réservations). Ce n'est pas une preuve UK, mais c'est une première corrélation score → résultat réel, avec des données qui existent déjà — moins convaincant qu'une validation UK en vraie grandeur, mais gratuit et immédiat.
+
+---
+
+# PARTIE 15 — GESTION DES RISQUES
+
+| Risque | Probabilité | Impact | Mitigation |
+|---|---|---|---|
+| Dépendance aux plateformes publicitaires | Moyenne | Élevé | Diversification (email, retargeting interne, partenariats) |
+| Adoption lente du marché | Moyenne | Moyen | Diagnostic gratuit + refus motivé + LOI |
+| Coût humain trop élevé | Faible | Moyen | Agents autonomes + Human Time Optimizer Agent |
+| Réglementaire (GDPR) | Faible | Élevé | Compliance Agent + solicitor UK |
+| Concurrence / copie | Moyenne | Moyen | IP (Leak Index) + data propriétaires + effet réseau |
+| Risque « key person » | Faible | Élevé | Documentation procédurale + délégation progressive |
+| Saisonnalité de trésorerie | Moyenne | Moyen | Souscriptions upfront + paiement mensuel strict |
+
+---
+
+# PARTIE 16 — PROPRIÉTÉ INTELLECTUELLE
+
+**Marques à déposer (UKIPO)** : ANESIS (priorité 1, classes 35 et 42, £170) · Anesis Leak Index (priorité 2, classe 42, £170). Les termes descriptifs (Acquisition Thesis, Hospitality Underwriting, etc.) ne sont pas déposables.
+
+**Protection réelle** : droit d'auteur sur le code source, clauses de cession dans les contrats, droit sui generis sur la base de données (15 ans), secret d'affaires pour la formule du Leak Index.
+
+---
+
+# PARTIE 17 — NOMENCLATURE DOCUMENTAIRE
+
+Format : `ANESIS-[TYPE]-[ANNÉE]-[NUMÉRO]-[VERSION]` (ex. `ANESIS-MDT-2026-001-v1` pour un mandat).
+
+```
+ANESIS/
+├── 01_CONTRATS/
+│   ├── 2025/ (ANESIS-FRL-2025-001-v1_NomClient.pdf)
+│   └── 2026/ (ANESIS-MDT-2026-001-v1_NomClient.pdf)
+├── 02_FACTURES/ (ANESIS-INV-2026-001.pdf)
+├── 03_THESES/ (ANESIS-THS-2026-001-v1_NomClient.pdf)
+├── 04_RAPPORTS/ (ANESIS-RPT-2026-001_NomClient_Mois1.pdf)
+└── 05_ADMIN/ (Immatriculation_CompaniesHouse.pdf)
+```
+
+---
+
+# PARTIE 18 — CHECKLIST DE LANCEMENT
+
+- **Aujourd'hui** : copier ce dossier dans Notion/Docs, déposer la marque « ANESIS » sur UKIPO (£170), créer l'arborescence cloud (Partie 17).
+- **Semaine 1** : démarrer le développement (Mois 1), lancer le site public avec formulaire Leak Index, initier la campagne de diagnostics gratuits.
+- **Semaines 2–8** : développer les 3 agents minimum (Underwriter, Analyst, Orchestrator), obtenir des lettres d'intention, préparer le dossier d'endorsement.
+- **Semaines 9–12** : finaliser les tests, assembler le dossier complet, soumettre l'endorsement.
 
 ---
 

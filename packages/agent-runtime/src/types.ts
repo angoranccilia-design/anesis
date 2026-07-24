@@ -1,6 +1,5 @@
 /** Contrats du runtime d'agents. */
 import type {
-  AgentId,
   AgentRunId,
   Approval,
   AutonomyTier,
@@ -9,6 +8,7 @@ import type {
   EventPayloadMap,
   EventType,
   MandateId,
+  RunnableAgentId,
   TickType,
 } from "@anesis/core";
 import type { SqlClient } from "@anesis/db";
@@ -55,7 +55,7 @@ export interface AgentContext {
 }
 
 export interface Agent {
-  readonly id: AgentId;
+  readonly id: RunnableAgentId; // les 12 du roster OU un agent système (planner)
   readonly events?: readonly EventType[];
   readonly ticks?: readonly TickType[];
   run(ctx: AgentContext): Promise<void>;

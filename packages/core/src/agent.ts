@@ -1,12 +1,13 @@
 /**
- * Roster canonique ANESIS — 13 agents : les 12 métier (Partie B) + `planner` (système, T0).
- * L'agent est identifié par un slug stable (pas un uuid) : le roster est fixe.
+ * Roster canonique ANESIS — les 12 agents MÉTIER (Partie B du brief). Le roster est fixe.
+ * L'agent est identifié par un slug stable (pas un uuid).
  * Le niveau d'autonomie ci-dessous est le DÉFAUT de l'agent ; chaque action peut le surcharger.
  * `art-director` (T5) est DISTINCT de `content-creator` : fonction STRATÉGIQUE au niveau du mandat
  * (univers de marque, repositionnement), non rattachée à un LossLineItem — là où content-creator est
  * de l'exécution routée depuis un Objective chiffré. Les deux coexistent volontairement.
- * `planner` (T0) dérive objectifs+tâches à partir d'une thèse attachée (étape 3), comme analyst/
- * orchestrator/underwriter c'est un agent système (plomberie), pas un agent client.
+ *
+ * `planner` N'EST PAS un agent métier : c'est un UTILITAIRE SYSTÈME interne (ni KPI, ni pilotage
+ * humain), au même titre que le bus d'événements ou le moteur de politique → hors roster (SystemAgentId).
  */
 import type { AutonomyTier } from "./autonomy.js";
 import type { EventType, TickType } from "./event.js";
@@ -23,8 +24,13 @@ export type AgentId =
   | "media-buyer"
   | "rate-distribution"
   | "content-creator"
-  | "art-director"
-  | "planner";
+  | "art-director";
+
+/** Agents SYSTÈME (plomberie interne) : hors roster des 12, sans KPI ni pilotage humain. */
+export type SystemAgentId = "planner";
+
+/** Tout id capable d'EXÉCUTER dans le runtime : les 12 du roster + les agents système. */
+export type RunnableAgentId = AgentId | SystemAgentId;
 
 export interface RosterEntry {
   readonly role: string; // libellé d'interface, anglais britannique
@@ -44,7 +50,6 @@ export const ROSTER: Record<AgentId, RosterEntry> = {
   "rate-distribution": { role: "Rate & Distribution", defaultTier: "T4" },
   "content-creator": { role: "Content Creator", defaultTier: "T5" },
   "art-director": { role: "Art Director", defaultTier: "T5" },
-  planner: { role: "Planner", defaultTier: "T0" },
 };
 
 export const AGENT_IDS = Object.keys(ROSTER) as AgentId[];

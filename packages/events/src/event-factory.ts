@@ -15,7 +15,7 @@ import type {
   OperatorId,
 } from "@anesis/core";
 import { iso } from "@anesis/core";
-import type { AgentId } from "@anesis/core";
+import type { RunnableAgentId } from "@anesis/core";
 
 const EMPTY_AUDIENCE: EventAudience = { agents: [], humans: [], roles: [] };
 
@@ -25,7 +25,7 @@ export interface MakeEventInput<T extends EventType> {
   payload: EventPayloadMap[T]; // ← contrat du domaine, pas une forme parallèle
   correlationId: CorrelationId;
   mandateId?: MandateId | null;
-  emittedBy?: AgentId | OperatorId | "system";
+  emittedBy?: RunnableAgentId | OperatorId | "system";
   emittedAt?: Iso8601;
   audience?: EventAudience;
 }
