@@ -8,7 +8,7 @@ export default function AboutPage() {
       <PageHeader
         eyebrow="The firm"
         title="An underwriter’s discipline, brought to hospitality."
-        lede="We are not an agency you hand your marketing to. We measure what your independence is costing you, price it in pounds, and take responsibility for recovering it."
+        lede="We measure what your independence is costing you, price it in pounds, and take responsibility for recovering it. That is the whole introduction."
       />
       <section className="py-24">
         <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-cream-100/75">

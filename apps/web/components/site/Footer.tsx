@@ -6,7 +6,8 @@ export function Footer() {
       <div className="container-editorial py-16">
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <p className="font-serif text-2xl tracking-[0.2em] text-cream-50">ANESIS</p>
+            <p className="font-serif text-2xl tracking-[0.14em] text-cream-50">Anesis Acquisition</p>
+            <p className="eyebrow mt-1">Hospitality Acquisition Firm</p>
             <p className="mt-4 max-w-sm font-sans text-sm leading-relaxed text-cream-100/70">
               A hotel acquisition underwriting firm. We measure what independent hotels lose to the
               agencies that introduce their own guests back to them — and we recover it, in pounds.

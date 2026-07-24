@@ -5,8 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Anesis — Hotel Acquisition Underwriting",
-    template: "%s · Anesis",
+    default: "Anesis Acquisition — Hospitality Acquisition Firm",
+    template: "%s · Anesis Acquisition",
   },
   description:
     "We measure, in pounds, the direct revenue your hotel is quietly losing — then we take financial responsibility for recovering it.",

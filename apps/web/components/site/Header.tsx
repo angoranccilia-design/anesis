@@ -18,8 +18,11 @@ export function Header() {
   return (
     <header className="absolute inset-x-0 top-0 z-50">
       <div className="container-editorial flex items-center justify-between py-6">
-        <Link href="/" className="font-serif text-2xl tracking-[0.2em] text-cream-50">
-          ANESIS
+        <Link href="/" className="flex flex-col leading-none">
+          <span className="font-serif text-2xl tracking-[0.14em] text-cream-50">Anesis Acquisition</span>
+          <span className="mt-1 font-sans text-[0.55rem] uppercase tracking-eyebrow text-gold/80">
+            Hospitality Acquisition Firm
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-9 md:flex">
