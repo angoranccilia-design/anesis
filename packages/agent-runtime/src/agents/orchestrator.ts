@@ -43,6 +43,25 @@ async function onDeviation(ctx: AgentContext): Promise<void> {
   await ctx.completeRun(0, "measured");
 }
 
+/**
+ * §2 (étape 4) — maillon planner → agents d'exécution. Le planner crée les tâches en `created` (avec
+ * l'agent propriétaire) et émet `task.created`. L'ASSIGNATION reste la responsabilité de l'orchestrator
+ * (elle pourra évoluer : charge, priorité) : il transite created → assigned et émet `task.assigned`,
+ * l'événement que les agents d'exécution écoutent. Le planner reste une fonction PURE de dérivation.
+ */
+async function onTaskCreated(ctx: AgentContext, payload: { taskId: string }): Promise<void> {
+  await ctx.startRun();
+  const { rows } = await ctx.client.query("select assigned_agent, state from tasks where id = $1", [payload.taskId]);
+  const row = rows[0];
+  if (!row || row.state !== "created" || row.assigned_agent == null) {
+    await ctx.completeRun(0, "measured"); // déjà assignée / introuvable → idempotent
+    return;
+  }
+  await ctx.client.query("update tasks set state = 'assigned' where id = $1 and state = 'created'", [payload.taskId]);
+  await ctx.emit("task.assigned", { taskId: asId<TaskId>(payload.taskId), agentId: row.assigned_agent as AgentId });
+  await ctx.completeRun(0, "measured");
+}
+
 async function onArtifact(ctx: AgentContext, payload: { type?: string }): Promise<void> {
   if (payload.type !== "budget_redeployment") return; // ignore weekly_report → pas de boucle
   await ctx.startRun();
@@ -67,7 +86,7 @@ async function weeklyReport(ctx: AgentContext): Promise<void> {
 
 export const orchestrator: Agent = {
   id: "orchestrator",
-  events: ["measurement.deviation_detected", "artifact.produced"],
+  events: ["measurement.deviation_detected", "artifact.produced", "task.created"],
   ticks: ["weekly.tick"],
   run: async (ctx) => {
     if (ctx.trigger.kind === "tick") {
@@ -77,6 +96,10 @@ export const orchestrator: Agent = {
     if (ctx.trigger.kind !== "event") return; // (jamais déclenché en contexte système)
     if (ctx.trigger.type === "measurement.deviation_detected") {
       await onDeviation(ctx);
+      return;
+    }
+    if (ctx.trigger.type === "task.created") {
+      await onTaskCreated(ctx, ctx.trigger.payload as { taskId: string });
       return;
     }
     if (ctx.trigger.type === "artifact.produced") {

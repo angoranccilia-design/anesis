@@ -49,7 +49,7 @@ export const ROSTER: Record<AgentId, RosterEntry> = {
   "media-buyer": { role: "Media Buyer", defaultTier: "T4" },
   "rate-distribution": { role: "Rate & Distribution", defaultTier: "T4" },
   "content-creator": { role: "Content Creator", defaultTier: "T5" },
-  "art-director": { role: "Art Director", defaultTier: "T5" },
+  "art-director": { role: "Creative Director", defaultTier: "T5" }, // id technique stable ; libellé aligné sur le doc business (piloté par la Directrice Artistique)
 };
 
 export const AGENT_IDS = Object.keys(ROSTER) as AgentId[];

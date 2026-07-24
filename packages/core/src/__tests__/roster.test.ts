@@ -26,6 +26,6 @@ describe("roster canonique (12 agents métier)", () => {
   it("les libellés de rôle sont en anglais britannique", () => {
     expect(ROSTER["rate-distribution"].role).toBe("Rate & Distribution");
     expect(ROSTER["content-creator"].role).toBe("Content Creator");
-    expect(ROSTER["art-director"].role).toBe("Art Director");
+    expect(ROSTER["art-director"].role).toBe("Creative Director");
   });
 });
