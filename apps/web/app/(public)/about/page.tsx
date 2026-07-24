@@ -1,0 +1,20 @@
+import { PageHeader } from "@/components/site/PageHeader";
+
+export const metadata = { title: "About" };
+
+export default function AboutPage() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="The firm"
+        title="An underwriter’s discipline, brought to hospitality."
+        lede="We are not an agency you hand your marketing to. We measure what your independence is costing you, price it in pounds, and take responsibility for recovering it."
+      />
+      <section className="py-24">
+        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-cream-100/75">
+          <p>Full page to follow — track record, the people, and the principles behind the firm.</p>
+        </div>
+      </section>
+    </>
+  );
+}

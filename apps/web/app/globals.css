@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-forest-950 text-cream-100 font-sans;
+  }
+
+  /* Petites capitales largement espacées — eyebrows, labels, mentions légales. */
+  .eyebrow {
+    @apply font-sans text-[0.7rem] uppercase tracking-eyebrow text-gold/90;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-cream-50;
+  }
+}
+
+@layer components {
+  /* Filet fin doré — séparateur discret. */
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold/40 to-transparent;
+  }
+
+  .container-editorial {
+    @apply mx-auto w-full max-w-6xl px-6 md:px-10;
+  }
+
+  /* Lien discret avec soulignement doré animé. */
+  .link-underline {
+    @apply relative inline-block text-cream-100/90 transition-colors hover:text-cream-50;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-gold transition-all duration-500;
+  }
+  .link-underline:hover::after {
+    @apply w-full;
+  }
+}
+
+/* Lenis (smooth scroll) — désactive le scroll natif lissé pendant que Lenis pilote. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
