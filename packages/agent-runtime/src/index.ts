@@ -9,6 +9,7 @@ export { conversion } from "./agents/conversion.js";
 export { socialOps } from "./agents/social-ops.js";
 export { lifecycle } from "./agents/lifecycle.js";
 export { rateDistribution } from "./agents/rate-distribution.js";
+export { contentCreator } from "./agents/content-creator.js";
 export { signMandate, type SignMandateInput, type SignMandateResult } from "./onboarding.js";
 export { runCampaign, type CampaignReport, type RunCampaignOptions } from "./campaign.js";
 export {
