@@ -6,3 +6,9 @@ dist/
 .env.*
 !.env.example
 coverage/
+
+# Données de campagne (listes de prospects/contacts) — jamais dans le dépôt public
+prospects.csv
+prospects.json
+contacts-*.csv
+*.contacts.csv
