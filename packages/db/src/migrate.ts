@@ -10,6 +10,7 @@ const BASE_MIGRATIONS = [
   "0003_event_processing.sql",
   "0005_assessments.sql",
   "0006_publications.sql",
+  "0007_retentions.sql",
 ] as const;
 
 /**

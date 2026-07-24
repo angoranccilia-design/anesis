@@ -7,6 +7,7 @@ import type {
   EventId,
   EventPayloadMap,
   EventType,
+  Iso8601,
   MandateId,
   RunnableAgentId,
   TickType,
@@ -46,6 +47,16 @@ export interface AgentContext {
   resumeRun(runId: AgentRunId): Promise<void>;
   /** SEUL chemin d'exécution d'une action : passe par authorize() puis, si autorisé, exécute. */
   act(intent: ToolIntent): Promise<PolicyOutcome>;
+  /**
+   * Retenue durable T2 (§1b) — PROGRAMME une action dans la fenêtre de 2h (met le run en
+   * `sleeping_retention` + enregistre la retenue), sans rien exécuter ni dormir. Le balayeur la mûrira.
+   */
+  scheduleRetention(action: { name: string; input: unknown; compensation?: string }): Promise<void>;
+  /**
+   * Exécute une action T2 dont la fenêtre de retenue est ÉCOULÉE (durablement) : re-`authorize()` avec
+   * `retentionElapsed`, sans sleep. Refusée si arrêt d'urgence. Utilisée par le balayeur.
+   */
+  actAfterRetention(intent: ToolIntent, retentionStartedAt: Iso8601): Promise<PolicyOutcome>;
   /** Émet (append) un événement de domaine dans le journal ; le drain le distribuera. Retourne son id. */
   emit<T extends EventType>(type: T, payload: EventPayloadMap[T]): Promise<EventId>;
   /** Clôt le run avec les minutes humaines (donnée produit : levier de scalabilité). */

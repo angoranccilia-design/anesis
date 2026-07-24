@@ -11,6 +11,7 @@ export { lifecycle } from "./agents/lifecycle.js";
 export { rateDistribution } from "./agents/rate-distribution.js";
 export { contentCreator } from "./agents/content-creator.js";
 export { artDirector } from "./agents/art-director.js";
+export { retentionSweeper, registerRetentionHandler, type RetentionHandler } from "./retention.js";
 export { signMandate, type SignMandateInput, type SignMandateResult } from "./onboarding.js";
 export { runCampaign, type CampaignReport, type RunCampaignOptions } from "./campaign.js";
 export {

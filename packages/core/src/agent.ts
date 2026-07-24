@@ -27,7 +27,7 @@ export type AgentId =
   | "art-director";
 
 /** Agents SYSTÈME (plomberie interne) : hors roster des 12, sans KPI ni pilotage humain. */
-export type SystemAgentId = "planner";
+export type SystemAgentId = "planner" | "retention-sweeper";
 
 /** Tout id capable d'EXÉCUTER dans le runtime : les 12 du roster + les agents système. */
 export type RunnableAgentId = AgentId | SystemAgentId;

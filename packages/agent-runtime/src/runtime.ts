@@ -15,12 +15,14 @@
 import { randomUUID } from "node:crypto";
 import {
   iso,
+  RETENTION_WINDOW_MS,
   type AgentRunId,
   type RunnableAgentId,
   type CorrelationId,
   type EventId,
   type EventPayloadMap,
   type EventType,
+  type Iso8601,
   type MandateId,
   type TickType,
   type ToolCallRecord,
@@ -150,6 +152,30 @@ class RuntimeContext implements AgentContext {
     if (outcome.kind === "allow") {
       await intent.effect(this.client); // effet externe réel
       await this.insertToolCall(record); // seule écriture dans tool_calls du monorepo
+    }
+    return outcome;
+  }
+
+  /** Retenue durable T2 : met le run en `sleeping_retention` + enregistre l'action à mûrir. N'exécute rien. */
+  async scheduleRetention(action: { name: string; input: unknown; compensation?: string }): Promise<void> {
+    await this.client.query("update agent_runs set status = 'sleeping_retention' where id = $1", [this.runId]);
+    const dueAt = new Date(Date.now() + RETENTION_WINDOW_MS).toISOString();
+    await this.client.query(
+      "insert into retentions (id, mandate_id, run_id, action_name, input, compensation, due_at) values ($1, $2, $3, $4, $5::jsonb, $6, $7)",
+      [uid("ret"), this.mandateId, this.runId, action.name, JSON.stringify(action.input), action.compensation ?? null, dueAt],
+    );
+  }
+
+  /** Exécute une action T2 après retenue écoulée (re-authorize `retentionElapsed`, sans sleep). */
+  async actAfterRetention(intent: ToolIntent, retentionStartedAt: Iso8601): Promise<PolicyOutcome> {
+    const mandateStopped = await this.isMandateStopped();
+    const pctx = { globalStop: this.rt.globalStopped, mandateStopped, approval: intent.approval ?? null, retentionElapsed: true };
+    const at = iso();
+    const record = this.buildRecord(intent, at, retentionStartedAt);
+    const outcome = authorize(record, pctx);
+    if (outcome.kind === "allow") {
+      await intent.effect(this.client);
+      await this.insertToolCall(record);
     }
     return outcome;
   }
