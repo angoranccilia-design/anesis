@@ -11,7 +11,7 @@ export default function DiagnosticPage() {
         lede="Tell us where to look. We measure your recoverable loss from your real data and write back with a figure — plainly, and at no cost."
       />
       <section className="py-24">
-        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-cream-100/75">
+        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-forest-800/85">
           <p>Full page to follow — the assessment request form (hotel name, website, a few details) wired to the firm’s intake.</p>
         </div>
       </section>

@@ -17,7 +17,7 @@ export default function MethodPage() {
         </div>
       </section>
       <section className="py-24">
-        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-cream-100/75">
+        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-forest-800/85">
           <p>Full page to follow — the four pillars, the three gates in detail, and the interactive score.</p>
         </div>
       </section>

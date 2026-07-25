@@ -11,7 +11,7 @@ export default function ResultsPage() {
         lede="Our founder’s record was built in North America. We show it clearly labelled, and we don’t borrow it to imply UK results we haven’t earned yet."
       />
       <section className="py-24">
-        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-cream-100/75">
+        <div className="container-editorial max-w-prose space-y-6 font-sans text-base leading-relaxed text-forest-800/85">
           <p>Full page to follow — the trajectory chart (baseline vs. recovered) and clearly-labelled case figures.</p>
         </div>
       </section>
