@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
+import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
 
 export default function HomePage() {
   return (
@@ -119,6 +120,29 @@ export default function HomePage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Trajectory (teaser) ──────────────────────────────────────────────── */}
+      <section className="border-t border-gold/15 py-28 md:py-36">
+        <div className="container-editorial grid gap-12 md:grid-cols-[0.85fr_1.15fr] md:items-center">
+          <Reveal>
+            <p className="eyebrow">What recovery looks like</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">
+              We are paid on the distance between two lines.
+            </h2>
+            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">
+              The flat line is your direct channel left alone. The rising one is the same channel,
+              recovered. Our reward is tied to the gap — nothing else.
+            </p>
+            <Link href="/results" className="link-underline mt-7 inline-block font-sans text-sm">
+              See the full record
+            </Link>
+          </Reveal>
+          <Reveal index={1} className="rounded-2xl border border-forest-900/12 bg-cream-100/70 p-6 md:p-8">
+            <TrajectoryChartLazy />
+            <p className="eyebrow mt-4 text-right">Illustrative · sample trajectory</p>
+          </Reveal>
         </div>
       </section>
 
