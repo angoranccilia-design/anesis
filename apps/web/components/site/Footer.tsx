@@ -31,6 +31,11 @@ export function Footer() {
               <li><Link href="/diagnostic" className="link-underline">Request an assessment</Link></li>
               <li><Link href="/contact" className="link-underline">Contact</Link></li>
             </ul>
+            <p className="eyebrow mt-8">Contact</p>
+            <ul className="mt-4 space-y-2 font-sans text-sm text-forest-800/85">
+              <li><a href="mailto:enquiries@anesisacquisition.com" className="link-underline">enquiries@anesisacquisition.com</a></li>
+              <li className="text-forest-800/70">United Kingdom</li>
+            </ul>
           </div>
         </div>
 
