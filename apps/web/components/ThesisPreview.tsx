@@ -26,7 +26,7 @@ export function ThesisPreview() {
 
       <div className="mt-6 grid grid-cols-2 gap-4">
         <div className="rounded-lg border border-forest-900/12 bg-cream-100 p-4">
-          <p className="eyebrow">Acquisition Score</p>
+          <p className="eyebrow">Anesis Revenue Leak Index™</p>
           <p className="mt-1 font-serif text-4xl font-light text-forest-900">68<span className="text-xl text-forest-800/50">/100</span></p>
         </div>
         <div className="rounded-lg border border-gold/30 bg-cream-100 p-4">

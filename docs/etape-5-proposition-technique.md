@@ -24,7 +24,7 @@ Un seul founder, zéro client signé → **pas** de RBAC multi-rôles, pas d'OAu
 Le backend des étapes 1-4 existe et est testé → on câble dessus tout de suite, zéro donnée factice.
 - **Dashboard client** = lecture des vraies tables, bornée au mandat via le contexte RLS (`app.mandate_id` = son mandat). La RLS par mandat colle **parfaitement** à ce besoin.
 - **Cockpit fondatrice** = lecture réelle aussi (pipeline, approbations, activité agents, minutes humaines, revenu). Les **écritures** (ouvrir Porte 2, éditer la thèse, `signMandate`, arrêt d'urgence) passent par le runtime existant (rôles/contexte corrects).
-- **Nuance — le site public reste en données d'ÉCHANTILLON** (calculateur Leak Index, trajectoire, feed avant/après, aperçu de Thèse) : ce sont des démos publiques marquées « sample », pas des données client (il n'y en a pas, et c'est public). Conforme au brief.
+- **Nuance — le site public reste en données d'ÉCHANTILLON** (calculateur Revenue Leak Index, trajectoire, feed avant/après, aperçu de Thèse) : ce sont des démos publiques marquées « sample », pas des données client (il n'y en a pas, et c'est public). Conforme au brief.
 
 ## ⚠️ Tension réelle à trancher (RLS ↔ cockpit transversal)
 

@@ -20,7 +20,7 @@ export default function MethodPage() {
       <PageHeader
         eyebrow="The method"
         title="How we measure the leak — and how we close it."
-        lede="Four pillars, one figure in pounds, then a plan. The Acquisition Score is grounded in your real data, never in a form you fill in yourself."
+        lede="Five pillars, one figure in pounds, then a plan. The Anesis Revenue Leak Index™ is grounded in your real data, never in a form you fill in yourself."
       />
 
       {/* Les quatre piliers. */}
@@ -29,7 +29,7 @@ export default function MethodPage() {
           <Reveal className="max-w-2xl">
             <p className="eyebrow">Four places the money leaks</p>
             <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">
-              The Acquisition Score reads four things a marketer rarely priced.
+              The Revenue Leak Index reads five things a marketer rarely priced.
             </h2>
           </Reveal>
           <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-2">

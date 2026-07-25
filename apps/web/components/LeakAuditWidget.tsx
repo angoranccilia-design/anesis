@@ -55,8 +55,8 @@ export function LeakAuditWidget() {
       </div>
 
       <p className="mt-5 font-sans text-xs leading-relaxed text-forest-800/60">
-        This is an illustrative estimate. Your real Acquisition Score uses your actual website, reviews
-        and booking data — get it free below.
+        This is an illustrative estimate. Your real Anesis Revenue Leak Index™ uses your actual website,
+        reviews and booking data — get it free below.
       </p>
 
       <Link
