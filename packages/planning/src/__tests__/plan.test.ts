@@ -43,7 +43,7 @@ function makeAssessment(monthlyLossPence: number, subScores: SubScores, leakInde
 
 describe("dérivation thèse → objectifs → tâches (pure, déterministe)", () => {
   it("est déterministe : mêmes entrées → plan strictement identique", () => {
-    const a = makeAssessment(1_000_000, { speed: 40, reviews: 60, ota: 100, retargeting: 100 });
+    const a = makeAssessment(1_000_000, { speed: 40, reviews: 60, ota: 100, retargeting: 100, social: 80 });
     const first = derivePlanFromAssessment(a, MANDATE, seqDeps());
     const second = derivePlanFromAssessment(a, MANDATE, seqDeps());
     expect(second).toEqual(first);
@@ -51,29 +51,35 @@ describe("dérivation thèse → objectifs → tâches (pure, déterministe)", (
 
   it("répartit la perte £ SANS dérive d'arrondi (somme des postes = perte annuelle)", () => {
     const noMateriality: PlanningConfig = { ...DEFAULT_PLANNING_CONFIG, materialityAnnualPence: 0 };
-    const a = makeAssessment(1_000_001, { speed: 50, reviews: 50, ota: 50, retargeting: 50 }); // pence impair → teste l'arrondi
+    const a = makeAssessment(1_000_001, { speed: 50, reviews: 50, ota: 50, retargeting: 50, social: 50 }); // pence impair → arrondi
     const thesis = deriveThesis(a, MANDATE, seqDeps(), noMateriality);
     const sum = thesis.lossLines.reduce((s, ll) => s + ll.annualLoss.pence, 0);
     expect(sum).toBe(1_000_001 * 12); // exactement, aucun pence perdu ni créé
-    expect(thesis.lossLines).toHaveLength(4);
+    expect(thesis.lossLines).toHaveLength(5); // 5 piliers
   });
 
   it("applique le seuil de matérialité : un pilier trop faible ne crée ni poste, ni objectif, ni tâche", () => {
-    // speed reçoit une part annuelle < £2,000 → exclu ; reviews=0 → exclu ; restent ota + retargeting.
-    const a = makeAssessment(1_000_000, { speed: 1, reviews: 0, ota: 100, retargeting: 100 });
+    // speed reçoit une part < £2,000 → exclu ; reviews=0 et social=0 → exclus ; restent ota + retargeting.
+    const a = makeAssessment(1_000_000, { speed: 1, reviews: 0, ota: 100, retargeting: 100, social: 0 });
     const { thesis, objectives, tasks } = derivePlanFromAssessment(a, MANDATE, seqDeps());
     expect(thesis.lossLines.map((l) => l.pillar)).toEqual(["ota", "retargeting"]);
     expect(objectives).toHaveLength(2);
     expect(tasks).toHaveLength(2);
   });
 
-  it("trace tout vers un £ et route chaque tâche vers l'agent propriétaire", () => {
-    const a = makeAssessment(2_000_000, { speed: 80, reviews: 80, ota: 80, retargeting: 80 });
+  it("gère un pilier social non collecté (subScore null) → aucun poste social", () => {
+    const a = makeAssessment(2_000_000, { speed: 80, reviews: 80, ota: 80, retargeting: 80, social: null });
+    const { thesis } = derivePlanFromAssessment(a, MANDATE, seqDeps());
+    expect(thesis.lossLines.map((l) => l.pillar)).not.toContain("social");
+    expect(thesis.lossLines).toHaveLength(4);
+  });
+
+  it("trace tout vers un £ et route chaque tâche vers l'agent propriétaire (5 piliers)", () => {
+    const a = makeAssessment(2_000_000, { speed: 80, reviews: 80, ota: 80, retargeting: 80, social: 80 });
     const { thesis, objectives, tasks } = derivePlanFromAssessment(a, MANDATE, seqDeps());
 
     const lossLineIds = new Set(thesis.lossLines.map((l) => l.id));
     const objectiveIds = new Set(objectives.map((o) => o.id));
-    // Objective → LossLine (non-nullable), Task → Objective (non-orpheline), isolation mandat cohérente.
     for (const o of objectives) {
       expect(lossLineIds.has(o.lossLineId)).toBe(true);
       expect(o.mandateId).toBe(MANDATE);
@@ -83,17 +89,16 @@ describe("dérivation thèse → objectifs → tâches (pure, déterministe)", (
       expect(t.mandateId).toBe(MANDATE);
     }
 
-    const agentByPillar = Object.fromEntries(
-      thesis.lossLines.map((l, i) => [l.pillar, tasks[i]!.assignedAgent]),
-    );
+    const agentByPillar = Object.fromEntries(thesis.lossLines.map((l, i) => [l.pillar, tasks[i]!.assignedAgent]));
     expect(agentByPillar.speed).toBe("conversion");
     expect(agentByPillar.reviews).toBe("reputation");
     expect(agentByPillar.ota).toBe("rate-distribution");
     expect(agentByPillar.retargeting).toBe("media-buyer");
+    expect(agentByPillar.social).toBe("content-creator");
   });
 
   it("engage une part récupérable par pilier (targetRecovery = annualLoss × fraction)", () => {
-    const a = makeAssessment(2_000_000, { speed: 80, reviews: 80, ota: 80, retargeting: 80 });
+    const a = makeAssessment(2_000_000, { speed: 80, reviews: 80, ota: 80, retargeting: 80, social: 80 });
     const { thesis, objectives } = derivePlanFromAssessment(a, MANDATE, seqDeps());
     for (let i = 0; i < thesis.lossLines.length; i++) {
       const line = thesis.lossLines[i]!;
@@ -101,19 +106,17 @@ describe("dérivation thèse → objectifs → tâches (pure, déterministe)", (
       const fraction = DEFAULT_PLANNING_CONFIG.pillars[line.pillar as "speed"].recoverableFraction;
       expect(objective.targetRecovery.pence).toBe(Math.round(line.annualLoss.pence * fraction));
     }
-    // sanité de la politique : la réputation (lente) est plus prudente que le retargeting.
     expect(DEFAULT_PLANNING_CONFIG.pillars.reviews.recoverableFraction).toBeLessThan(
       DEFAULT_PLANNING_CONFIG.pillars.retargeting.recoverableFraction,
     );
   });
 
   it("aucune fuite (leakIndex 0, sous-scores nuls) → thèse vide, aucun objectif/tâche", () => {
-    const a = makeAssessment(0, { speed: 0, reviews: 0, ota: 0, retargeting: 0 }, 0);
+    const a = makeAssessment(0, { speed: 0, reviews: 0, ota: 0, retargeting: 0, social: 0 }, 0);
     const { thesis, objectives, tasks } = derivePlanFromAssessment(a, MANDATE, seqDeps());
     expect(thesis.lossLines).toHaveLength(0);
     expect(objectives).toHaveLength(0);
     expect(tasks).toHaveLength(0);
-    // derivePlan direct sur une thèse vide est également inerte.
     expect(derivePlan(thesis, seqDeps())).toEqual({ objectives: [], tasks: [] });
   });
 });

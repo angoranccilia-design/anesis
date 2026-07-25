@@ -24,7 +24,7 @@ export function buildPrompt(a: Assessment, language: ReportLanguage): string {
   return [
     `Language: ${language}.`,
     `Write a Revenue Leak Audit narrative for a hospitality property owner, describing the FIXED figures below.`,
-    `Leak Index: ${a.leakIndex}/100 — describe, do not recompute.`,
+    `Anesis Revenue Leak Index: ${a.leakIndex}/100 — describe, do not recompute. Always refer to it by its full name, "Anesis Revenue Leak Index," on first mention.`,
     `Estimated monthly revenue leak: £${(a.monthlyLoss.pence / 100).toFixed(2)} — describe, do not recompute.`,
     `Decision: ${a.decision} (${a.decisionCode}).`,
     `You may ONLY describe these numbers; you must never change or recalculate them.`,

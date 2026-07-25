@@ -26,6 +26,12 @@ export interface RawObservations {
   readonly structuredRoomCount?: number; // clés trouvées en données structurées (fiable)
   readonly listedNightlyRatePence?: number; // tarif affiché (fiable si présent)
   readonly otaSharePctHint?: number; // estimation part OTA si dérivable (souvent absente)
+  // ── Pilier 5 — réseaux sociaux (Instagram/Facebook, via Apify). Absents si non scrapés. ──
+  readonly instagramFollowers?: number;
+  readonly facebookFollowers?: number;
+  readonly postingFrequencyPerMonth?: number; // publications / mois
+  readonly avgEngagementRate?: number; // taux d'engagement moyen, en %
+  readonly hasVideoContent?: boolean; // présence de vidéo/reels
 }
 
 /** Signaux normalisés produits par la phase Collecte (aucun calcul de score, aucun LLM). */
@@ -39,4 +45,10 @@ export interface PublicSignals {
   readonly keys: Estimate<number>;
   readonly adrPence: Estimate<number>;
   readonly otaSharePct: Estimate<number>;
+  // ── Pilier 5 — réseaux sociaux. Estimate (confiance/source), `value: null` si non scrapé. ──
+  readonly instagramFollowers: Estimate<number>;
+  readonly facebookFollowers: Estimate<number>;
+  readonly postingFrequencyPerMonth: Estimate<number>;
+  readonly avgEngagementRate: Estimate<number>;
+  readonly hasVideoContent: Estimate<boolean>;
 }

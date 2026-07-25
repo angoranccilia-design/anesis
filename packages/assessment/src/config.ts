@@ -9,6 +9,10 @@ export interface AssessmentConfig {
   // Hypothèses d'estimation de la perte (déterministes).
   readonly assumedOccupancy: number; // 0..1
   readonly captureFraction: number; // part de la fuite réellement récupérable
+  // Pilier 5 — réseaux sociaux : seuils d'une « bonne » présence (plat pour cette v1, non pondéré taille).
+  readonly socialGoodFollowers: number;
+  readonly socialGoodPostingPerMonth: number;
+  readonly socialGoodEngagementPct: number;
 }
 
 export const DEFAULT_CONFIG: AssessmentConfig = {
@@ -23,4 +27,8 @@ export const DEFAULT_CONFIG: AssessmentConfig = {
   minConfidenceToDecide: "medium",
   assumedOccupancy: 0.6,
   captureFraction: 0.5,
+  // Seuils sociaux validés (2026-07-25) : plat, ajustables. Abonnés 10k, ~12 posts/mois, ~3% engagement.
+  socialGoodFollowers: 10_000,
+  socialGoodPostingPerMonth: 12,
+  socialGoodEngagementPct: 3,
 };

@@ -32,6 +32,8 @@ export interface SubScores {
   readonly reviews: number;
   readonly ota: number;
   readonly retargeting: number;
+  /** Pilier 5 — réseaux sociaux. `null` = donnée non collectée (exclu du calcul, pas « fuite max »). */
+  readonly social: number | null;
 }
 
 export interface Assessment {
@@ -52,6 +54,36 @@ function scoreReviews(signals: PublicSignals): number {
   const volumeLeak = clamp((150 - count) / 1.5, 0, 100); // peu d'avis = fuite de visibilité
   const ratingLeak = clamp((4.6 - rating) * 40, 0, 100);
   return Math.round(0.6 * volumeLeak + 0.4 * ratingLeak);
+}
+
+/**
+ * Pilier 5 — réseaux sociaux comme canal d'acquisition GRATUIT. Même logique que retargeting : son
+ * absence/faiblesse = fuite (trafic gratuit jamais capté). Ne regarde QUE la présence sociale
+ * (abonnés, fréquence, engagement, vidéo) — jamais la vitesse du site : c'est le pilier speed qui capte
+ * un site lent, pas celui-ci (pas de double-comptage). N'est appelé QUE si des données sociales existent.
+ */
+function scoreSocial(signals: PublicSignals, config: AssessmentConfig): number {
+  const followers = (signals.instagramFollowers.value ?? 0) + (signals.facebookFollowers.value ?? 0);
+  const freq = signals.postingFrequencyPerMonth.value ?? 0;
+  const eng = signals.avgEngagementRate.value ?? 0;
+  const hasVideo = signals.hasVideoContent.value ?? false;
+
+  const followerLeak = clamp(((config.socialGoodFollowers - followers) / config.socialGoodFollowers) * 100, 0, 100);
+  const freqLeak = clamp(((config.socialGoodPostingPerMonth - freq) / config.socialGoodPostingPerMonth) * 100, 0, 100);
+  const engLeak = clamp(((config.socialGoodEngagementPct - eng) / config.socialGoodEngagementPct) * 100, 0, 100);
+  const videoPenalty = hasVideo ? 0 : 10; // léger malus si aucune vidéo/reel
+
+  return Math.round(clamp(0.4 * followerLeak + 0.3 * freqLeak + 0.3 * engLeak + videoPenalty, 0, 100));
+}
+
+/** Des données sociales ont-elles été collectées ? Sinon → pilier exclu (pas de « fuite max » par défaut). */
+function hasSocialData(signals: PublicSignals): boolean {
+  return (
+    signals.instagramFollowers.value != null ||
+    signals.facebookFollowers.value != null ||
+    signals.postingFrequencyPerMonth.value != null ||
+    signals.avgEngagementRate.value != null
+  );
 }
 
 function estimateMonthlyLoss(signals: PublicSignals, leakIndex: number, config: AssessmentConfig): Money {
@@ -94,9 +126,16 @@ export function score(signals: PublicSignals, config: AssessmentConfig = DEFAULT
   const reviews = scoreReviews(signals);
   const ota = signals.otaSharePct.value == null ? 0 : Math.round(clamp((signals.otaSharePct.value - 20) * 2, 0, 100));
   const retargeting = signals.hasTrackingPixel ? 0 : 100;
-  const subScores: SubScores = { speed, reviews, ota, retargeting };
+  // Pilier 5 — social : calculé UNIQUEMENT si des données sociales existent ; sinon exclu (null).
+  const social = hasSocialData(signals) ? scoreSocial(signals, config) : null;
+  const subScores: SubScores = { speed, reviews, ota, retargeting, social };
 
-  const leakIndex = Math.round(0.25 * speed + 0.25 * reviews + 0.3 * ota + 0.2 * retargeting);
+  // Repondération : avec social → 5 piliers (20/20/25/15/20) ; sans → 4 piliers ORIGINAUX (25/25/30/20),
+  // ce qui préserve exactement le comportement historique (et les 18 tests) quand le social n'est pas collecté.
+  const leakIndex =
+    social == null
+      ? Math.round(0.25 * speed + 0.25 * reviews + 0.3 * ota + 0.2 * retargeting)
+      : Math.round(0.2 * speed + 0.2 * reviews + 0.25 * ota + 0.15 * retargeting + 0.2 * social);
 
   const hasInHouseMarketing: Estimate<boolean> =
     signals.inHouseMarketingMentions > 0

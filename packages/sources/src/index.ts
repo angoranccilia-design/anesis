@@ -3,6 +3,7 @@ export { fetchHttpClient, type HttpClient, type HttpResponse } from "./http.js";
 export type { PropertyRef, SignalSource, SourceContext } from "./types.js";
 export { pageSpeedSource } from "./pagespeed.js";
 export { reviewsSource, type ReviewsSourceOptions } from "./reviews.js";
+export { socialSource, type SocialSourceOptions } from "./social.js";
 export { htmlSource, detectOtaBadges, countMarketingMentions, hasTrackingPixel } from "./html.js";
 export { composeFetchObservations } from "./compose.js";
 export { apifyPreflight, type ApifyPreflight } from "./apify.js";

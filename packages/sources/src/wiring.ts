@@ -10,6 +10,7 @@ import { fetchHttpClient, type HttpClient } from "./http.js";
 import { htmlSource } from "./html.js";
 import { pageSpeedSource } from "./pagespeed.js";
 import { reviewsSource } from "./reviews.js";
+import { socialSource } from "./social.js";
 import type { PropertyRef, SignalSource } from "./types.js";
 
 export type SecretEnv = Record<string, string | undefined>;
@@ -29,6 +30,10 @@ export function buildProspectFetcher(
   if (env.PAGESPEED_API_KEY) sources.push(pageSpeedSource(env.PAGESPEED_API_KEY));
   if (env.APIFY_TOKEN && env.APIFY_REVIEWS_ACTOR) {
     sources.push(reviewsSource({ token: env.APIFY_TOKEN, actorId: env.APIFY_REVIEWS_ACTOR }));
+  }
+  // Pilier 5 — social : s'active si `APIFY_TOKEN` ET `APIFY_SOCIAL_ACTOR` sont présents ; sinon exclu.
+  if (env.APIFY_TOKEN && env.APIFY_SOCIAL_ACTOR) {
+    sources.push(socialSource({ token: env.APIFY_TOKEN, actorId: env.APIFY_SOCIAL_ACTOR }));
   }
   sources.push(htmlSource());
   return composeFetchObservations(sources, http);

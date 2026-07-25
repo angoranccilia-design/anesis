@@ -25,6 +25,10 @@ export function collect(raw: RawObservations): PublicSignals {
         ? est(Math.min(80, 20 + raw.otaBadges.length * 15), "low", "ota_badges_proxy")
         : est<number>(null, "none", "unavailable");
 
+  // Pilier 5 — social : présent = confiance medium/low (scrapé) ; absent = confiance none (non collecté).
+  const socialNum = (v: number | undefined, source: string, conf: Confidence): Estimate<number> =>
+    v != null ? est(v, conf, source) : est<number>(null, "none", "unavailable");
+
   return {
     siteResponseMs: raw.siteResponseMs ?? null,
     reviewCount: raw.reviewCount ?? null,
@@ -35,5 +39,11 @@ export function collect(raw: RawObservations): PublicSignals {
     keys,
     adrPence,
     otaSharePct,
+    instagramFollowers: socialNum(raw.instagramFollowers, "instagram_scrape", "medium"),
+    facebookFollowers: socialNum(raw.facebookFollowers, "facebook_scrape", "medium"),
+    postingFrequencyPerMonth: socialNum(raw.postingFrequencyPerMonth, "social_scrape", "medium"),
+    avgEngagementRate: socialNum(raw.avgEngagementRate, "social_scrape", "low"),
+    hasVideoContent:
+      raw.hasVideoContent != null ? est(raw.hasVideoContent, "medium", "social_scrape") : est<boolean>(null, "none", "unavailable"),
   };
 }

@@ -7,10 +7,10 @@
  */
 import type { AgentId } from "@anesis/core";
 
-/** Les 4 piliers de fuite produits par le moteur d'évaluation (subScores). */
-export type Pillar = "speed" | "reviews" | "ota" | "retargeting";
+/** Les 5 piliers de fuite produits par le moteur d'évaluation (subScores). */
+export type Pillar = "speed" | "reviews" | "ota" | "retargeting" | "social";
 
-export const PILLARS: readonly Pillar[] = ["speed", "reviews", "ota", "retargeting"];
+export const PILLARS: readonly Pillar[] = ["speed", "reviews", "ota", "retargeting", "social"];
 
 export interface PillarPolicy {
   readonly agentId: AgentId; // agent propriétaire de l'exécution
@@ -29,8 +29,8 @@ export interface PlanningConfig {
 }
 
 export const DEFAULT_PLANNING_CONFIG: PlanningConfig = {
-  // Identiques aux poids de score.ts : leakIndex = 0.25*speed + 0.25*reviews + 0.30*ota + 0.20*retargeting.
-  leakWeights: { speed: 0.25, reviews: 0.25, ota: 0.3, retargeting: 0.2 },
+  // Miroir des poids 5 piliers de score.ts (avec social présent) : 0.20/0.20/0.25/0.15/0.20.
+  leakWeights: { speed: 0.2, reviews: 0.2, ota: 0.25, retargeting: 0.15, social: 0.2 },
   materialityAnnualPence: 200_000, // £2,000/an
   pillars: {
     speed: {
@@ -60,6 +60,13 @@ export const DEFAULT_PLANNING_CONFIG: PlanningConfig = {
       rootCause: "Absent retargeting lets warm demand leak away",
       objectiveTitle: "Recover demand lost to absent retargeting",
       taskIntent: "Deploy retargeting to recapture lost demand",
+    },
+    social: {
+      agentId: "content-creator",
+      recoverableFraction: 0.5,
+      rootCause: "An under-exploited social presence leaves free acquisition demand uncaptured",
+      objectiveTitle: "Recover demand lost to a thin social presence",
+      taskIntent: "Build a consistent, converting social presence",
     },
   },
 };

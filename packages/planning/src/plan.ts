@@ -46,7 +46,8 @@ export function deriveThesis(
   config: PlanningConfig = DEFAULT_PLANNING_CONFIG,
 ): UnderwritingThesis {
   const thesisId = deps.newThesisId();
-  const weights = PILLARS.map((p) => config.leakWeights[p] * assessment.subScores[p]);
+  // Le sous-score social peut être `null` (pilier non collecté) → 0 : aucun poste de perte social dérivé.
+  const weights = PILLARS.map((p) => config.leakWeights[p] * (assessment.subScores[p] ?? 0));
   const totalWeight = weights.reduce((s, w) => s + w, 0);
   const annualTotal = mulMoney(assessment.monthlyLoss, 12);
 
