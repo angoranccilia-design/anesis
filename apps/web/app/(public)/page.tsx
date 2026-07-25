@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
+import { BeforeAfterFeed } from "@/components/BeforeAfterFeed";
 
 export default function HomePage() {
   return (
@@ -120,6 +121,25 @@ export default function HomePage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Before / after feed ──────────────────────────────────────────────── */}
+      <section className="border-t border-gold/15 bg-cream-100/60 py-28 md:py-36">
+        <div className="container-editorial grid gap-12 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+          <Reveal>
+            <p className="eyebrow">The fifth pillar · presence</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">
+              A feed that looks abandoned quietly suggests the rooms might be too.
+            </h2>
+            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">
+              Free acquisition demand hides in a consistent, considered social presence. Where it’s thin,
+              the direct booking never starts. Coherence is the point — not volume.
+            </p>
+          </Reveal>
+          <Reveal index={1}>
+            <BeforeAfterFeed />
+          </Reveal>
         </div>
       </section>
 
