@@ -11,6 +11,7 @@ export * from "./event.js";
 export * from "./property.js";
 export * from "./domain-name.js";
 export * from "./mandate.js";
+export * from "./mandate-terms.js";
 export * from "./thesis.js";
 export * from "./objective.js";
 export * from "./task.js";
