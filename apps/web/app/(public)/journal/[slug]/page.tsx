@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ARTICLES, ISSUE, bySlug } from "@/content/journal";
+import { getLang } from "@/lib/i18n";
+import { getCopy } from "@/content/site";
 
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
@@ -17,6 +19,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const article = bySlug(slug);
   if (!article) notFound();
 
+  const lang = await getLang();
+  const c = getCopy(lang);
   const [first, ...rest] = article.body;
 
   return (
@@ -27,7 +31,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <span className="h-1 w-1 rounded-full bg-gold" />
           <span>{ISSUE.label}</span>
           <span className="h-1 w-1 rounded-full bg-gold" />
-          <span>{article.readMinutes} min</span>
+          <span>{article.readMinutes} {c.readMin}</span>
         </div>
 
         <h1 className="mt-6 font-serif text-4xl font-light leading-[1.08] text-forest-900 md:text-6xl">{article.title}</h1>
@@ -41,19 +45,16 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               {first}
             </p>
           ) : null}
-          {rest.map((p, i) => (
-            <p key={i}>{p}</p>
+          {rest.map((para, i) => (
+            <p key={i}>{para}</p>
           ))}
         </div>
 
         <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <Link href="/journal" className="link-underline font-sans text-sm">← Back to the Journal</Link>
-          <Link
-            href="/diagnostic"
-            className="rounded-full bg-forest-900 px-6 py-3 font-sans text-sm text-cream-50 transition-colors hover:bg-forest-800"
-          >
-            Request an assessment
+          <Link href="/journal" className="link-underline font-sans text-sm">{c.back}</Link>
+          <Link href="/diagnostic" className="rounded-full bg-forest-900 px-6 py-3 font-sans text-sm text-cream-50 transition-colors hover:bg-forest-800">
+            {c.nav.cta}
           </Link>
         </div>
       </div>

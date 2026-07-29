@@ -3,12 +3,37 @@
 import { useState } from "react";
 
 /**
- * Formulaire d'enquête (Diagnostic Porte 1 / Contact). Validation côté client, envoi vers /api/enquiry.
- * NB : l'intake réel (email Resend + ligne en base) reste à câbler — le handler journalise pour l'instant.
+ * Formulaire d'enquête (Diagnostic Porte 1 / Contact). Validation côté client, envoi vers /api/enquiry
+ * (qui notifie via Resend + persiste si la base est configurée). Libellés bilingues via `labels`.
  */
 type Status = "idle" | "sending" | "sent" | "error";
 
-export function EnquiryForm({ kind }: { kind: "assessment" | "contact" }) {
+export interface EnquiryLabels {
+  name: string;
+  email: string;
+  hotel: string;
+  website: string;
+  submit: string;
+  send: string;
+  sending: string;
+  msgAssessment: string;
+  msgContact: string;
+  receivedLabel: string;
+  receivedTitle: string;
+  receivedSub: string;
+  err: string;
+}
+
+const EN: EnquiryLabels = {
+  name: "Your name", email: "Email", hotel: "Hotel", website: "Website",
+  submit: "Request my assessment", send: "Send", sending: "Sending…",
+  msgAssessment: "Anything we should know before we look?", msgContact: "How can we help?",
+  receivedLabel: "Received", receivedTitle: "Thank you — your note is with us.",
+  receivedSub: "You'll hear back from someone who understands hospitality, and soon.",
+  err: "Something went wrong — please try again, or email us directly.",
+};
+
+export function EnquiryForm({ kind, labels = EN }: { kind: "assessment" | "contact"; labels?: EnquiryLabels }) {
   const [status, setStatus] = useState<Status>("idle");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -33,11 +58,9 @@ export function EnquiryForm({ kind }: { kind: "assessment" | "contact" }) {
   if (status === "sent") {
     return (
       <div className="rounded-2xl border border-gold/30 bg-cream-100 p-10 text-center">
-        <p className="eyebrow">Received</p>
-        <p className="mt-3 font-serif text-2xl font-light text-forest-900">Thank you — your note is with us.</p>
-        <p className="mt-3 font-sans text-sm text-forest-800/75">
-          You’ll hear back from someone who understands hospitality, and soon.
-        </p>
+        <p className="eyebrow">{labels.receivedLabel}</p>
+        <p className="mt-3 font-serif text-2xl font-light text-forest-900">{labels.receivedTitle}</p>
+        <p className="mt-3 font-sans text-sm text-forest-800/75">{labels.receivedSub}</p>
       </div>
     );
   }
@@ -45,14 +68,14 @@ export function EnquiryForm({ kind }: { kind: "assessment" | "contact" }) {
   return (
     <form onSubmit={onSubmit} className="rounded-2xl border border-forest-900/15 bg-cream-50 p-8 md:p-10">
       <div className="grid gap-6 md:grid-cols-2">
-        <Field name="name" label="Your name" required />
-        <Field name="hotel" label="Hotel" required />
-        <Field name="email" label="Email" type="email" required />
-        <Field name="website" label="Website" type="url" placeholder="https://" />
+        <Field name="name" label={labels.name} required />
+        <Field name="hotel" label={labels.hotel} required />
+        <Field name="email" label={labels.email} type="email" required />
+        <Field name="website" label={labels.website} type="url" placeholder="https://" />
       </div>
       <div className="mt-6">
         <label htmlFor="message" className="font-sans text-sm text-forest-800/85">
-          {kind === "assessment" ? "Anything we should know before we look?" : "How can we help?"}
+          {kind === "assessment" ? labels.msgAssessment : labels.msgContact}
         </label>
         <textarea
           id="message"
@@ -68,11 +91,9 @@ export function EnquiryForm({ kind }: { kind: "assessment" | "contact" }) {
           disabled={status === "sending"}
           className="rounded-full bg-forest-900 px-7 py-3.5 font-sans text-sm font-medium text-cream-50 transition-colors hover:bg-forest-800 disabled:opacity-60"
         >
-          {status === "sending" ? "Sending…" : kind === "assessment" ? "Request my assessment" : "Send"}
+          {status === "sending" ? labels.sending : kind === "assessment" ? labels.submit : labels.send}
         </button>
-        {status === "error" && (
-          <p className="font-sans text-sm text-forest-800/80">Something went wrong — please try again, or email us directly.</p>
-        )}
+        {status === "error" && <p className="font-sans text-sm text-forest-800/80">{labels.err}</p>}
       </div>
     </form>
   );

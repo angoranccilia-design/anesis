@@ -4,95 +4,97 @@ import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
 import { BeforeAfterFeed } from "@/components/BeforeAfterFeed";
+import { getLang } from "@/lib/i18n";
+import { getCopy } from "@/content/site";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic"; // langue lue par requête (cookie)
+
+export default async function HomePage() {
+  const lang = await getLang();
+  const c = getCopy(lang).home;
+  const L = <T,>(en: T, fr: T): T => (lang === "fr" ? fr : en);
+
+  const chain = L(
+    ["Your feed shapes your leads", "Your leads shape your conversion", "Your conversion shapes your reviews", "Your reviews shape your visibility", "Your visibility shapes your calendar", "Your calendar shapes your revenue"],
+    ["Votre feed influence vos leads", "Vos leads influencent votre conversion", "Votre conversion influence vos avis", "Vos avis influencent votre visibilité", "Votre visibilité influence votre calendrier", "Votre calendrier influence votre revenu"],
+  );
+
+  const categories = [
+    { img: "/img/new-hotel-reception-coastal.jpg", label: L("Boutique hotels", "Hôtels boutique") },
+    { img: "/img/new-hotel-hall-chandelier.jpg", label: L("Country houses", "Maisons de campagne") },
+    { img: "/img/new-spa-elegant-02.jpg", label: L("Spa retreats", "Retraites spa") },
+    { img: "/img/new-glamping-misty-forest.jpg", label: L("Glamping", "Glamping") },
+    { img: "/img/new-eco-lodge-01.jpg", label: L("Eco-lodges", "Éco-lodges") },
+  ];
+
   return (
     <>
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      {/* ── Hero (photo pleine hauteur) ─────────────────────────────────────── */}
       <section className="relative flex min-h-screen items-center overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(176,141,76,0.12),transparent_55%)]" />
-        <div className="container-editorial relative py-32 text-center">
+        <Image src="/img/new-hotel-hall-chandelier.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,31,22,0.55)_0%,rgba(14,31,22,0.5)_45%,rgba(14,31,22,0.8)_100%)]" />
+        <div className="container-editorial relative py-32 text-center text-cream-50">
           <div className="animate-fade-rise">
-            <Image
-              src="/crest.jpg"
-              alt="Anesis Acquisition"
-              width={560}
-              height={459}
-              priority
-              className="mx-auto h-auto w-56 mix-blend-multiply md:w-72"
-            />
-            <p className="eyebrow mt-8">Hospitality acquisition underwriting · United Kingdom</p>
-            <h1 className="mx-auto mt-6 max-w-4xl font-serif text-5xl font-light leading-[1.06] text-forest-900 md:text-7xl">
-              The guests are already yours.
+            <Image src="/logo.png" alt="Anesis Acquisition" width={200} height={200} priority className="mx-auto h-24 w-24 object-contain md:h-28 md:w-28" />
+            <p className="mt-7 font-sans text-[0.7rem] uppercase tracking-eyebrow text-gold-light">{c.eyebrow}</p>
+            <h1 className="mx-auto mt-6 max-w-4xl font-serif text-5xl font-light leading-[1.06] md:text-7xl">
+              {c.heroTitleA}
               <br />
-              <span className="italic text-gold-deep">You’re paying to be introduced to them.</span>
+              <span className="italic text-gold-light">{c.heroTitleB}</span>
             </h1>
-            <p className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed text-forest-800/80">
-              A fifth of the people who would have booked you directly are quietly paying a platform to
-              introduce them to a hotel they’d already found. We don’t ask you to spend more on marketing.
-              We show you, in pounds, exactly where that fifth is going — then we go and get it back.
-            </p>
+            <p className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed text-cream-100/85">{c.heroSub}</p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
-              <Link href="/diagnostic" className="btn-primary">
-                Request an assessment
-              </Link>
-              <Link href="/method" className="link-underline font-sans text-sm">
-                How we work
+              <Link href="/diagnostic" className="btn-gold">{c.ctaPrimary}</Link>
+              <Link href="/method" className="font-sans text-sm text-cream-50 underline-offset-4 hover:underline">
+                {c.ctaGhost} →
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── The hidden number ────────────────────────────────────────────────── */}
+      {/* ── The hidden number ───────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">
         <div className="container-editorial grid gap-14 md:grid-cols-[1.1fr_0.9fr] md:items-center">
           <Reveal>
-            <p className="eyebrow">The number no one shows you</p>
-            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">
-              Most of what a hotel loses never appears on an invoice.
-            </h2>
+            <p className="eyebrow">{c.hiddenEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">{c.hiddenTitle}</h2>
             <div className="mt-7 max-w-prose space-y-5 font-sans text-base leading-relaxed text-forest-800/85">
-              <p>
-                It hides in a website that answers a second too slowly, in a review left unanswered for
-                six hours, in a rate that quietly undercuts your own front desk, in demand that arrives
-                warm and leaves unmet. None of it is dramatic. All of it adds up.
-              </p>
-              <p>
-                An underwriter’s habit is to put a figure on precisely that — the quiet, recoverable
-                loss — before promising anything. So that is where we begin.
-              </p>
+              <p>{c.hiddenBody1}</p>
+              <p>{c.hiddenBody2}</p>
             </div>
           </Reveal>
-
           <Reveal index={1}>
             <figure className="rounded-2xl border border-forest-900/15 bg-cream-100 p-10 text-center">
-              <figcaption className="eyebrow">Illustrative · a 28-key country house</figcaption>
+              <figcaption className="eyebrow">{c.sampleCaption}</figcaption>
               <p className="mt-4 font-serif text-6xl font-light text-forest-900">£7,400</p>
-              <p className="mt-2 font-sans text-sm text-forest-800/70">
-                recovered per month, once the direct channel is theirs again
-              </p>
+              <p className="mt-2 font-sans text-sm text-forest-800/70">{c.sampleUnder}</p>
               <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
-              <p className="mt-6 font-sans text-xs text-forest-800/55">
-                A sample figure. Your own is measured, not assumed.
-              </p>
+              <p className="mt-6 font-sans text-xs text-forest-800/55">{c.sampleNote}</p>
             </figure>
           </Reveal>
         </div>
       </section>
 
-      {/* ── Leak Audit widget (illustrative) ─────────────────────────────────── */}
+      {/* ── Marquee (la chaîne du système) ──────────────────────────────────── */}
+      <section className="overflow-hidden bg-forest-950 py-7">
+        <div className="marquee-track">
+          {[...chain, ...chain].map((s, i) => (
+            <span key={i} className="flex items-center whitespace-nowrap px-6 font-serif text-lg italic text-cream-100/85">
+              {s}
+              <span className="ml-6 text-gold-light">→</span>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Leak Audit widget ───────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 bg-cream-100/60 py-28 md:py-36">
         <div className="container-editorial">
           <Reveal className="mx-auto mb-12 max-w-2xl text-center">
-            <p className="eyebrow">Try it for a moment</p>
-            <h2 className="mt-4 font-serif text-4xl font-light text-forest-900 md:text-5xl">
-              Move three dials. See roughly what’s at stake.
-            </h2>
-            <p className="mt-5 font-sans text-base text-forest-800/75">
-              A rough sense of the exposure — no more. The real figure is measured from your own data,
-              and it is free.
-            </p>
+            <p className="eyebrow">{c.widgetEyebrow}</p>
+            <h2 className="mt-4 font-serif text-4xl font-light text-forest-900 md:text-5xl">{c.widgetTitle}</h2>
+            <p className="mt-5 font-sans text-base text-forest-800/75">{c.widgetSub}</p>
           </Reveal>
           <Reveal index={1}>
             <LeakAuditWidget />
@@ -100,18 +102,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── The three gates ──────────────────────────────────────────────────── */}
+      {/* ── Category cards (établissements servis) ──────────────────────────── */}
+      <section className="py-28 md:py-32">
+        <div className="container-editorial">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            {categories.map((cat, i) => (
+              <Reveal key={cat.label} index={i}>
+                <div className="cat-card">
+                  <Image src={cat.img} alt={cat.label} width={480} height={600} className="h-full w-full object-cover" />
+                  <span className="absolute bottom-4 left-4 z-10 font-serif text-lg text-cream-50">{cat.label}</span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── The three gates ─────────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">
         <div className="container-editorial">
           <Reveal className="max-w-2xl">
-            <p className="eyebrow">How the relationship is built</p>
-            <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">
-              Three gates, in order. You only walk through the ones that earn their place.
-            </h2>
+            <p className="eyebrow">{c.gatesEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">{c.gatesTitle}</h2>
           </Reveal>
-
           <div className="mt-16">
-            {GATES.map((g, i) => (
+            {c.gates.map((g, i) => (
               <Reveal key={g.no} index={i}>
                 <div className="grid gap-6 border-t border-forest-900/12 py-10 md:grid-cols-[auto_1fr_1.4fr] md:items-baseline md:gap-12">
                   <span className="font-serif text-3xl text-gold-deep">{g.no}</span>
@@ -124,18 +139,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Before / after feed ──────────────────────────────────────────────── */}
+      {/* ── Before / after feed (5e pilier) ─────────────────────────────────── */}
       <section className="border-t border-gold/15 bg-cream-100/60 py-28 md:py-36">
         <div className="container-editorial grid gap-12 md:grid-cols-[0.9fr_1.1fr] md:items-center">
           <Reveal>
-            <p className="eyebrow">The fifth pillar · presence</p>
-            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">
-              A feed that looks abandoned quietly suggests the rooms might be too.
-            </h2>
-            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">
-              Free acquisition demand hides in a consistent, considered social presence. Where it’s thin,
-              the direct booking never starts. Coherence is the point — not volume.
-            </p>
+            <p className="eyebrow">{c.feedEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">{c.feedTitle}</h2>
+            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">{c.feedBody}</p>
           </Reveal>
           <Reveal index={1}>
             <BeforeAfterFeed />
@@ -143,66 +153,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Trajectory (teaser) ──────────────────────────────────────────────── */}
+      {/* ── Trajectory (Recharts) ───────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">
         <div className="container-editorial grid gap-12 md:grid-cols-[0.85fr_1.15fr] md:items-center">
           <Reveal>
-            <p className="eyebrow">What recovery looks like</p>
-            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">
-              We are paid on the distance between two lines.
-            </h2>
-            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">
-              The flat line is your direct channel left alone. The rising one is the same channel,
-              recovered. Our reward is tied to the gap — nothing else.
-            </p>
-            <Link href="/results" className="link-underline mt-7 inline-block font-sans text-sm">
-              See the full record
-            </Link>
+            <p className="eyebrow">{c.trajEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">{c.trajTitle}</h2>
+            <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">{c.trajBody}</p>
+            <Link href="/results" className="link-underline mt-7 inline-block font-sans text-sm">{c.trajLink}</Link>
           </Reveal>
           <Reveal index={1} className="rounded-2xl border border-forest-900/12 bg-cream-100/70 p-6 md:p-8">
             <TrajectoryChartLazy />
-            <p className="eyebrow mt-4 text-right">Illustrative · sample trajectory</p>
+            <p className="eyebrow mt-4 text-right">{c.trajCaption}</p>
           </Reveal>
         </div>
       </section>
 
-      {/* ── Closing invitation ───────────────────────────────────────────────── */}
-      <section className="border-t border-gold/15 bg-cream-100/60 py-28 md:py-36">
-        <div className="container-editorial text-center">
+      {/* ── Closing (photo banner) ──────────────────────────────────────────── */}
+      <section className="full-banner">
+        <Image src="/img/new-wedding-toast-outdoor.jpg" alt="" fill sizes="100vw" className="full-banner-img" />
+        <div className="container-editorial relative py-28 text-center text-cream-50">
           <Reveal>
-            <h2 className="mx-auto max-w-3xl font-serif text-4xl font-light leading-tight text-forest-900 md:text-6xl">
-              We refuse more hotels than we accept. Let us see whether yours is one we’d fight for.
-            </h2>
+            <h2 className="mx-auto max-w-3xl font-serif text-4xl font-light leading-tight md:text-6xl">{c.closeTitle}</h2>
             <div className="mt-10">
-              <Link href="/diagnostic" className="btn-primary">
-                Request your assessment
-              </Link>
+              <Link href="/diagnostic" className="btn-gold">{c.closeCta}</Link>
             </div>
-            <p className="mt-6 font-sans text-sm text-forest-800/70">
-              Write to us yourself, and you’ll hear back from someone who understands hospitality — not a
-              queue, and never a script.
-            </p>
+            <p className="mx-auto mt-6 max-w-xl font-sans text-sm text-cream-100/80">{c.closeNote}</p>
           </Reveal>
         </div>
       </section>
     </>
   );
 }
-
-const GATES = [
-  {
-    no: "I",
-    title: "The assessment",
-    body: "Free, and grounded in your real data — your website, your reviews, your channel mix. We put a pounds-and-pence figure on what is recoverable, and tell you plainly if there isn’t enough there to be worth either of our time.",
-  },
-  {
-    no: "II",
-    title: "The underwriting",
-    body: "A paid, written Acquisition Thesis: where the loss sits, pillar by pillar, the sum we believe can be recovered, and the ninety-day plan to do it. It is a document you own, whether or not you go further.",
-  },
-  {
-    no: "III",
-    title: "The mandate",
-    body: "The engagement itself. We take financial responsibility for the recovery, and our reward is tied to what we actually return to your direct channel — never to how much you spend.",
-  },
-];

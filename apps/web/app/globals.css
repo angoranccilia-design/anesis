@@ -56,6 +56,72 @@
   .btn-ghost {
     @apply inline-flex items-center justify-center rounded-full border border-forest-900/25 px-6 py-3 font-sans text-sm text-forest-900 transition-colors hover:border-gold hover:text-forest-950;
   }
+  /* CTA doré (accent unique, sur fond photo/sombre). */
+  .btn-gold {
+    @apply inline-flex items-center justify-center rounded-full bg-gold px-7 py-3.5 font-sans text-sm font-medium text-cream-50 transition-colors hover:bg-gold-deep;
+  }
+
+  /* Bandeau photo pleine largeur — overlay encre verte, rythme éditorial. */
+  .full-banner {
+    @apply relative flex min-h-[440px] items-center overflow-hidden;
+  }
+  .full-banner-img {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+  .full-banner::before {
+    content: "";
+    @apply absolute inset-0;
+    background: linear-gradient(180deg, rgba(14, 31, 22, 0.34) 0%, rgba(14, 31, 22, 0.72) 100%);
+  }
+
+  /* Carte-catégorie : photo arrondie, zoom doux au survol, dégradé bas. */
+  .cat-card {
+    @apply relative block overflow-hidden rounded-2xl;
+    aspect-ratio: 4 / 5;
+  }
+  .cat-card img {
+    @apply h-full w-full object-cover transition-transform duration-700 ease-out;
+  }
+  .cat-card:hover img {
+    transform: scale(1.05);
+  }
+  .cat-card::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(180deg, transparent 45%, rgba(14, 31, 22, 0.62) 100%);
+  }
+
+  /* Photo avec statistique en surimpression. */
+  .stat-photo {
+    @apply relative flex min-h-[420px] items-end overflow-hidden rounded-2xl;
+  }
+  .stat-photo img {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+  .stat-photo::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(180deg, rgba(14, 31, 22, 0.05) 0%, rgba(14, 31, 22, 0.8) 100%);
+  }
+
+  /* Carte de verre translucide (badges flottants, stats sur photo). */
+  .glass-card {
+    @apply rounded-xl border border-cream-50/60 bg-cream-50/90 px-5 py-4 shadow-[0_20px_50px_-30px_rgba(14,31,22,0.6)] backdrop-blur;
+  }
+}
+
+/* Marquee (bandeau défilant — la chaîne du système). */
+@keyframes anesis-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: anesis-marquee 38s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }
 
 /* Lenis (smooth scroll). */
