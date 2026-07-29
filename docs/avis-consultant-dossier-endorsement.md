@@ -144,6 +144,22 @@ volontaire du roster), dis-le et je rétablis la version d'origine.
    Il ne reste donc, pour rendre le cockpit/dashboard « réels » et lancer la campagne, que les **4
    prérequis founder + le fichier prospects** ; aucun autre blocage technique côté interface.
 
+   **Mise à jour Cycle 1 (suite) — l'application est fonctionnellement COMPLÈTE, la connexion viendra
+   après (décision fondatrice « finir la création d'abord »).** Sont désormais créés et poussés :
+   (e) **Décision d'approbation** — `decideApproval` (`65fba8b`) applique grant/deny avec la délégation
+   (founder=tout ; operator=agents supervisés ; T5 art-director si assigné), enregistre `decided_by`.
+   +6 tests. (f) **Persistance de l'intake** — table `enquiries` (0013) + `insertEnquiry`/`listEnquiries`,
+   +3 tests. (g) **Câblage web complet** (`46d6607`) : flux d'auth par lien magique (`/login`,
+   `/auth/request|verify|logout`, cookie httpOnly de session), **gardes** des espaces fondatrice/client,
+   **actions serveur** du cockpit (approuver/refuser via `decideApproval`, générer un contrat via
+   `signMandate`), lecture live du cockpit/dashboard via `@anesis/readmodel`, et `/api/enquiry` qui
+   **persiste** en plus de notifier. Tout **bascule automatiquement** du mode démo au réel dès que
+   `DATABASE_URL` (et Resend) sont fournis — `withDbClient` renvoie `null` sinon. `next build` vert
+   (routes `/cockpit`, `/dashboard/[id]`, `/login`, `/auth/*`, `/api/enquiry`).
+   **Conséquence pour le dossier** : la note *Scalable* ne bute plus sur « aucune interface » — l'interface
+   existe et fonctionne sur données de démonstration ; il ne lui manque que le branchement aux données
+   réelles (prérequis founder), pas de code à écrire.
+
 4ter. **Coexistence avec la roadmap « 3 premiers mois » du document business** (`anesis-business-complet.md`,
    Partie 12) : cette roadmap cible « Mois 2 : 60+ diagnostics, 7 qualifiés, 2 LOI » — des volumes très
    inférieurs au nouveau cumul de 30 LOI au 16 novembre. Si le plan en 9 cycles ci-dessous devient la
@@ -200,10 +216,13 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
   ce cycle**, le chemin critique est uniquement les prérequis externes ci-dessus.
 - ✅ **Fait** — délégation d'approbation (`operator_agent_assignments` + `canApproveTier`/`authorize`) et
   policy RLS `founder-read-all`/`withFounder()`, codées, testées, poussées (`16ff1af`, `c08bdd0`).
-- Pendant que les prérequis externes se règlent (de son côté, en parallèle, sans bloquer le reste) :
-  construire en amont tout ce qui ne dépend pas d'eux — schéma d'auth lien magique, composants
-  dashboard/cockpit branchés sur `withFounder`, câblage Resend de `/api/enquiry` derrière une variable
-  d'environnement absente en dev — pour brancher immédiatement dès que la base/l'email arrivent.
+- ✅ **Fait** — tout le codable en amont des 4 prérequis, livré et testé : auth lien magique `@anesis/auth`
+  (`dc52601`), circuit contrat Porte 2 → Thèse → `makeCommercialTerms` → `signMandate` (`18b7a31`),
+  `/api/enquiry` → Resend avec fallback stub (`9185824`), `@anesis/readmodel` cockpit/dashboard + seed démo
+  (`eab54eb`), pages `/cockpit` + `/dashboard/[mandateId]` (`6a8901a`). Typecheck OK, ~150+ tests verts en
+  séquentiel (OOM local en parallèle seulement, non reproductible en CI). Horodaté `e6de62c`.
+  **Plus aucun blocage technique d'interface — le cockpit/dashboard passent de démo à réel par un simple
+  branchement `DATABASE_URL` dès qu'il arrive.**
 - Une fois les prérequis levés : lancer le lot de test de **20 établissements confirmé** (sous-ensemble du
   lot complet de ~150 du runbook — décision arbitrée : test à 20 d'abord, le lot complet suit au Cycle 2
   selon les résultats, voir §1.2)
