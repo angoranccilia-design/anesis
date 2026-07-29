@@ -138,6 +138,12 @@ export const mandates = pgTable("mandates", {
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   brandConstraints: jsonb("brand_constraints").notNull().default({}),
   emergencyStopped: boolean("emergency_stopped").notNull().default(false),
+  // Termes commerciaux (Porte 3) — voir 0012_commercial_terms.sql. Taux/séances suivent la durée.
+  formula: text("formula"),
+  termMonths: integer("term_months"),
+  incentiveRate: numeric("incentive_rate"),
+  monthlySubscriptionPence: bigint("monthly_subscription_pence", { mode: "number" }),
+  photoSessions: integer("photo_sessions"),
 });
 
 export const theses = pgTable("theses", {

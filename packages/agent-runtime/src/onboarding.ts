@@ -8,7 +8,7 @@
  * `mandate.thesis_attached` est le SEUL point où le mandateId existe : c'est la condition des invariants
  * non-nullables d'Objective/Task. La dérivation ne peut donc pas se produire plus tôt (property.qualified).
  */
-import { gbp, iso, type BrandConstraints, type CorrelationId, type EventId, type LossLineId, type MandateId, type ObjectiveId, type OperatorId, type PropertyId, type TaskId, type ThesisId } from "@anesis/core";
+import { gbp, iso, makeCommercialTerms, type BrandConstraints, type CommercialTerms, type CorrelationId, type EventId, type LossLineId, type MandateFormula, type MandateId, type MandateTermMonths, type ObjectiveId, type OperatorId, type PropertyId, type TaskId, type ThesisId } from "@anesis/core";
 import { asId } from "@anesis/core/unsafe";
 import type { Assessment, AssessmentIcp, SubScores } from "@anesis/assessment";
 import { deriveThesis, type PlanningConfig, type PlanningDeps } from "@anesis/planning";
@@ -22,12 +22,20 @@ export interface SignMandateInput {
   readonly correlationId: CorrelationId;
   readonly brandConstraints?: BrandConstraints;
   readonly config?: PlanningConfig;
+  /**
+   * Termes commerciaux de la Porte 3 : formule ET durée sont DEUX choix indépendants (le taux suit la
+   * durée, pas la formule — cf. makeCommercialTerms). Fournis ensemble par le cockpit à la génération
+   * du contrat ; omis → mandat sans termes (chemin hérité). Ces termes restent conditionnels avant le visa.
+   */
+  readonly formula?: MandateFormula;
+  readonly termMonths?: MandateTermMonths;
 }
 
 export interface SignMandateResult {
   readonly mandateId: MandateId;
   readonly thesisId: ThesisId;
   readonly lossLineCount: number;
+  readonly commercialTerms: CommercialTerms | null;
 }
 
 const asJson = <T>(v: unknown): T => (typeof v === "string" ? (JSON.parse(v) as T) : (v as T));
@@ -77,10 +85,28 @@ export async function signMandate(client: SqlClient, bus: EventBus, input: SignM
 
   const brand: BrandConstraints = input.brandConstraints ?? { voiceNotes: "", bannedTerms: [] };
 
+  // Contrat (Porte 3) : formule + durée → termes commerciaux résolus. Le taux se déduit de la durée,
+  // jamais de la formule. Le point de passage unique (makeCommercialTerms) rend un taux incohérent
+  // impossible à écrire.
+  const terms: CommercialTerms | null =
+    input.formula != null && input.termMonths != null ? makeCommercialTerms(input.formula, input.termMonths) : null;
+
   await withMandate(client, mandateId, async () => {
     await client.query(
-      "insert into mandates (id, mandate_id, property_id, state, brand_constraints) values ($1, $1, $2, 'active', $3::jsonb)",
-      [mandateId, propertyId, JSON.stringify(brand)],
+      `insert into mandates
+         (id, mandate_id, property_id, state, brand_constraints,
+          formula, term_months, incentive_rate, monthly_subscription_pence, photo_sessions)
+       values ($1, $1, $2, 'active', $3::jsonb, $4, $5, $6, $7, $8)`,
+      [
+        mandateId,
+        propertyId,
+        JSON.stringify(brand),
+        terms?.formula ?? null,
+        terms?.termMonths ?? null,
+        terms?.incentiveRate ?? null,
+        terms?.monthlySubscription.pence ?? null,
+        terms?.photoSessions ?? null,
+      ],
     );
     await client.query("insert into theses (id, mandate_id, leak_index) values ($1, $2, $3)", [
       thesis.id,
@@ -119,5 +145,5 @@ export async function signMandate(client: SqlClient, bus: EventBus, input: SignM
     }),
   );
 
-  return { mandateId, thesisId: thesis.id, lossLineCount: thesis.lossLines.length };
+  return { mandateId, thesisId: thesis.id, lossLineCount: thesis.lossLines.length, commercialTerms: terms };
 }

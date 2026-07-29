@@ -76,6 +76,60 @@ describe("Onboarding (maillon étape 2 ↔ 3) — signMandate ferme la boucle ju
     expect(plan.tasks.map((t) => t.assigned_agent)).toEqual(["conversion", "media-buyer", "rate-distribution", "reputation"]);
   });
 
+  it("circuit contrat : signe avec formule + durée → termes commerciaux persistés, taux déduit de la durée", async () => {
+    // Porte 2 (Thèse dérivée dans signMandate) → Porte 3 (formule Domination, 12 mois) → makeCommercialTerms.
+    const res = await signMandate(pg, bus, {
+      propertyId: "prop-1",
+      operatorId: OP,
+      correlationId: CORR,
+      formula: "domination",
+      termMonths: 12,
+    });
+
+    // Le taux suit la DURÉE (12 mois → 10 %), pas la formule ; abonnement suit la formule (Domination £4 400).
+    expect(res.commercialTerms).toEqual({
+      formula: "domination",
+      termMonths: 12,
+      incentiveRate: 0.1,
+      photoSessions: 4,
+      monthlySubscription: { currency: "GBP", pence: 440_000 },
+    });
+
+    const m = await withMandate(pg, res.mandateId, async () =>
+      (await pg.query(
+        "select formula, term_months, incentive_rate, monthly_subscription_pence, photo_sessions from mandates where id = $1",
+        [res.mandateId],
+      )).rows[0],
+    );
+    expect(m?.formula).toBe("domination");
+    expect(Number(m?.term_months)).toBe(12);
+    expect(Number(m?.incentive_rate)).toBe(0.1);
+    expect(Number(m?.monthly_subscription_pence)).toBe(440_000);
+    expect(Number(m?.photo_sessions)).toBe(4);
+  });
+
+  it("même formule sur 6 mois → taux 15 % (le taux ne dépend pas de la formule)", async () => {
+    const res = await signMandate(pg, bus, {
+      propertyId: "prop-1",
+      operatorId: OP,
+      correlationId: CORR,
+      formula: "domination",
+      termMonths: 6,
+    });
+    expect(res.commercialTerms?.incentiveRate).toBe(0.15);
+    expect(res.commercialTerms?.photoSessions).toBe(2);
+  });
+
+  it("sans formule/durée : mandat signé sans termes (chemin hérité) → colonnes nulles", async () => {
+    const res = await signMandate(pg, bus, { propertyId: "prop-1", operatorId: OP, correlationId: CORR });
+    expect(res.commercialTerms).toBeNull();
+    const m = await withMandate(pg, res.mandateId, async () =>
+      (await pg.query("select formula, incentive_rate from mandates where id = $1", [res.mandateId])).rows[0],
+    );
+    expect(m?.formula).toBeNull();
+    expect(m?.incentive_rate).toBeNull();
+  });
+
   it("refuse de signer une Property non qualifiée", async () => {
     await pg.query("update properties set state = 'assessed' where id = 'prop-1'");
     await expect(signMandate(pg, bus, { propertyId: "prop-1", operatorId: OP, correlationId: CORR })).rejects.toThrow(

@@ -4,6 +4,7 @@
  */
 import type { Iso8601, MandateId, PropertyId, ThesisId } from "./primitives.js";
 import type { TransitionMap } from "./state-machine.js";
+import type { CommercialTerms } from "./mandate-terms.js";
 
 export type MandateState = "active" | "suspended" | "completed" | "terminated";
 
@@ -28,4 +29,10 @@ export interface Mandate {
   readonly startedAt: Iso8601;
   readonly brandConstraints: BrandConstraints;
   readonly emergencyStopped: boolean; // coupure d'urgence par mandat
+  /**
+   * Termes commerciaux PROPOSÉS (Porte 3), résolus via `makeCommercialTerms`. Restent conditionnels
+   * tant que la fondatrice n'est pas installée au UK : aucun mandat payant n'est réputé exécuté avant
+   * le visa. `null` sur les mandats hérités sans termes.
+   */
+  readonly commercialTerms?: CommercialTerms | null;
 }
