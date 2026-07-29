@@ -54,6 +54,23 @@ export const operators = pgTable("operators", {
   role: operatorRole("role").notNull(),
 });
 
+/**
+ * Délégation d'approbation : quels agents un `operator` peut approuver (T3/T4/T5). Config GLOBALE,
+ * hors RLS mandat — le founder n'y figure pas (il approuve tout). Voir 0010_delegation.sql.
+ */
+export const operatorAgentAssignments = pgTable(
+  "operator_agent_assignments",
+  {
+    operatorId: text("operator_id")
+      .notNull()
+      .references(() => operators.id, { onDelete: "cascade" }),
+    agentId: text("agent_id").notNull(),
+    assignedBy: text("assigned_by").references(() => operators.id),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.operatorId, t.agentId] })],
+);
+
 export const properties = pgTable(
   "properties",
   {

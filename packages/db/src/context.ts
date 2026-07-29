@@ -19,3 +19,22 @@ export async function withMandate<T>(client: SqlClient, mandateId: string, fn: (
     throw err;
   }
 }
+
+/**
+ * Contexte fondatrice — pose `app.founder='true'` en TRANSACTION-LOCAL. Ouvre la LECTURE transversale
+ * de toutes les tables mandat-scopées (policies `*_founder_read`, SELECT only, migration 0010) pour le
+ * cockpit. N'ouvre AUCUNE écriture : hors `app.mandate_id`, tout INSERT/UPDATE reste refusé par
+ * l'isolation par mandat. À réserver aux lectures transversales du founder.
+ */
+export async function withFounder<T>(client: SqlClient, fn: () => Promise<T>): Promise<T> {
+  await client.query("begin");
+  try {
+    await client.query("select set_config('app.founder', 'true', true)");
+    const result = await fn();
+    await client.query("commit");
+    return result;
+  } catch (err) {
+    await client.query("rollback");
+    throw err;
+  }
+}
