@@ -13,3 +13,18 @@ export {
   type DerivedPlan,
   type PlanningDeps,
 } from "./plan.js";
+export {
+  deriveThesisDocument,
+  renderThesisMarkdown,
+  type ThesisDocument,
+  type ThesisDocumentLine,
+  type ThesisDocumentOptions,
+  type ThesisPlanPhase,
+} from "./thesis-document.js";
+export {
+  loiLetter,
+  conditionalEngagementLetter,
+  type LetterParty,
+  type LoiInput,
+  type ConditionalEngagementInput,
+} from "./letters.js";
