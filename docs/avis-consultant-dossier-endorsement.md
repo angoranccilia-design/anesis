@@ -203,6 +203,17 @@ réelle ne doit exister avant l'installation UK, donc ce marquage devient encore
 **Écart roadmap/code réel.** Actualisé en §1.1 et §1.3 ci-dessus avec les chiffres vérifiés au 29 juillet
 2026.
 
+**Nouveau risque identifié le 29 juillet 2026 (soir) — continuité visible avec une entreprise déjà en
+activité.** `kairoshospitality.fr` est un site réel et actif d'une société canadienne en activité (« KAIROS
+Hospitality Acquisition », Moncton NB, client réel documenté SAFIR), avec le même modèle d'affaires
+qu'Anesis. Découvrable par un examinateur qui chercherait la fondatrice, ce qui contredit directement le
+critère « entreprise neuve, n'ayant pas commencé à commercer ». Décision de la fondatrice : le site public
+Anesis (`apps/web`) doit être entièrement rebrandé (logo, couleurs, contenu, voix, positionnement), sans
+aucune trace de KAIROS/SAFIR/Canada — directive complète dans `CLAUDE.md` § « Rebrand du site public ».
+**Ne pas confondre avec la section bio fondatrice (ci-dessous et §3)** : elle continue de citer
+l'expérience personnelle antérieure de la fondatrice sous KAIROS — c'est correct et nécessaire, seul le
+site public et le langage courant sont concernés par la purge.
+
 ---
 
 ## 3. Priorité moyenne — renforcer le dossier (reportés de la v1, toujours ouverts)
@@ -351,9 +362,14 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
 - [ ] Base Postgres provisionnée (fondatrice)
 - [ ] Email + domaine réels + Resend configuré (fondatrice)
 - [ ] `APIFY_TOKEN` + `APIFY_REVIEWS_ACTOR` choisis (fondatrice)
-- [ ] Logo transparent PNG/SVG fourni (fondatrice)
+- [x] Logo transparent PNG/SVG fourni *(fait — `apps/web/public/logo.png`, intégré partout via `BRAND`
+  dans `@anesis/core`, commit `39c2b6c`)*
 - [ ] Fichier prospects (~150 lignes) préparé
 - [x] Délégation d'approbation codée (`operator_agent_assignments`, RLS `founder-read-all`) — Claude Code, sans dépendance externe *(fait, Cycle 1, commit `16ff1af`)*
+- [x] Générateurs de contenu codés : email de campagne (`apps/campaign/src/email.ts`), Thèse d'Acquisition
+  (`@anesis/planning`), LOI + lettre d'engagement conditionnel (`@anesis/planning/letters.ts`) *(fait,
+  commits `b58ac81`, `eb7ce7e`, `39c2b6c`)* — reste : les faire tourner sur de vrais établissements dès
+  que les prérequis externes arrivent.
 - [ ] 30 LOI signées et datées
 - [ ] 15 Thèses d'Acquisition livrées gratuitement
 - [ ] 8 à 10 engagements conditionnels de conversion post-installation
@@ -370,6 +386,7 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
 - [ ] Bio fondatrice intégrée au corps du dossier (v1 §2)
 - [ ] Vue de trésorerie mensuelle mois 1-6 (v1 §2)
 - [x] État technique horodaté et documenté à chaque cycle *(Cycle 1 : §4bis mis à jour, auth/contrat/intake/read-model + cockpit/dashboard livrés)*
+- [x] Site public rebrandé en identité UK autonome (aucune trace KAIROS/SAFIR/Moncton/Canada/North America — grep `apps/web` vide, vérifié), refonte premium + bilingue EN-UK/FR *(commits `075f8ac`, `922b14a`)* — **écarte le risque d'éligibilité lié à un site d'un autre marché encore visible**
 
 **Bonus (au-delà de 95)**
 - [ ] Publication de données agrégées à la presse professionnelle avant dépôt (cycle 8)
