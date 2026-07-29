@@ -1,56 +1,325 @@
-# Avis consultant IA — Dossier d'endorsement Innovator Founder (ANESIS-DOSSIER-2026-001-v1)
+# Avis consultant IA — Dossier d'endorsement Innovator Founder (ANESIS-BPL-2026-001-V2)
 
-> Relecture du PDF soumis, croisée avec l'état réel du code, le document business de référence, et les critères 2026 des organismes agréés (UK Endorsing Services, Innovator International, Envestors — les 3 seuls habilités à endosser Innovator Founder / Scale-up au 20 avril 2026). Les organismes refusent 60–70 % des dossiers ; la rigueur documentaire n'est pas cosmétique, c'est le premier filtre.
-
----
-
-## 1. Priorité haute — risques réels de rejet
-
-**Auto-notation du dossier (§14, 9,3 à 9,6/10 sur chaque critère).** À retirer. L'évaluation vous appartient, jamais au demandeur — un dossier qui se note lui-même à 9,5/10 partout se lit comme un signal d'inexpérience, pas de force. Remplacer par les preuves elles-mêmes et laisser l'organisme conclure.
-
-**Incohérence de traction.** Le §14 cite « traction initiale (60 diagnostics, 7 qualifiés, 2 LOI) » comme preuve acquise de viabilité, alors que le §8 (roadmap) liste ce même chiffre comme **livrable du Mois 2**, donc pas encore réalisé. Présenter un objectif futur comme un résultat acquis dans le même document est le genre d'incohérence qu'un examinateur — ou un caseworker vérifiant plus tard — repère immédiatement. À corriger : soit retirer la traction du §14 tant qu'elle n'est pas réelle, soit la requalifier clairement comme cible.
-
-**Projections financières sans méthodologie (§9).** £460 000 en Année 1 sur 10 mandats, sans hypothèse visible : rythme de signature (10 mandats dès janvier ou en rampe sur l'année ?), mix Croissance/Domination, attrition. « Prévisions non réalistes ou non justifiées » est cité comme l'un des motifs de refus les plus fréquents. Ajouter une page d'hypothèses explicites — c'est ce qui transforme un chiffre en prévision crédible.
-
-**Le modèle de facture (§16) risque de se retourner contre vous.** Il montre une facture datée (mars 2026) à un client nommé (« WillowCreek »). Un des trois critères d'éligibilité est que l'entreprise soit **neuve, n'ayant pas encore commencé à commercer**. Un modèle de facture avec un nom et une date réels peut être lu comme une preuve qu'une activité commerciale a déjà démarré. Marquer explicitement « modèle fictif, aucune transaction réelle » sur ce type d'extrait.
-
-**Roadmap trop optimiste par rapport à l'état réel du code.** Le §8 annonce, dès le Mois 2 : interface client MVP, site public, Compliance Agent, 60 diagnostics. L'état réel aujourd'hui (vérifié dans le dépôt de code) : 4 agents sur 12 ont du code, aucune interface n'existe, l'hébergement pour les exécutions longues n'est pas tranché. Si ce document sert de base aux points de contact obligatoires avec l'organisme pendant la durée du visa, l'écart entre la date annoncée et l'avancement réel sera visible. Recommandation : soit ralentir les dates, soit les présenter explicitement comme cibles ambitieuses et non engagements fermes.
-
-**Incohérence sur le nombre d'agents.** Le dossier revendique systématiquement « 12 agents », mais le Compliance Agent (§8, §11) et le Human Time Optimizer Agent (§7, §15) apparaissent en plus, sans figurer dans le tableau des 12 (§5) — soit 14 rôles nommés au total. À trancher : les intégrer dans les 12 (en fusionnant ou requalifiant des rôles existants) ou assumer et corriger le chiffre partout où « 12 » est utilisé comme argument.
+> **Version 2** (29 juillet 2026). Met à jour la v1 ci-dessous suite à deux changements : le dépôt est
+> reporté au **30 novembre 2026**, et la contrainte structurante est actée noir sur blanc — la fondatrice
+> reste basée au Canada jusqu'à l'obtention du visa : aucune facturation, aucun mandat payant, aucun
+> déplacement UK avant cette date. Cette version croise à nouveau le texte du dossier avec l'état réel du
+> dépôt de code (`etape-4-proposition-agents-restants.md`, roster figé à **12** agents) et le runbook de
+> campagne (`campagne-3-aout-runbook.md`). Les corrections factuelles trouvées lors de ce croisement sont
+> en §1 — à traiter avant tout autre point.
+>
+> **Mise à jour du 29 juillet 2026 (soir), vérifiée directement dans le dépôt.** Les 12 agents ont
+> maintenant tous du code et des tests en CI verte (`packages/agent-runtime/src/agents/*.ts`, 16 fichiers
+> de test) — l'écart « 8 agents sur 12 non construits » de la première passe de cette v2 est **caduc**,
+> corrigé en §1bis et dans le plan §4. Le vrai reste à faire n'est plus le nombre d'agents mais
+> l'**interface** : délégation d'approbation par opérateur, cockpit fondatrice, dashboard client, intake
+> réel des formulaires — voir §1bis pour le détail exact et `docs/prompt-claude-code-execution-plan.md`
+> pour l'ordre d'exécution donné à Claude Code.
 
 ---
 
-## 2. Priorité moyenne — renforcer le dossier
+## 0. Score institutionnel (document de travail interne — jamais à reproduire tel quel dans le dossier)
 
-**Paysage concurrentiel absent.** Un des trois critères officiels est que l'idée soit « innovante — pas déjà disponible sur le marché UK ». Le dossier ne nomme aucun concurrent ; il compare seulement à « agence classique » de façon générique (§1.4). L'analyse comparative déjà réalisée séparément (concurrents mondiaux, agences marketing hôtelier UK) doit être intégrée ici : c'est la preuve directe de ce critère, pas un supplément optionnel.
+Un endorsing body UK juge un dossier Innovator Founder sur trois critères : Innovative, Viable, Scalable.
+Ce tableau est une estimation de travail pour prioriser l'effort des 18 semaines à venir — **il ne doit
+jamais apparaître dans le dossier soumis** (voir v1 §1, « Auto-notation » : un dossier qui se note lui-même
+se lit comme un signal d'inexpérience, pas de force. Le principe reste vrai même pour une note interne à
+95 — l'évaluation appartient à l'organisme, jamais au demandeur).
 
-**Bio fondatrice absente du corps du document.** Le §14 renvoie à « résultats antérieurs fondatrice » sans les présenter. La viabilité s'évalue aussi sur l'expérience du fondateur — inclure un paragraphe CV/parcours directement dans le dossier (KAIROS, résultats chiffrés déjà connus : 22x ROAS glamping, +372 % Instagram spa, +156 % réservations SAFIR), pas seulement en annexe séparée.
+| Critère | Actuel | Cible | Écart principal |
+|---|---|---|---|
+| Innovative | 24/34 | 32/34 | Rien n'est montré visuellement ; aucun artefact, aucune reconnaissance marché |
+| Viable | 19/33 | 32/33 | Zéro établissement qualifié, zéro donnée testée sur le marché UK à ce jour |
+| Scalable | 18/33 | 31/33 | Les 12 agents ont du code + tests (fait) ; aucune interface client/cockpit branchée à des données réelles ; délégation d'approbation par opérateur pas codée ; aucune LOI convertie |
+| **Total** | **61/100** | **95/100** | |
 
-**Pas de vue de trésorerie mensuelle.** Le modèle impose paiement d'avance sans délai de grâce — donc un décalage réel entre signature et premier encaissement (souscription, puis premier mois de mandat). Ajouter une projection mensuelle (au moins mois 1 à 6) montre la maîtrise du risque de trésorerie plutôt qu'une vue annuelle lissée qui le masque.
-
-**Coûts humains (§9) non réconciliés avec le plan d'embauche (§6).** £180 000 de coûts humains en Année 1 pour 10 mandats — à relier explicitement aux seuils d'embauche déjà définis (Vidéaste-Photographe seulement à 8-10 mandats simultanés, etc.), sinon le chiffre paraît posé arbitrairement.
-
----
-
-## 3. Priorité basse — forme et précision
-
-- Champs non remplis : `[TON NOM]` en page de garde.
-- Marque déposée (§12) : seulement classes 35 et 42 envisagées. Vu le positionnement explicite « souscription/assurance de revenu », la classe 36 (services financiers) mérite d'être posée à l'agent de marques — pas une certitude, une question à trancher avec un professionnel.
-- L'exemple Creative Attribution AI (« vidéos avec cheminée +34 % de réservations ») doit être marqué sans ambiguïté comme hypothèse illustrative, pas un résultat mesuré — c'est déjà présenté comme R&D, mais le chiffre précis (34 %) donne l'impression d'une mesure réelle.
-
----
-
-## 4. Point structurel à ne pas manquer
-
-Seuls **trois organismes** sont habilités à endosser (UK Endorsing Services, Innovator International, Envestors). Chacun a son propre portail et souvent son propre format attendu. Avant de finaliser : choisir lequel des trois est visé et vérifier son modèle spécifique — soumettre ce document générique tel quel, sans l'adapter au format de l'organisme choisi, est en soi un facteur de rejet précoce (« dossier mal présenté, incomplet au regard du format attendu »).
+Le calendrier repoussé au 30 novembre donne ~18 semaines pour passer de projectif à documenté, **sans que
+la fondatrice ait à facturer un client ni à quitter le Canada**. L'absence de revenu facturé n'est pas une
+faiblesse à corriger — le dossier ne doit jamais suggérer que l'entreprise a déjà généré du chiffre
+d'affaires (cohérent avec v1 §1, point sur la facture WillowCreek). La viabilité se prouve par la densité
+de la phase de validation gratuite, pas par un CA qui serait d'ailleurs incohérent avec la situation réelle
+de la fondatrice avant installation.
 
 ---
 
-## Sources (critères et pratique des organismes, 2026)
+## 1. Corrections factuelles apportées lors du merge (à valider avant d'aller plus loin)
 
+Le texte source de cette v2 contenait trois chiffres qui ne correspondent pas à l'état réel du projet.
+Corrigés ci-dessous et dans le plan §4 — si l'un de ces chiffres était intentionnel (ex. réduction
+volontaire du roster), dis-le et je rétablis la version d'origine.
+
+1. **Nombre d'agents — ⚠️ superseded par §1bis.** Le texte source disait « 8 agents sur 10 non construits »
+   et « 3 agents minimaux déjà en cours ». Une première correction (29 juillet, après-midi) l'avait ramené
+   à « 4 construits sur 12, 8 restants ». **Cette correction intermédiaire est elle-même caduque depuis le
+   29 juillet au soir** : les 12 agents ont désormais tous du code et des tests en CI verte — voir le
+   détail exact en §1bis ci-dessous, qui fait foi.
+
+2. **Taille de la vague 1 de campagne.** Le texte source visait 20 établissements pour le Cycle 1 (28
+   juillet–10 août). Le runbook déjà écrit (`campagne-3-aout-runbook.md`) prévoit **~150 établissements
+   UK (Porte 1)** pour ce premier lot, lancement prévu **lundi 3 août 2026**. Deux lectures possibles : (a)
+   20 est un sous-lot volontairement restreint pour tester le message avant le lot complet de 150 — dans ce
+   cas le dire explicitement dans le plan ; (b) le Cycle 1 doit viser directement les 150 du runbook. À
+   trancher avec toi ; le plan ci-dessous garde 20 comme lot de test explicite pour ne pas trancher à ta
+   place.
+
+3. **Prérequis bloquants non mentionnés dans le calendrier source.** Le runbook liste des éléments encore
+   ⛔ non fournis à ce jour : base Postgres à provisionner, `APIFY_TOKEN`, `APIFY_REVIEWS_ACTOR`, fichier
+   prospects. Le Cycle 1 (livrable daté au 10 août : 20 scores + 20 emails) **dépend de ces prérequis** —
+   le plan §4 les ajoute en tête de cycle 1, sans quoi le premier livrable daté du dossier est irréaliste
+   dès la première quinzaine, ce qui est précisément le type d'écart calendrier/réalité que v1 §1 signalait
+   déjà sur la roadmap Mois 1-3.
+
+4bis. **État technique réel vérifié le 29 juillet 2026 (soir), remplace le point 1 ci-dessus.** Les 12
+   agents (`analyst`, `underwriter`, `orchestrator`, `social-ops`, `conversion`, `reputation`,
+   `partnerships`, `lifecycle`, `media-buyer`, `rate-distribution`, `content-creator`, `art-director`) ont
+   tous du code dans `packages/agent-runtime/src/agents/`, plus les utilitaires `planner` et `retention`
+   (fenêtre T2). CI verte : job `unit` (typecheck + tests, ~140+ tests) et job `db-real-postgres` (vrai
+   Postgres 16 + pgbouncer). 9 migrations Drizzle, toutes cloisonnées par mandat (RLS). La règle
+   d'intéressement indexée sur la durée (6 mois=15 %, 12 mois=10 %, formule Croissance/Domination
+   indépendante du taux) est verrouillée dans `packages/core/src/mandate-terms.ts` avec 8 tests. Le site
+   public (`apps/web`, Next.js 15) a 8 pages (Accueil, About, Method, Results, Journal + articles,
+   Diagnostic, Contact) et une route `/api/enquiry` qui est un stub — l'intake réel n'est pas branché.
+   **Ce qui manque réellement pour la note Scalable n'est donc plus la construction des agents mais
+   l'interface** : table `operator_agent_assignments` + assouplissement de `canApproveTier`/`authorize`
+   pour la délégation d'approbation (faisable tout de suite, sans dépendance externe) ; auth par lien
+   magique, dashboard client, cockpit fondatrice, génération de contrat (Porte 2 → Thèse → mandat via
+   `makeCommercialTerms`) et intake réel des formulaires (bloqués tant que la base Postgres et un
+   email/domaine réels ne sont pas fournis — voir liste founder ci-dessous) ; et le restyle du site en
+   direction artistique KAIROS (Fraunces, photos, bandeaux), **explicitement mis en pause par la
+   fondatrice** — ne pas y toucher sans qu'elle le redemande.
+
+   **Liste bloquante fournie par la fondatrice, à traiter par elle (pas par Claude Code) :** base Postgres
+   provisionnée ; email + domaine réels (placeholder actuel `enquiries@anesisacquisition.com`) ; token
+   Apify (scraping avis + réseaux sociaux réel) ; logo en PNG/SVG transparent (un JPG est utilisé
+   aujourd'hui). Tant que ces quatre éléments manquent, la campagne du Cycle 1 et tout le dashboard/cockpit
+   du Cycle 3 restent bloqués — c'est le vrai chemin critique du plan, pas le nombre d'agents.
+
+   **Mise à jour Cycle 1 (fin juillet 2026, commit `16ff1af`).** Le seul item d'interface sans
+   dépendance externe est désormais **livré et testé en CI** : (a) délégation d'approbation —
+   `canApproveTier` accepte une `ApprovalDelegation` (le founder approuve tout ; un `operator`
+   n'approuve un tier bloquant T3/T4/T5 que pour les agents qu'il supervise via la table
+   `operator_agent_assignments`, T5 art-director inclus s'il est assigné Directrice Artistique) ;
+   (b) lecture transversale fondatrice — migration `0010_delegation.sql` : `current_is_founder()` +
+   policies `*_founder_read` (SELECT only, permissives, en OR avec l'isolation de 0001) + helper
+   `withFounder()`. Propriété de sécurité vérifiée par test : le founder **lit** tous les mandats mais
+   n'**écrit** jamais hors de son mandat courant. `authorize()` est inchangé (il décide le régime et
+   valide l'Approval ; la règle « qui peut approuver » s'applique au moment du grant, côté cockpit).
+   Il ne reste donc, côté interface, que les items **bloqués par les prérequis founder** (auth, dashboard,
+   cockpit, intake) — voir liste ci-dessous.
+
+4ter. **Coexistence avec la roadmap « 3 premiers mois » du document business** (`anesis-business-complet.md`,
+   Partie 12) : cette roadmap cible « Mois 2 : 60+ diagnostics, 7 qualifiés, 2 LOI » — des volumes très
+   inférieurs au nouveau cumul de 30 LOI au 16 novembre. Si le plan en 9 cycles ci-dessous devient la
+   référence opérationnelle, la Partie 12 du document business doit être mise à jour ou explicitement
+   marquée comme supplantée, sinon un examinateur qui croise les deux documents trouve deux calendriers
+   contradictoires — c'est exactement le risque déjà signalé en v1 §1 pour le triplet roadmap/traction/état
+   du code.
+
+---
+
+## 2. Priorité haute — risques réels de rejet (reportés de la v1, toujours ouverts)
+
+**Auto-notation du dossier.** Toujours à retirer du corps soumis (voir §0 ci-dessus — le risque existe
+aussi pour un score interne 61→95 si jamais il fuite dans une version exportée du dossier).
+
+**Incohérence de traction.** Toujours d'actualité : tant que la Partie 12 du document business n'est pas
+alignée sur le plan en 9 cycles (§1.4), le risque qu'un chiffre de traction soit présenté comme acquis dans
+une section et comme cible dans une autre reste réel.
+
+**Projections financières sans méthodologie (§9 du dossier).** Non traité par cette v2 — reste ouvert.
+Ajouter la page d'hypothèses (rythme de signature, mix d'offres, attrition) reste recommandé avant dépôt.
+
+**Modèle de facture (§16 du dossier, WillowCreek).** Toujours à marquer explicitement « modèle fictif,
+aucune transaction réelle ». Directement lié à la contrainte de résidence de cette v2 : aucune facture
+réelle ne doit exister avant l'installation UK, donc ce marquage devient encore plus important, pas moins.
+
+**Écart roadmap/code réel.** Actualisé en §1.1 et §1.3 ci-dessus avec les chiffres vérifiés au 29 juillet
+2026.
+
+---
+
+## 3. Priorité moyenne — renforcer le dossier (reportés de la v1, toujours ouverts)
+
+- Paysage concurrentiel absent du corps du dossier — intégrer l'analyse comparative déjà réalisée.
+- Bio fondatrice absente du corps du document — inclure le paragraphe CV/résultats chiffrés (22x ROAS
+  glamping, +372 % Instagram spa, +156 % réservations SAFIR) directement dans le dossier, pas en annexe.
+- Pas de vue de trésorerie mensuelle (mois 1 à 6) — toujours absent.
+- Coûts humains (§9) non réconciliés avec les seuils d'embauche (§6) — toujours à relier explicitement.
+
+---
+
+## 4. Plan en 9 cycles jusqu'au dépôt (30 novembre 2026)
+
+Chaque cycle ne contient que des actions réalisables à distance depuis le Canada, sans facturation ni
+déplacement — cohérent avec la contrainte de résidence. Remplace le calendrier de la section 24 du
+document original. **Chiffres d'agents et de campagne corrigés par rapport au texte source (voir §1).**
+
+### Cycle 1 — 28 juillet au 10 août 2026
+**Préalable bloquant (à lever avant tout le reste du cycle, voir §1bis) — fourni par la fondatrice, pas par
+Claude Code :** base Postgres provisionnée, `APIFY_TOKEN` + `APIFY_REVIEWS_ACTOR` choisis, email/domaine
+réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbook).
+**Objectif : campagne lancée, délégation d'approbation codée**
+- Les 12 agents ont déjà tout leur code et leurs tests (voir §1bis) — **rien à construire côté agents pour
+  ce cycle**, le chemin critique est uniquement les prérequis externes ci-dessus.
+- En parallèle, pendant que les prérequis externes se règlent : coder la délégation d'approbation
+  (`operator_agent_assignments` + `canApproveTier`/`authorize`) et la policy RLS `founder-read-all` —
+  aucune dépendance externe, faisable dès maintenant.
+- Une fois les prérequis levés : lancer un lot de test de 20 établissements (sous-ensemble du lot complet
+  de ~150 du runbook — à confirmer si le cycle vise le lot complet dès le 3 août, voir §1.2)
+- Produire les 20 premiers scores Leak Index sur données publiques
+- Envoyer les 20 premiers emails personnalisés (score + perte estimée en objet)
+- **Livrable vérifiable au 10 août : délégation d'approbation codée et testée ; 20 scores calculés, 20
+  emails envoyés, taux d'ouverture mesuré (ces trois derniers conditionnés aux prérequis externes)**
+
+### Cycle 2 — 11 au 24 août 2026
+**Objectif : premières signatures de LOI à distance, ajustement du message**
+- Relance vocale (Sofia) des établissements ayant manifesté un intérêt
+- Ajustement du message selon les taux d'ouverture/réponse du lot de test
+- Lancement de la vague suivante (jusqu'au lot complet de ~150 du runbook si pas déjà fait au cycle 1)
+- Cible : 5 LOI signées électroniquement, sans aucun déplacement
+- **Livrable vérifiable au 24 août : 5 LOI signées et datées**
+
+### Cycle 3 — 25 août au 7 septembre 2026
+**Objectif : premières Thèses livrées, dashboard**
+- Production des premières Thèses d'Acquisition (gratuites, phase de validation), par lots de 10, à distance
+- Construction du prototype de dashboard avec les données réelles du premier établissement ayant reçu sa Thèse
+- Cible : 3 Thèses livrées, dashboard v1 avec vraies données
+- **Livrable vérifiable au 7 septembre : 3 Thèses complètes, dashboard v1**
+
+### Cycle 4 — 8 au 21 septembre 2026
+**Objectif : constitution de l'entité, montée en cadence**
+- 15 septembre : constitution d'Anesis Acquisition Ltd, enregistrement ICO, dépôt de marque (à distance) —
+  voir v1 §3 sur la classe 36 à poser à l'agent de marques en plus des classes 35/42
+- Vague 3 de la campagne, avec les Thèses réelles citées comme preuve
+- Cible cumulée : 12 LOI signées, 6 Thèses livrées
+- **Livrable vérifiable au 21 septembre : entité constituée, 12 LOI, 6 Thèses**
+
+### Cycle 5 — 22 septembre au 5 octobre 2026
+**Objectif : engagements de conversion conditionnels**
+- Entretiens de restitution par visioconférence (Google Meet) — présentation du plan de récupération
+- Cible : 4 lettres d'engagement conditionnel — l'établissement confirme par écrit son intention de signer
+  un mandat payant dès l'installation officielle d'Anesis au UK, sans paiement ni déplacement avant cette
+  date
+- Collecte des pièces justificatives des résultats antérieurs de la fondatrice
+- **Livrable vérifiable au 5 octobre : 4 engagements conditionnels signés, dossier de preuves antérieures complet**
+
+### Cycle 6 — 6 au 19 octobre 2026
+**Objectif : approfondissement de la preuve**
+- Poursuite de la conversion LOI → Thèses → engagements conditionnels, entièrement à distance
+- Cible cumulée : 20 LOI signées, 10 Thèses livrées, 6 engagements conditionnels
+- Premier contact advisory board (2 profils sectoriels UK, par visioconférence)
+- **Livrable vérifiable au 19 octobre : 20 LOI, 10 Thèses, 6 engagements conditionnels, 1er contact advisory board engagé**
+
+### Cycle 7 — 20 octobre au 2 novembre 2026
+**Objectif : le dossier prend forme documentaire**
+- Rédaction de la version finale du dossier intégrant tous les livrables (LOI, Thèses, engagements
+  conditionnels, dashboard, preuves antérieures)
+- Réduction de la présentation des 12 agents à trois blocs dans le corps du dossier (voir §5) — **le
+  roster de 12 lui-même ne change pas**, seule sa présentation est simplifiée
+- Réduction des sept innovations propriétaires à trois dans le corps du dossier (voir §5)
+- Finalisation de l'advisory board (2 personnes confirmées, relation à distance)
+- **Livrable vérifiable au 2 novembre : première version complète du dossier**
+
+### Cycle 8 — 3 au 16 novembre 2026
+**Objectif : preuve d'autorité externe**
+- Première publication de données agrégées anonymisées à la presse professionnelle UK, à distance
+- Cible cumulée : 30 LOI signées, 15 Thèses livrées, 8 à 10 engagements conditionnels
+- Pitch vidéo de 2 minutes tourné depuis le Canada, présentant la Thèse d'un établissement réel
+- **Livrable vérifiable au 16 novembre : 30 LOI, 15 Thèses, 8-10 engagements conditionnels, 1 publication presse, 1 pitch vidéo**
+
+### Cycle 9 — 17 au 30 novembre 2026
+**Objectif : dépôt**
+- Revue finale par un conseiller en immigration britannique qualifié
+- Vérification qu'aucune affirmation de traction n'est non datée/non sourcée, et qu'aucune activité
+  facturée ni déplacement n'est suggéré avant l'obtention du visa
+- Dépôt du dossier auprès de l'organisme d'agrément (voir v1 §4 : confirmer lequel des trois organismes
+  habilités est visé et adapter le format en conséquence)
+- **Livrable vérifiable au 30 novembre : dossier déposé**
+
+---
+
+## 5. Simplifications à appliquer dans le corps du dossier
+
+- **La grille des 12 agents** : présenter en trois blocs — *Diagnostic → Exécution → Gouvernance* — détail
+  technique complet en annexe. (Le roster technique reste 12, voir §1.1 — seule la présentation change.)
+- **Les sept innovations propriétaires** : réduire à trois dans le corps du dossier — ligne de base
+  corrigée du marché, registre de récupération en partie double, clause de sortie indexée sur le score.
+- **Le calendrier d'exécution** : remplacer par le plan en 9 cycles ci-dessus.
+
+---
+
+## 6. À supprimer ou reformuler
+
+- **« Nous sommes payés en partie sur ce que nous récupérons »** (résumé exécutif) — reformuler au
+  conditionnel projeté : *« Le modèle prévoit une rémunération indexée sur la récupération mesurée,
+  applicable dès l'installation officielle. »*
+- **Toute mention de rencontre physique ou de visite avant le dépôt** — la visite unique avec vidéaste
+  post-installation (déjà prévue dans le document original) est à maintenir telle quelle ; aucune visite
+  ne doit être suggérée avant l'obtention du visa.
+- **Le tableau comparatif concurrentiel** — sourcer chaque « Non » attribué aux concurrents, ou l'assouplir
+  en « non publiquement documenté à notre connaissance ».
+- **La garantie souscrite « Année 2 »** — vérifier qu'elle n'apparaît nulle part comme argument actuel.
+
+---
+
+## 7. Checklist finale
+
+**Urgent (bloquant pour le dépôt du 30 novembre)**
+- [ ] Base Postgres provisionnée (fondatrice)
+- [ ] Email + domaine réels + Resend configuré (fondatrice)
+- [ ] `APIFY_TOKEN` + `APIFY_REVIEWS_ACTOR` choisis (fondatrice)
+- [ ] Logo transparent PNG/SVG fourni (fondatrice)
+- [ ] Fichier prospects (~150 lignes) préparé
+- [x] Délégation d'approbation codée (`operator_agent_assignments`, RLS `founder-read-all`) — Claude Code, sans dépendance externe *(fait, Cycle 1, commit `16ff1af`)*
+- [ ] 30 LOI signées et datées
+- [ ] 15 Thèses d'Acquisition livrées gratuitement
+- [ ] 8 à 10 engagements conditionnels de conversion post-installation
+- [ ] Dashboard avec données réelles d'au moins un établissement
+- [ ] Pièces justificatives des résultats antérieurs de la fondatrice
+- [ ] Vérification qu'aucune activité facturée ni déplacement UK n'est suggéré dans le dossier avant l'obtention du visa
+- [ ] Partie 12 du document business (`anesis-business-complet.md`) alignée sur le plan en 9 cycles ou explicitement marquée comme supplantée (voir §1.4)
+
+**Important (améliore fortement la note)**
+- [ ] Advisory board de 2 personnes confirmé (à distance)
+- [ ] Présentation des 12 agents réduite à trois blocs dans le corps du dossier (roster technique inchangé)
+- [ ] Réduction des sept innovations à trois dans le corps du dossier
+- [ ] Sourcing du tableau comparatif concurrentiel
+- [ ] Bio fondatrice intégrée au corps du dossier (v1 §2)
+- [ ] Vue de trésorerie mensuelle mois 1-6 (v1 §2)
+- [ ] État technique horodaté et documenté à chaque cycle
+
+**Bonus (au-delà de 95)**
+- [ ] Publication de données agrégées à la presse professionnelle avant dépôt (cycle 8)
+- [ ] Pitch vidéo de 2 minutes tourné depuis le Canada
+- [ ] Lettre de principe avec un éditeur de PMS ou partenaire technique
+- [ ] Estimation chiffrée de l'impact économique régional (Cotswolds/Sud-Ouest) si les engagements conditionnels se convertissent
+
+---
+
+## 8. Point structurel à ne pas manquer (reporté de la v1)
+
+Seuls **trois organismes** sont habilités à endosser (UK Endorsing Services, Innovator International,
+Envestors). Chacun a son propre portail et format attendu. Avant de finaliser : choisir lequel des trois
+est visé et vérifier son modèle spécifique.
+
+---
+
+## Sources
+
+**Croisement code/documents (v2, 29 juillet 2026)**
+- `docs/etape-4-proposition-agents-restants.md` — roster figé à 12 agents, 4 construits
+- `docs/campagne-3-aout-runbook.md` — échelle réelle de la campagne (~150 établissements), prérequis bloquants
+- `docs/anesis-business-complet.md`, Partie 12 — roadmap Mois 1-3 à réconcilier avec le plan en 9 cycles
+
+**Critères et pratique des organismes (2026, v1)**
 - [Innovator Founder Visa Endorsement Guide 2026 — DavidsonMorris](https://www.davidsonmorris.com/innovator-founder-visa-endorsement/)
 - [Innovator Founder Visa UK Guide 2026 — DavidsonMorris](https://www.davidsonmorris.com/innovator-founder-visa/)
 - [Innovator Founder Visa 2026: Key Changes — Sterling Law](https://sterling-law.co.uk/innovator-founder-visa-2026-key-changes-for-founders/)
 - [Innovator Founder Visa in 2026 — Endorsing Bodies & Evidence Plan — Garth Coates](https://garthcoates.com/innovator-founder-visa-in-2026/)
 - [Innovator Founder Visa Success Rate and Common Reasons for Refusal — Aceplans](https://aceplans.com/innovator-founder-visa-success-rate-and-common-reasons-for-refusal/)
 - [Understanding and Overcoming Innovator Founder Visa Rejection — Technomads](https://www.technomads.io/blog/navigating-the-challenges-understanding-and-overcoming-innovator-founder-visa-rejection)
+
+---
+
+*Évaluation rédigée dans une posture d'évaluateur institutionnel UK — à valider par un conseiller en
+immigration britannique qualifié avant dépôt. Cette analyse ne constitue pas un avis juridique.*
