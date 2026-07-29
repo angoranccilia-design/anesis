@@ -71,6 +71,38 @@ export const operatorAgentAssignments = pgTable(
   (t) => [primaryKey({ columns: [t.operatorId, t.agentId] })],
 );
 
+/** Jetons de lien magique (hash uniquement) — connexion opérateur. Voir 0011_auth.sql, @anesis/auth. */
+export const magicLinkTokens = pgTable(
+  "magic_link_tokens",
+  {
+    id: text("id").primaryKey(),
+    operatorId: text("operator_id")
+      .notNull()
+      .references(() => operators.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    purpose: text("purpose").notNull().default("login"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  },
+  (t) => [index("magic_link_tokens_operator_idx").on(t.operatorId)],
+);
+
+/** Sessions opérateur ouvertes après consommation d'un lien magique. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    operatorId: text("operator_id")
+      .notNull()
+      .references(() => operators.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("sessions_operator_idx").on(t.operatorId)],
+);
+
 export const properties = pgTable(
   "properties",
   {
