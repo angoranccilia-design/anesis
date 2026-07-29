@@ -38,9 +38,9 @@ describe("termes commerciaux du mandat (Porte 3)", () => {
     expect(photoSessionsForTerm(12)).toBe(4);
   });
 
-  it("seul l'abonnement mensuel dépend encore de la formule (Croissance £3 400 / Domination £4 400)", () => {
+  it("seul l'abonnement mensuel dépend encore de la formule (Croissance £3 400 / Domination £5 400)", () => {
     expect(monthlySubscriptionPence("growth")).toEqual(gbp(340_000));
-    expect(monthlySubscriptionPence("domination")).toEqual(gbp(440_000));
+    expect(monthlySubscriptionPence("domination")).toEqual(gbp(540_000));
     // et il ne bouge pas avec la durée
     expect(makeCommercialTerms("growth", 6).monthlySubscription).toEqual(gbp(340_000));
     expect(makeCommercialTerms("growth", 12).monthlySubscription).toEqual(gbp(340_000));

@@ -37,7 +37,7 @@ Un hôtel indépendant britannique perd de l'argent de trois façons qu'il ne me
 
 | | Croissance | Domination |
 |---|---|---|
-| Abonnement mensuel | £3 400 | £4 400 |
+| Abonnement mensuel | £3 400 | £5 400 |
 | Canaux publicitaires | Meta Ads seul | Meta Ads **et** Google Ads |
 | Durée minimale | 6 mois | 12 mois |
 | Accès | Équipe | Accès direct à la fondatrice, délai de réponse garanti plus court |
@@ -218,4 +218,4 @@ Le rapport mensuel est écrit en deux temps : l'agent Analyst produit les chiffr
 
 ## 13. En une page, si le conseiller n'a que 30 secondes
 
-Les hôtels indépendants britanniques perdent de l'argent d'une façon qu'ils ne mesurent jamais. Anesis mesure cette perte en livres sterling, décide si elle vaut la peine d'un mandat, puis la récupère avec une équipe de douze systèmes d'intelligence artificielle supervisés par de vrais employés — sur les décisions les plus sensibles (argent, image de marque), rien n'agit sans accord humain. Le client paie une entrée (£3 000), un abonnement (£3 400 ou £4 400/mois), et un bonus final indexé sur ce qui a été réellement gagné (15 % ou 10 % de l'incrément). Ce n'est pas une agence marketing : c'est une firme qui accepte d'être payée sur son résultat.
+Les hôtels indépendants britanniques perdent de l'argent d'une façon qu'ils ne mesurent jamais. Anesis mesure cette perte en livres sterling, décide si elle vaut la peine d'un mandat, puis la récupère avec une équipe de douze systèmes d'intelligence artificielle supervisés par de vrais employés — sur les décisions les plus sensibles (argent, image de marque), rien n'agit sans accord humain. Le client paie une entrée (£3 000), un abonnement (£3 400 ou £5 400/mois), et un bonus final indexé sur ce qui a été réellement gagné (15 % ou 10 % de l'incrément). Ce n'est pas une agence marketing : c'est une firme qui accepte d'être payée sur son résultat.

@@ -9,7 +9,7 @@
  *   - Le **nombre de séances photo/vidéo suit aussi la durée** (1 par trimestre) :
  *       6 mois → 2   |   12 mois → 4.
  *   - Seul l'**abonnement mensuel** dépend encore de la formule (Croissance £3 400,
- *     Domination £4 400).
+ *     Domination £5 400).
  *
  * Toute génération de contrat (cockpit fondatrice, Thèse d'Acquisition) DOIT passer par
  * `makeCommercialTerms` : impossible d'y construire un taux incohérent avec la durée.
@@ -54,7 +54,7 @@ export function monthlySubscriptionPence(formula: MandateFormula): Money {
     case "growth":
       return gbp(340_000); // £3 400
     case "domination":
-      return gbp(440_000); // £4 400
+      return gbp(540_000); // £5 400
   }
 }
 

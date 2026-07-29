@@ -86,13 +86,13 @@ describe("Onboarding (maillon étape 2 ↔ 3) — signMandate ferme la boucle ju
       termMonths: 12,
     });
 
-    // Le taux suit la DURÉE (12 mois → 10 %), pas la formule ; abonnement suit la formule (Domination £4 400).
+    // Le taux suit la DURÉE (12 mois → 10 %), pas la formule ; abonnement suit la formule (Domination £5 400).
     expect(res.commercialTerms).toEqual({
       formula: "domination",
       termMonths: 12,
       incentiveRate: 0.1,
       photoSessions: 4,
-      monthlySubscription: { currency: "GBP", pence: 440_000 },
+      monthlySubscription: { currency: "GBP", pence: 540_000 },
     });
 
     const m = await withMandate(pg, res.mandateId, async () =>
@@ -104,7 +104,7 @@ describe("Onboarding (maillon étape 2 ↔ 3) — signMandate ferme la boucle ju
     expect(m?.formula).toBe("domination");
     expect(Number(m?.term_months)).toBe(12);
     expect(Number(m?.incentive_rate)).toBe(0.1);
-    expect(Number(m?.monthly_subscription_pence)).toBe(440_000);
+    expect(Number(m?.monthly_subscription_pence)).toBe(540_000);
     expect(Number(m?.photo_sessions)).toBe(4);
   });
 

@@ -60,16 +60,16 @@ Deux formules, Croissance et Domination. La règle absolue : **tout ce qui exist
 
 | | Croissance | Domination |
 |---|---|---|
-| Abonnement mensuel | £3 400 | £4 400 |
+| Abonnement mensuel | £3 400 | £5 400 |
 | Canaux publicitaires | Meta Ads seul | Meta Ads **et** Google Ads |
-| Durée minimale | 6 mois | 12 mois |
 | Accès | Votre équipe | Accès direct à vous, délai de réponse garanti plus court |
 | Suivi tarifaire (parité, OTA) | — | Inclus |
 | Exclusivité géographique | — | ANESIS ne prend pas de concurrent dans un rayon donné |
 | Nouvelles capacités | — | Testées en priorité chez ces clients |
-| Intéressement | 15 % | 10 % |
 
 **Option refonte de site web** (si le diagnostic la juge nécessaire) : **+£1 000**, en supplément, sur les deux formules.
+
+**Durée du mandat — indépendante de la formule (2026-07, révisé).** Croissance et Domination sont désormais toutes deux disponibles sur **6 mois ou 12 mois**, au choix du client — la durée n'est plus imposée par la formule choisie. C'est le taux d'intéressement qui suit la durée, pas la formule : **15 % sur engagement 6 mois, 10 % sur engagement 12 mois** (détail Partie 4).
 
 **Pourquoi Google Ads justifie le prix supérieur, et ce n'est pas un prétexte :** Meta touche les gens avant qu'ils cherchent activement, Google les touche au moment précis où ils tapent « hôtel Cotswolds ce weekend » — c'est-à-dire au moment de la décision. Les deux ensemble couvrent tout le chemin qu'un seul canal ne couvre jamais.
 
@@ -93,11 +93,13 @@ Récurrent, mensuel, **payé d'avance**. La facture du mois suivant part environ
 
 C'est le point le plus important à bien comprendre, parce qu'on l'a simplifié en cours de route.
 
-**Comment ça marche.** À la souscription, on établit une ligne de départ — le niveau de réservations directes que l'établissement aurait eu sans vous, mois par mois pour tenir compte des saisons. Pendant tout le mandat, l'agent Analyst continue de suivre les vrais chiffres au jour le jour — ça reste affiché en continu dans l'espace client, pour la motivation et pour repérer un problème tôt. **Mais rien n'est facturé pendant le mandat.** À la toute fin du contrat, on additionne ce que la ligne de départ aurait donné sur toute la période, on additionne ce qui a été réellement obtenu, la différence est l'incrément total, et le taux s'applique une seule fois sur ce total : 15 % pour Croissance, 10 % pour Domination.
+**Comment ça marche.** À la souscription, on établit une ligne de départ — le niveau de réservations directes que l'établissement aurait eu sans vous, mois par mois pour tenir compte des saisons. Pendant tout le mandat, l'agent Analyst continue de suivre les vrais chiffres au jour le jour — ça reste affiché en continu dans l'espace client, pour la motivation et pour repérer un problème tôt. **Mais rien n'est facturé pendant le mandat.** À la toute fin du contrat, on additionne ce que la ligne de départ aurait donné sur toute la période, on additionne ce qui a été réellement obtenu, la différence est l'incrément total, et le taux s'applique une seule fois sur ce total.
 
-**Un exemple concret.** Un établissement Domination sur 12 mois, ligne de départ £70 000/mois de réservations directes, soit £840 000 sur l'année. Réel obtenu : £960 000. Incrément : £120 000. Bonus final à 10 % : **£12 000**, une seule facture, à la fin — le moment idéal aussi pour proposer le renouvellement.
+**Le taux suit la durée du mandat, pas la formule (2026-07, révisé) : 15 % sur un engagement 6 mois, 10 % sur un engagement 12 mois** — quelle que soit la formule choisie, Croissance ou Domination. Les deux formules sont désormais disponibles sur les deux durées.
 
-**Pourquoi le pourcentage est plus bas sur la formule la plus chère :** les établissements Domination sont généralement plus grands, donc leurs montants récupérables sont plus élevés en valeur absolue — un pourcentage plus petit sur un montant plus gros peut vous rapporter autant, tout en donnant à votre client le plus engagé la sensation justifiée d'un meilleur accord. Surveillez cette hypothèse sur vos premiers mandats réels : si Domination ne rapporte pas plus en livres dans les faits, ajustez le taux.
+**Un exemple concret.** Un établissement (Croissance ou Domination) sur mandat 12 mois, ligne de départ £70 000/mois de réservations directes, soit £840 000 sur l'année. Réel obtenu : £960 000. Incrément : £120 000. Bonus final à 10 % : **£12 000**, une seule facture, à la fin — le moment idéal aussi pour proposer le renouvellement.
+
+**Pourquoi le pourcentage est plus bas sur l'engagement le plus long :** un mandat 12 mois donne un abonnement mensuel garanti deux fois plus longtemps qu'un mandat 6 mois — une trésorerie plus prévisible et plus de temps pour que le travail compose. Le taux plus faible récompense cet engagement plus long ; le taux plus élevé sur 6 mois compense le risque de churn plus rapide et le temps plus court pour prouver le résultat. Surveillez cette hypothèse sur vos premiers mandats réels et ajustez si besoin.
 
 **Ce que ça implique pour votre trésorerie, honnêtement :** l'intéressement n'arrive plus au fil de l'eau, il arrive en un seul bloc, jusqu'à douze mois après le début du mandat. L'abonnement mensuel reste votre seul revenu régulier pendant tout ce temps — c'est pour ça qu'il doit rester votre socle de survie, jamais l'intéressement.
 
@@ -129,7 +131,7 @@ Chaque action qu'un agent peut entreprendre porte un niveau, selon ce qu'une err
 | Agent | Rôle | Autonomie | KPI principal |
 |---|---|---|---|
 | Orchestrator | Chef d'équipe, distribue le travail, écrit le rapport hebdomadaire | Totale | % tâches assignées dans les temps |
-| Underwriter | Exécute l'analyse et produit la Thèse d'Acquisition | Totale | Précision Leak Index vs réel |
+| Underwriter | Exécute l'analyse et produit la Thèse d'Acquisition | Totale | Précision Revenue Leak Index vs réel |
 | Analyst | Mesure le réel contre le prévu chaque jour, détecte les écarts | Totale | Détection précoce d'anomalies |
 | Social Ops | Programme et publie le contenu déjà approuvé | Relecture après coup | Délai de publication |
 | Conversion | Recommande des corrections du site et du parcours de réservation | Relecture après coup | Impact sur le taux de conversion |
@@ -270,11 +272,11 @@ Le modèle distingue déjà, dans le domaine technique, un rôle **fondatrice** 
 
 # PARTIE 11 — INNOVATIONS IA À DÉVELOPPER
 
-- **Leak Index™** *(opérationnel, évolution proposée)* — calcul déterministe de la perte mensuelle. Inputs actuels : vitesse du site (PageSpeed), volume et note des avis (Google, TripAdvisor), structure du site (UX), pixel de reciblage, dépendance OTA (scraping Booking/Expedia), performance publicitaire (Meta Ads Library). Outputs : Leak Index /100, perte mensuelle décomposée par pilier, décision (qualifié/décliné/à revoir), motif clair en cas de refus.
+- **Anesis Revenue Leak Index™** *(opérationnel, évolution proposée)* — calcul déterministe de la perte mensuelle. Inputs actuels : vitesse du site (PageSpeed), volume et note des avis (Google, TripAdvisor), structure du site (UX), pixel de reciblage, dépendance OTA (scraping Booking/Expedia), performance publicitaire (Meta Ads Library). Outputs : Revenue Leak Index /100, perte mensuelle décomposée par pilier, décision (qualifié/décliné/à revoir), motif clair en cas de refus.
 
   **Trou identifié (2026-07) : aucun pilier ne mesure l'exploitation d'Instagram/Facebook.** Un établissement perd de l'argent des deux côtés — absence ou faiblesse de contenu (trafic gratuit jamais capté), ou au contraire contenu viral (ex. un reel à 2M de vues) qui ne convertit rien faute de parcours de réservation solide derrière. Le second cas est partiellement vu par le pilier vitesse/conversion ; le premier n'est mesuré nulle part aujourd'hui.
 
-  **Proposition : 5e pilier « Réseaux sociaux ».** Mesure l'exploitation d'Instagram/Facebook comme canal d'acquisition gratuit — même logique que le pilier retargeting (son absence est une fuite, pas une case marketing à part). Signaux : abonnés rapportés à la taille/gamme de l'établissement, fréquence de publication, taux d'engagement moyen, présence de vidéo/reels. Source de données : même infrastructure que les avis (scraping via Apify), extension de l'existant plutôt que nouveau chantier. Repondération proposée pour garder un total de 100 % : vitesse 20 %, avis 20 %, OTA 25 %, retargeting 15 %, réseaux sociaux 20 % — l'OTA reste dominant (cohérent avec la validation marché, Partie 14), le social entre avec un poids réel. À valider puis implémenter dans `packages/assessment` (non fait à ce jour).
+  **Validé (2026-07-25) : 5e pilier « Réseaux sociaux ».** Mesure l'exploitation d'Instagram/Facebook comme canal d'acquisition gratuit — même logique que le pilier retargeting (son absence est une fuite, pas une case marketing à part). Signaux : abonnés rapportés à la taille/gamme de l'établissement, fréquence de publication, taux d'engagement moyen, présence de vidéo/reels. Source de données : même infrastructure que les avis (scraping via Apify), extension de l'existant plutôt que nouveau chantier. Repondération : vitesse 20 %, avis 20 %, OTA 25 %, retargeting 15 %, réseaux sociaux 20 % — l'OTA reste dominant (cohérent avec la validation marché, Partie 14), le social entre avec un poids réel. Envoyé à Claude Code pour implémentation dans `packages/assessment`. Seuils de « bonne » fréquence de publication et de taux d'engagement par taille d'établissement : à définir avec la fondatrice, pas à deviner dans le code.
 - **Creative Attribution AI™** *(R&D, priorité haute)* — relier chaque contenu au revenu généré (ex. type d'illustration : « les vidéos avec cheminée génèrent +34 % de réservations »).
 - **Pricing Intelligence AI™** *(Année 2)* — optimisation dynamique des tarifs.
 - **OTA Shield Agent™** *(Année 2)* — surveillance et protection contre les fuites vers les OTA.
@@ -283,11 +285,11 @@ Le modèle distingue déjà, dans le domaine technique, un rôle **fondatrice** 
 
 # PARTIE 12 — ROADMAP TECHNIQUE (3 PREMIERS MOIS)
 
-- **Mois 1 — Fondations** : moteur de permissions (T0–T5), domaine complet, base de données isolée par mandat, bus de messages inter-agents, Leak Index™ branché sur sources publiques, agents Underwriter & Analyst. *Livrable : moteur de diagnostic fonctionnel.*
+- **Mois 1 — Fondations** : moteur de permissions (T0–T5), domaine complet, base de données isolée par mandat, bus de messages inter-agents, Revenue Leak Index™ branché sur sources publiques, agents Underwriter & Analyst. *Livrable : moteur de diagnostic fonctionnel.*
 - **Mois 2 — Agents minimaux + traction** : Orchestrator, Media Buyer, Social Ops, Reputation, interface client MVP, site public, Compliance Agent. *Cible : 60+ diagnostics, 7 qualifiés, 2 LOI.*
 - **Mois 3 — Préparation endorsement** : Creative Attribution AI v1, Human Time Optimizer, tests automatisés finaux, documentation complète, dossier d'endorsement prêt.
 
-**Priorités de développement (ordre)** : 1. Moteur de permissions T0–T5 · 2. Leak Index™ · 3. Creative Attribution AI™ · 4. Compliance Agent™ · 5. Human Time Optimizer Agent™.
+**Priorités de développement (ordre)** : 1. Moteur de permissions T0–T5 · 2. Revenue Leak Index™ · 3. Creative Attribution AI™ · 4. Compliance Agent™ · 5. Human Time Optimizer Agent™.
 
 **Principe pour toute nouvelle capacité future (prédiction, détection de fuite OTA, relance de réservation abandonnée, etc.) : le roster reste à 12.** Ces capacités sont des versions plus avancées des agents déjà nommés (Partie 5), pas de nouveaux agents — par exemple Analyst détecte l'écart aujourd'hui, une version future du même agent le prédit ; Rate & Distribution surveille la parité aujourd'hui, une version future détecte et corrige les fuites OTA plus tôt. On fait grandir les 12, on n'en ajoute pas un 13e à chaque nouvelle idée.
 
@@ -328,9 +330,9 @@ Sur ~2 800 établissements dans l'ICP UK, viser 10 mandats en année 1 est un ta
 
 **Volumes attendus (à valider avec l'usage réel)** : pour 10 mandats signés en année 1, prévoir un ordre de grandeur de 150 à 250 prises de contact (inbound + outbound + partenariats confondus) compte tenu du filtre ICP puis du taux de signature après Thèse d'Acquisition. Chiffre à ajuster dès les premières semaines de campagne, pas à figer maintenant.
 
-## Validation empirique du Leak Index (avant même le premier mandat UK)
+## Validation empirique du Revenue Leak Index (avant même le premier mandat UK)
 
-Avant d'avoir des clients UK, il existe déjà un moyen de tester si le score correspond à un résultat réel : recalculer, a posteriori, ce que le Leak Index aurait donné sur les clients déjà servis sous KAIROS (glamping, spa, SAFIR) à partir de leurs données publiques d'origine, puis comparer au résultat réellement obtenu (22x ROAS, +372 % Instagram, +156 % réservations). Ce n'est pas une preuve UK, mais c'est une première corrélation score → résultat réel, avec des données qui existent déjà — moins convaincant qu'une validation UK en vraie grandeur, mais gratuit et immédiat.
+Avant d'avoir des clients UK, il existe déjà un moyen de tester si le score correspond à un résultat réel : recalculer, a posteriori, ce que le Revenue Leak Index aurait donné sur les clients déjà servis sous KAIROS (glamping, spa, SAFIR) à partir de leurs données publiques d'origine, puis comparer au résultat réellement obtenu (22x ROAS, +372 % Instagram, +156 % réservations). Ce n'est pas une preuve UK, mais c'est une première corrélation score → résultat réel, avec des données qui existent déjà — moins convaincant qu'une validation UK en vraie grandeur, mais gratuit et immédiat.
 
 ---
 
@@ -342,7 +344,7 @@ Avant d'avoir des clients UK, il existe déjà un moyen de tester si le score co
 | Adoption lente du marché | Moyenne | Moyen | Diagnostic gratuit + refus motivé + LOI |
 | Coût humain trop élevé | Faible | Moyen | Agents autonomes + Human Time Optimizer Agent |
 | Réglementaire (GDPR) | Faible | Élevé | Compliance Agent + solicitor UK |
-| Concurrence / copie | Moyenne | Moyen | IP (Leak Index) + data propriétaires + effet réseau |
+| Concurrence / copie | Moyenne | Moyen | IP (Revenue Leak Index) + data propriétaires + effet réseau |
 | Risque « key person » | Faible | Élevé | Documentation procédurale + délégation progressive |
 | Saisonnalité de trésorerie | Moyenne | Moyen | Souscriptions upfront + paiement mensuel strict |
 
@@ -350,9 +352,9 @@ Avant d'avoir des clients UK, il existe déjà un moyen de tester si le score co
 
 # PARTIE 16 — PROPRIÉTÉ INTELLECTUELLE
 
-**Marques à déposer (UKIPO)** : ANESIS (priorité 1, classes 35 et 42, £170) · Anesis Leak Index (priorité 2, classe 42, £170). Les termes descriptifs (Acquisition Thesis, Hospitality Underwriting, etc.) ne sont pas déposables.
+**Marques à déposer (UKIPO)** : ANESIS (priorité 1, classes 35 et 42, £170) · Anesis Revenue Leak Index (priorité 2, classe 42, £170). Les termes descriptifs (Acquisition Thesis, Hospitality Underwriting, etc.) ne sont pas déposables.
 
-**Protection réelle** : droit d'auteur sur le code source, clauses de cession dans les contrats, droit sui generis sur la base de données (15 ans), secret d'affaires pour la formule du Leak Index.
+**Protection réelle** : droit d'auteur sur le code source, clauses de cession dans les contrats, droit sui generis sur la base de données (15 ans), secret d'affaires pour la formule du Revenue Leak Index.
 
 ---
 
@@ -376,9 +378,43 @@ ANESIS/
 # PARTIE 18 — CHECKLIST DE LANCEMENT
 
 - **Aujourd'hui** : copier ce dossier dans Notion/Docs, déposer la marque « ANESIS » sur UKIPO (£170), créer l'arborescence cloud (Partie 17).
-- **Semaine 1** : démarrer le développement (Mois 1), lancer le site public avec formulaire Leak Index, initier la campagne de diagnostics gratuits.
+- **Semaine 1** : démarrer le développement (Mois 1), lancer le site public avec formulaire Revenue Leak Index, initier la campagne de diagnostics gratuits.
 - **Semaines 2–8** : développer les 3 agents minimum (Underwriter, Analyst, Orchestrator), obtenir des lettres d'intention, préparer le dossier d'endorsement.
 - **Semaines 9–12** : finaliser les tests, assembler le dossier complet, soumettre l'endorsement.
+
+---
+
+# PARTIE 19 — NOTORIÉTÉ, ÉVÉNEMENTS & UNIVERS DE MARQUE
+
+## Principe directeur
+
+Se distinguer d'une agence digitale sur **chaque détail**, sans jamais le déclarer. On ne dit pas « nous ne sommes pas une agence » — les clients et la presse le constatent seuls, dans la qualité de chaque point de contact (feed, journal, événement, service). Le déclarer serait déjà agir comme une agence qui se défend ; le montrer est ce que fait une firme distinguée.
+
+## Relations presse
+
+Rechercher activement la couverture presse et les interviews — pas en attendant d'être découverte, en la provoquant : contacter la presse hôtelière et business britannique (trade press hôtelier, presse économique régionale Sud-Ouest/Cotswolds) avec des angles concrets (le Revenue Leak Index, la méthode de souscription, les premiers résultats UK une fois obtenus). Le **Journal** mensuel (Partie « Site public ») doit être écrit avec l'exigence d'un article de presse sérieux, pas d'un billet de blog — au point qu'il puisse être repris tel quel par un vrai journal.
+
+## Acquisition propre (faire pour soi ce qu'on vend aux clients)
+
+Anesis applique à elle-même sa propre discipline : campagnes Meta Ads et Google Ads pour générer des candidatures au diagnostic gratuit (Porte 1), et une **newsletter mensuelle** — cohérence totale avec le principe « on ne vend pas ce qu'on ne pratique pas soi-même ».
+
+## Exigence de détail — « tout doit dire firme »
+
+Chaque point de contact visible (feed Instagram, journal, site, rapport client) doit être d'une propreté et d'une rigueur visuelle irréprochables — jamais improvisé, jamais « à peu près ». C'est un critère de qualité à appliquer systématiquement, pas un vœu pieux : si un visuel ne pourrait pas figurer dans une maison de luxe établie (joaillerie, maroquinerie, grand hôtel), il ne sort pas.
+
+## L'événement annuel client — construit pour durer et évoluer
+
+**Année 1 (décembre 2027)** : un événement à Londres réunissant tous les clients sous mandat, pour fêter le premier anniversaire d'Anesis Acquisition — notoriété et réseautage. Niveau de service pensé comme une conciergerie de grand luxe (registre caviar/concierge), **même si les établissements clients ne sont pas eux-mêmes 5 étoiles ultra-luxe** — c'est Anesis qui élève ses clients à ce niveau de traitement pour la durée de l'événement, pas une exigence sur leur propre catégorie d'hôtel.
+
+**Années suivantes** : le format évolue plutôt que de se répéter à l'identique — proposition année 2 : un événement sur un bateau, musique live (violons), cadeaux de remerciement pour la confiance accordée. Geste récurrent proposé : une réduction de £500 sur le dernier mois de l'année pour les clients sous mandat, positionnée autour de Noël (« Joyeux Noël » plutôt qu'un simple geste commercial). Point de vigilance financier à trancher avec un comptable avant de généraliser : cette réduction s'impute sur quelle ligne de revenu (Partie 4), et comment elle s'articule avec la règle de paiement d'avance strict.
+
+## Univers de style de vie de la marque (référence visuelle et éditoriale, pas une extension de service)
+
+Le monde visuel et éditorial d'Anesis emprunte au registre du country club et du grand hôtel anglais — équitation, golf, polo, dîners gastronomiques (fruits de mer, caviar), spa et détente — **comme univers de référence pour la photographie, le contenu et le ton**, pas comme extension du périmètre de service (Anesis reste une firme de souscription hôtelière, pas un club de loisirs). C'est la même logique que Ralph Lauren ou les grands guides de voyage anglais : vendre un monde, livrer un résultat mesurable en dessous.
+
+## Idée à approfondir — le client mystère
+
+Piste non tranchée, notée pour développement ultérieur : envoyer des clients mystère séjourner une ou deux nuits dans les établissements sous mandat, et évaluer l'expérience complète — de la réservation jusqu'à la fin du séjour. Objectif : mesurer ce qu'aucune agence digitale ne mesure, l'expérience client réelle, pas seulement la performance marketing en amont. À approfondir avant toute mise en œuvre : coût par évaluation, fréquence, grille d'évaluation, qui opère (interne ou prestataire spécialisé), et comment ce signal s'intègre au Revenue Leak Index ou reste un livrable à part.
 
 ---
 

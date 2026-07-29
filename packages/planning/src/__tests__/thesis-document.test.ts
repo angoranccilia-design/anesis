@@ -47,7 +47,7 @@ describe("document Thèse d'Acquisition (Porte 2)", () => {
       termMonths: 12,
       incentiveRate: 0.1,
       photoSessions: 4,
-      monthlySubscription: { currency: "GBP", pence: 440_000 },
+      monthlySubscription: { currency: "GBP", pence: 540_000 },
     });
     // même formule, 6 mois → 15 %
     expect(deriveThesisDocument(thesis, { ...opts, formula: "domination", termMonths: 6 }).terms!.incentiveRate).toBe(0.15);

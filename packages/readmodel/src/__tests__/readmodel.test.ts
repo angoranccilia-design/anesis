@@ -37,8 +37,8 @@ describe("cockpit fondatrice — lecture transversale (withFounder)", () => {
     const o = await cockpitOverview(pg);
     // minutes : Cotswold 14+9+22=45, Harbour 11+6=17, Ards 4 → 66
     expect(o.totals.humanMinutes).toBe(66);
-    // récurrent : Domination £4 400 + Croissance £3 400 + (Ards sans termes → 0) = £7 800
-    expect(o.totals.monthlyRecurringPence).toBe(780_000);
+    // récurrent : Domination £5 400 + Croissance £3 400 + (Ards sans termes → 0) = £8 800
+    expect(o.totals.monthlyRecurringPence).toBe(880_000);
   });
 
   it("le taux d'intéressement affiché suit la durée (12mo→0.10, 6mo→0.15), Ards sans termes → null", async () => {
@@ -74,7 +74,7 @@ describe("dashboard client — mandat unique (withMandate)", () => {
       formula: "domination",
       termMonths: 12,
       incentiveRate: 0.1,
-      monthlySubscriptionPence: 440_000,
+      monthlySubscriptionPence: 540_000,
       photoSessions: 4,
     });
   });

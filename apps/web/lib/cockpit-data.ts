@@ -99,7 +99,7 @@ const sum = (ls: DashboardLossLine[]) => ls.reduce((s, l) => s + l.annualLossPen
 const DASHBOARDS: Record<string, ClientDashboard> = {
   "m-cotswold": {
     mandateId: "m-cotswold", propertyName: "The Cotswold Mill", region: "Cotswolds", state: "active", leakIndex: 71,
-    commercialTerms: { formula: "domination", termMonths: 12, incentiveRate: 0.1, monthlySubscriptionPence: 440_000, photoSessions: 4 },
+    commercialTerms: { formula: "domination", termMonths: 12, incentiveRate: 0.1, monthlySubscriptionPence: 540_000, photoSessions: 4 },
     recoverableAnnualPence: sum(COTSWOLD_LOSSES), lossLines: COTSWOLD_LOSSES,
     objectives: COTSWOLD_LOSSES.map((l, i) => ({ id: `obj-cotswold-${i}`, title: `Recover: ${l.rootCause}`, targetRecoveryPence: Math.round(l.annualLossPence * 0.6) })),
     tasksByAgent: [{ agent: "conversion", count: 1 }, { agent: "media-buyer", count: 1 }, { agent: "rate-distribution", count: 1 }, { agent: "reputation", count: 1 }],
@@ -155,7 +155,7 @@ export async function getCockpitOverview(): Promise<CockpitOverview> {
       mandates: MANDATES.length,
       pendingApprovals: MANDATES.reduce((s, m) => s + m.pendingApprovals, 0),
       humanMinutes: MANDATES.reduce((s, m) => s + m.humanMinutes, 0),
-      monthlyRecurringPence: active.reduce((s, m) => s + (m.formula === "domination" ? 440_000 : m.formula === "growth" ? 340_000 : 0), 0),
+      monthlyRecurringPence: active.reduce((s, m) => s + (m.formula === "domination" ? 540_000 : m.formula === "growth" ? 340_000 : 0), 0),
     },
     demo: true,
   };
