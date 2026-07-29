@@ -252,6 +252,25 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@26.1.1)
 
+  packages/readmodel:
+    dependencies:
+      '@anesis/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anesis/db':
+        specifier: workspace:*
+        version: link:../db
+    devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.2.17
+        version: 0.2.17
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@26.1.1)
+
   packages/sources:
     dependencies:
       '@anesis/assessment':
