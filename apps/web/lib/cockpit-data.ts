@@ -5,11 +5,13 @@
  * de `@anesis/readmodel`) pour que les pages soient développables et visibles SANS base réelle. Aucune
  * donnée réelle, aucun mandat payant exécuté (contrainte de résidence : conditionnel avant le visa).
  *
- * BASCULE PRÉVUE : quand `DATABASE_URL` sera fourni, remplacer le corps de `getCockpitOverview` /
- * `getClientDashboard` par un appel à `@anesis/readmodel` (`cockpitOverview` via withFounder,
- * `clientDashboard` via withMandate) — les TYPES ci-dessous sont volontairement identiques à ses vues.
+ * BASCULE AUTOMATIQUE : si `DATABASE_URL` est fourni, `getCockpitOverview` / `getClientDashboard`
+ * interrogent `@anesis/readmodel` (`cockpitOverview` via withFounder, `clientDashboard` via withMandate) ;
+ * sinon ils rendent les fixtures de démo ci-dessous. Les TYPES sont identiques à ceux du read-model.
  * Montants en pence, £ formaté par l'UI, en-GB.
  */
+import "server-only";
+import { isDbConfigured, withDbClient } from "./db";
 export type MandateStateView = "active" | "suspended" | "completed" | "terminated";
 export type ApprovalTierView = "T0" | "T1" | "T2" | "T3" | "T4" | "T5";
 
@@ -121,7 +123,28 @@ const DASHBOARDS: Record<string, ClientDashboard> = {
 };
 
 export async function getCockpitOverview(): Promise<CockpitOverview> {
-  // TODO(db): si DATABASE_URL, retourner cockpitOverview(client) de @anesis/readmodel (withFounder).
+  if (isDbConfigured()) {
+    const real = await withDbClient(async (c) => {
+      const { cockpitOverview } = await import("@anesis/readmodel");
+      return cockpitOverview(c);
+    });
+    if (real) {
+      return {
+        mandates: real.mandates.map((m) => ({ ...m })),
+        pendingApprovals: real.pendingApprovals.map((a) => ({
+          approvalId: a.approvalId,
+          mandateId: a.mandateId,
+          propertyName: a.propertyName,
+          toolCallName: a.toolCallName,
+          tier: a.tier,
+          decidedBy: a.decidedBy,
+          amountPence: a.amountPence,
+        })),
+        totals: { ...real.totals },
+        demo: false,
+      };
+    }
+  }
   const active = MANDATES.filter((m) => m.state === "active");
   return {
     mandates: MANDATES,
@@ -139,7 +162,22 @@ export async function getCockpitOverview(): Promise<CockpitOverview> {
 }
 
 export async function getClientDashboard(mandateId: string): Promise<ClientDashboard | null> {
-  // TODO(db): si DATABASE_URL, retourner clientDashboard(client, mandateId) de @anesis/readmodel (withMandate).
+  if (isDbConfigured()) {
+    const real = await withDbClient(async (c) => {
+      const { clientDashboard } = await import("@anesis/readmodel");
+      return clientDashboard(c, mandateId);
+    });
+    return real
+      ? {
+          ...real,
+          commercialTerms: real.commercialTerms ? { ...real.commercialTerms } : null,
+          lossLines: [...real.lossLines],
+          objectives: [...real.objectives],
+          tasksByAgent: [...real.tasksByAgent],
+          demo: false,
+        }
+      : null;
+  }
   return DASHBOARDS[mandateId] ?? null;
 }
 

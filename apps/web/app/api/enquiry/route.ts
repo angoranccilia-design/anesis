@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/mailer";
+import { withDbClient } from "@/lib/db";
 
 /**
  * Réception des enquêtes (Diagnostic Porte 1 / Contact).
@@ -33,6 +34,12 @@ export async function POST(request: Request) {
 
   // Trace serveur systématique : l'enquête n'est jamais perdue, même si l'email échoue.
   console.info("[enquiry]", { kind, name, hotel, email, website });
+
+  // Persistance dans le registre d'intake si la base est configurée (sinon on s'appuie sur la trace + email).
+  await withDbClient(async (client) => {
+    const { insertEnquiry } = await import("@anesis/db");
+    await insertEnquiry(client, { kind, name, email, hotel, website: website || null });
+  });
 
   const result = await sendEmail({
     to: INBOX,

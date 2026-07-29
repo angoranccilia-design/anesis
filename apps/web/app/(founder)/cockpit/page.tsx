@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getCockpitOverview } from "@/lib/cockpit-data";
 import { poundsFromPence, pct, FORMULA_LABEL } from "@/lib/format";
+import { decideApprovalAction } from "./actions";
 
 export const metadata = { title: "Founder cockpit — Anesis Acquisition" };
+export const dynamic = "force-dynamic"; // lecture par requête (session + données vivantes quand DB présente)
 
 /**
  * Cockpit fondatrice — lecture transversale de tous les mandats. Rend des données de démonstration
@@ -60,14 +62,33 @@ export default async function CockpitPage() {
                     {a.decidedBy && <> · decided by {a.decidedBy}</>}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                {o.demo ? (
                   <span
                     className="rounded-full bg-forest-900/5 px-4 py-2 text-xs text-forest-800/60"
                     title="The grant is recorded at the approval step (canApproveTier + delegation); enabled once auth + database are connected."
                   >
                     Approve / Decline — at sign-in
                   </span>
-                </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <form action={decideApprovalAction}>
+                      <input type="hidden" name="mandateId" value={a.mandateId} />
+                      <input type="hidden" name="approvalId" value={a.approvalId} />
+                      <input type="hidden" name="decision" value="grant" />
+                      <button type="submit" className="rounded-full bg-forest-900 px-4 py-2 text-xs text-cream-50 hover:bg-forest-800">
+                        Approve
+                      </button>
+                    </form>
+                    <form action={decideApprovalAction}>
+                      <input type="hidden" name="mandateId" value={a.mandateId} />
+                      <input type="hidden" name="approvalId" value={a.approvalId} />
+                      <input type="hidden" name="decision" value="deny" />
+                      <button type="submit" className="rounded-full border border-forest-900/25 px-4 py-2 text-xs hover:bg-forest-900/5">
+                        Decline
+                      </button>
+                    </form>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getClientDashboard } from "@/lib/cockpit-data";
 import { poundsFromPence, pct, FORMULA_LABEL } from "@/lib/format";
 
+export const dynamic = "force-dynamic"; // lecture par requête (isolation par mandat + données vivantes)
+
 export async function generateMetadata({ params }: { params: Promise<{ mandateId: string }> }) {
   const { mandateId } = await params;
   const d = await getClientDashboard(mandateId);
