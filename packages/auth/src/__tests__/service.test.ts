@@ -15,6 +15,7 @@ function capturingMailer(): Mailer & { lastLink: string | null; tokenOf(): strin
   let lastLink: string | null = null;
   return {
     mode: "noop",
+    async send() {},
     async sendMagicLink(_to, link) {
       lastLink = link;
     },

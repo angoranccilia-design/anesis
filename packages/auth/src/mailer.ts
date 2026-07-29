@@ -12,6 +12,9 @@ export type MailerMode = "resend" | "noop";
 
 export interface Mailer {
   readonly mode: MailerMode;
+  /** Envoi générique (réutilisé par la campagne, l'intake, etc.). Copie fournie par l'appelant. */
+  send(to: string | string[], subject: string, text: string, opts?: { replyTo?: string }): Promise<void>;
+  /** Envoi spécialisé du lien magique (construit son propre sujet/corps). */
   sendMagicLink(to: string, link: string): Promise<void>;
 }
 
@@ -31,33 +34,40 @@ export function makeMailer(cfg: MailerConfig = {}): Mailer {
   const log = cfg.log ?? ((m: string) => console.info(m));
   const doFetch = cfg.fetchImpl ?? fetch;
 
+  const MAGIC = (link: string): { subject: string; text: string } => ({
+    subject: "Your Anesis sign-in link",
+    text: `Sign in to Anesis Acquisition:\n\n${link}\n\nThis link expires in 15 minutes. If you did not request it, please ignore this email.`,
+  });
+
   if (!apiKey) {
     return {
       mode: "noop",
+      async send(to, subject, _text) {
+        log(`[mail:noop] to ${String(to)} — "${subject}" (RESEND_API_KEY unset)`);
+      },
       async sendMagicLink(to, link) {
         log(`[auth:noop] magic link for ${to} (RESEND_API_KEY unset): ${link}`);
       },
     };
   }
 
+  const deliver = async (to: string | string[], subject: string, text: string, replyTo?: string): Promise<void> => {
+    const res = await doFetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ from, to, subject, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
+    });
+    if (!res.ok) {
+      throw new Error(`Resend send failed: ${res.status} ${await res.text().catch(() => "")}`);
+    }
+  };
+
   return {
     mode: "resend",
-    async sendMagicLink(to, link) {
-      const res = await doFetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify({
-          from,
-          to,
-          subject: "Your Anesis sign-in link",
-          text:
-            `Sign in to Anesis Acquisition:\n\n${link}\n\n` +
-            `This link expires in 15 minutes. If you did not request it, please ignore this email.`,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`Resend send failed: ${res.status} ${await res.text().catch(() => "")}`);
-      }
+    send: (to, subject, text, opts) => deliver(to, subject, text, opts?.replyTo),
+    sendMagicLink: (to, link) => {
+      const m = MAGIC(link);
+      return deliver(to, m.subject, m.text);
     },
   };
 }

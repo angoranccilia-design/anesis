@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anesis/agent-runtime": "workspace:*",
+    "@anesis/auth": "workspace:*",
     "@anesis/core": "workspace:*",
     "@anesis/db": "workspace:*",
     "@anesis/events": "workspace:*",

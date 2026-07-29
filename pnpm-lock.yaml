@@ -17,6 +17,9 @@ importers:
       '@anesis/agent-runtime':
         specifier: workspace:*
         version: link:../../packages/agent-runtime
+      '@anesis/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@anesis/core':
         specifier: workspace:*
         version: link:../../packages/core
