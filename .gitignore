@@ -15,3 +15,6 @@ prospects.csv
 prospects.json
 contacts-*.csv
 *.contacts.csv
+
+# Vercel
+.vercel
