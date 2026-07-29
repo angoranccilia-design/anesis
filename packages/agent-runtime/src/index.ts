@@ -15,6 +15,12 @@ export { retentionSweeper, registerRetentionHandler, type RetentionHandler } fro
 export { reputation } from "./agents/reputation.js";
 export { partnerships } from "./agents/partnerships.js";
 export { signMandate, type SignMandateInput, type SignMandateResult } from "./onboarding.js";
+export {
+  decideApproval,
+  loadSupervisedAgents,
+  type DecideApprovalInput,
+  type DecideApprovalResult,
+} from "./approval-decision.js";
 export { runCampaign, type CampaignReport, type RunCampaignOptions } from "./campaign.js";
 export {
   assessOneProperty,

@@ -88,6 +88,22 @@ export const magicLinkTokens = pgTable(
   (t) => [index("magic_link_tokens_operator_idx").on(t.operatorId)],
 );
 
+/** Registre d'intake — enquêtes du site (Diagnostic / Contact). Globale. Voir 0013_enquiries.sql. */
+export const enquiries = pgTable(
+  "enquiries",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").notNull().default("enquiry"),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    hotel: text("hotel").notNull(),
+    website: text("website"),
+    status: text("status").notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("enquiries_created_idx").on(t.createdAt)],
+);
+
 /** Sessions opérateur ouvertes après consommation d'un lien magique. */
 export const sessions = pgTable(
   "sessions",

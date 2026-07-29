@@ -3,6 +3,7 @@ export * as schema from "./schema.js";
 export { applyMigrations, type SqlExec } from "./migrate.js";
 export { withMandate, withFounder, type SqlClient } from "./context.js";
 export { importProperties, type ImportResult } from "./import-properties.js";
+export { insertEnquiry, listEnquiries, type EnquiryInput, type EnquiryRow } from "./enquiries.js";
 export { deployDatabase } from "./deploy.js";
 export {
   assertAppRole,
