@@ -160,6 +160,20 @@ volontaire du roster), dis-le et je rétablis la version d'origine.
    existe et fonctionne sur données de démonstration ; il ne lui manque que le branchement aux données
    réelles (prérequis founder), pas de code à écrire.
 
+   **Mise à jour Cycle 1 (génération de contenu) — les livrables textuels des Cycles 1/2/5 sont
+   maintenant générés par du code pur et testé** (`b58ac81`, `eb7ce7e`), là où il ne restait que des
+   modèles de données : (h) **email de campagne** (Porte 1, `apps/campaign/email.ts`) — objet + corps
+   personnalisés à partir des chiffres FIGÉS (Anesis Revenue Leak Index + perte £), en-GB, aucun chiffre
+   inventé (données insuffisantes → aucun montant annoncé), offre de diagnostic gratuit jamais un
+   mandat ; envoi via le mailer partagé `@anesis/auth` (Resend + fallback no-op). (i) **Thèse
+   d'Acquisition** (Porte 2, `@anesis/planning`) — `deriveThesisDocument`/`renderThesisMarkdown` :
+   récupérable par poste (fraction versionnée), méthode de mesure, plan à 90 jours, termes proposés via
+   `makeCommercialTerms`. (j) **Gabarits LOI + engagement conditionnel** (Cycles 2 & 5) — rédigés
+   strictement au conditionnel/futur (effet seulement à l'installation UK, aucun paiement/mandat actif
+   avant, signatures à compléter). +17 tests. Typecheck repo entier vert (12 packages). Il reste à
+   BRANCHER ces générateurs sur les vraies données (assessments réels, envoi Resend) — prérequis founder,
+   pas de code.
+
 4ter. **Coexistence avec la roadmap « 3 premiers mois » du document business** (`anesis-business-complet.md`,
    Partie 12) : cette roadmap cible « Mois 2 : 60+ diagnostics, 7 qualifiés, 2 LOI » — des volumes très
    inférieurs au nouveau cumul de 30 LOI au 16 novembre. Si le plan en 9 cycles ci-dessous devient la
@@ -221,8 +235,16 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
   `/api/enquiry` → Resend avec fallback stub (`9185824`), `@anesis/readmodel` cockpit/dashboard + seed démo
   (`eab54eb`), pages `/cockpit` + `/dashboard/[mandateId]` (`6a8901a`). Typecheck OK, ~150+ tests verts en
   séquentiel (OOM local en parallèle seulement, non reproductible en CI). Horodaté `e6de62c`.
-  **Plus aucun blocage technique d'interface — le cockpit/dashboard passent de démo à réel par un simple
-  branchement `DATABASE_URL` dès qu'il arrive.**
+- ✅ **Fait** — application fonctionnellement complète (`65fba8b`, `46d6607`, `3e4704a`, vérifié dans le
+  dépôt) : `decideApproval` (grant/deny avec délégation, `packages/agent-runtime/src/approval-decision.ts`),
+  persistance intake (`packages/db/src/enquiries.ts`), pages `/login` + `/auth/request` + `/auth/verify` +
+  `/auth/logout`, actions cockpit (approuver/refuser, génération de contrat), bascule automatique
+  démo → réel via `withDbClient` (`apps/web/lib/db.ts`) — aucune réécriture nécessaire à l'arrivée de
+  `DATABASE_URL`. **Plus aucun blocage technique d'interface — tout s'allume par simple branchement.**
+- ⏳ **Toujours pas fait** (vérifié absent du dépôt) : génération d'email de campagne personnalisé dans
+  `apps/campaign`, générateur de document Thèse d'Acquisition (`packages/core/src/thesis.ts` n'est qu'un
+  modèle de données, pas un générateur de texte), templates LOI et lettre d'engagement conditionnel.
+  Aucun de ces trois ne dépend des 4 prérequis externes — c'est le prochain chantier prioritaire.
 - Une fois les prérequis levés : lancer le lot de test de **20 établissements confirmé** (sous-ensemble du
   lot complet de ~150 du runbook — décision arbitrée : test à 20 d'abord, le lot complet suit au Cycle 2
   selon les résultats, voir §1.2)
