@@ -15,6 +15,21 @@
 > l'**interface** : délégation d'approbation par opérateur, cockpit fondatrice, dashboard client, intake
 > réel des formulaires — voir §1bis pour le détail exact et `docs/prompt-claude-code-execution-plan.md`
 > pour l'ordre d'exécution donné à Claude Code.
+>
+> **Mise à jour du 29 juillet 2026 (nuit) — priorité n°1 livrée.** Délégation d'approbation + lecture
+> transversale fondatrice codées, testées, poussées (`16ff1af`, `c08bdd0`) : `canApproveTier` accepte une
+> délégation par la table `operator_agent_assignments` (un operator approuve T3/T4/T5 pour les agents
+> qu'il supervise, y compris `art-director` T5 si assigné Directrice Artistique) ; migration `0010_
+> delegation.sql` (`current_is_founder()` + policies `*_founder_read` + `withFounder()`, lecture seule,
+> vérifié par test). CI : core 78 tests, db 22 tests, typecheck OK. **La fondatrice a arbitré : on avance
+> sans attendre que les 4 prérequis externes (§1bis) soient réglés de son côté — elle les gère en
+> parallèle.** Conséquence : Claude Code ne doit plus s'arrêter sur les questions ouvertes non bloquantes
+> (taille du lot Cycle 1) — la valeur par défaut déjà documentée en §1.2/Cycle 1 (20 en lot de test) est
+> confirmée, pas besoin de revalider. La consigne devient : construire tout ce qui peut l'être **en amont**
+> des 4 prérequis (schéma d'auth, composants dashboard/cockpit branchés sur `withFounder`, câblage Resend
+> de `/api/enquiry` derrière une variable d'environnement absente en dev), pour un branchement immédiat dès
+> que la base/l'email arrivent — voir `docs/prompt-claude-code-execution-plan.md` §3bis, point 3, mis à
+> jour en conséquence.
 
 ---
 
@@ -30,7 +45,7 @@ se lit comme un signal d'inexpérience, pas de force. Le principe reste vrai mê
 |---|---|---|---|
 | Innovative | 24/34 | 32/34 | Rien n'est montré visuellement ; aucun artefact, aucune reconnaissance marché |
 | Viable | 19/33 | 32/33 | Zéro établissement qualifié, zéro donnée testée sur le marché UK à ce jour |
-| Scalable | 18/33 | 31/33 | Les 12 agents ont du code + tests (fait) ; aucune interface client/cockpit branchée à des données réelles ; délégation d'approbation par opérateur pas codée ; aucune LOI convertie |
+| Scalable | 18/33 | 31/33 | Agents (fait) et délégation d'approbation (fait) ; reste : aucune interface client/cockpit branchée à des données réelles ; aucune LOI convertie |
 | **Total** | **61/100** | **95/100** | |
 
 Le calendrier repoussé au 30 novembre donne ~18 semaines pour passer de projectif à documenté, **sans que
@@ -107,6 +122,28 @@ volontaire du roster), dis-le et je rétablis la version d'origine.
    Il ne reste donc, côté interface, que les items **bloqués par les prérequis founder** (auth, dashboard,
    cockpit, intake) — voir liste ci-dessous.
 
+   **Mise à jour Cycle 1 (fin juillet 2026) — tout le codable EN AMONT des 4 prérequis est livré.**
+   La fondatrice ayant arbitré d'avancer sans attendre ses 4 prérequis (elle les gère en parallèle),
+   les briques d'interface qui ne dépendent pas d'eux sont construites, testées, poussées :
+   (a) **Auth par lien magique** — `@anesis/auth` (`dc52601`) : jeton pur SHA-256/TTL, envoi Resend
+   derrière `RESEND_API_KEY` (absent en dev → no-op qui logge, jamais bloquant), service
+   request/consume/session (anti-énumération, anti-rejeu), tables `magic_link_tokens`/`sessions`
+   (0011). Ouverte à tout opérateur (founder ou operator). 13 tests.
+   (b) **Circuit de génération de contrat** — `signMandate` accepte formule + durée et persiste les
+   termes via `makeCommercialTerms` (`18b7a31`, colonnes 0012) : Porte 2 → Thèse → termes → mandat,
+   testé de bout en bout sous PGlite. Le taux suit la durée (12 mo=10 %, 6 mo=15 %), termes
+   conditionnels avant le visa. +4 tests.
+   (c) **Intake** — `/api/enquiry` notifie via Resend avec **fallback stub explicite** si la clé est
+   absente (`9185824`) ; l'enquête n'est jamais perdue. Reste à brancher : persistance d'une ligne
+   d'intake quand la base sera fournie.
+   (d) **Read-model + interface** — `@anesis/readmodel` (`eab54eb`) : `cockpitOverview` (transversal,
+   `withFounder`) + `clientDashboard` (isolé, `withMandate`) + seed de démonstration réaliste
+   (établissements FICTIFS UK) ; 8 tests. Pages `/cockpit` et `/dashboard/[mandateId]` (`6a8901a`)
+   rendent ces vues sur données de démo, build OK — **bascule sur données réelles = un simple passage
+   du seed aux requêtes `withFounder`/`withMandate` dès que `DATABASE_URL` est fourni**.
+   Il ne reste donc, pour rendre le cockpit/dashboard « réels » et lancer la campagne, que les **4
+   prérequis founder + le fichier prospects** ; aucun autre blocage technique côté interface.
+
 4ter. **Coexistence avec la roadmap « 3 premiers mois » du document business** (`anesis-business-complet.md`,
    Partie 12) : cette roadmap cible « Mois 2 : 60+ diagnostics, 7 qualifiés, 2 LOI » — des volumes très
    inférieurs au nouveau cumul de 30 LOI au 16 novembre. Si le plan en 9 cycles ci-dessous devient la
@@ -161,15 +198,20 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
 **Objectif : campagne lancée, délégation d'approbation codée**
 - Les 12 agents ont déjà tout leur code et leurs tests (voir §1bis) — **rien à construire côté agents pour
   ce cycle**, le chemin critique est uniquement les prérequis externes ci-dessus.
-- En parallèle, pendant que les prérequis externes se règlent : coder la délégation d'approbation
-  (`operator_agent_assignments` + `canApproveTier`/`authorize`) et la policy RLS `founder-read-all` —
-  aucune dépendance externe, faisable dès maintenant.
-- Une fois les prérequis levés : lancer un lot de test de 20 établissements (sous-ensemble du lot complet
-  de ~150 du runbook — à confirmer si le cycle vise le lot complet dès le 3 août, voir §1.2)
+- ✅ **Fait** — délégation d'approbation (`operator_agent_assignments` + `canApproveTier`/`authorize`) et
+  policy RLS `founder-read-all`/`withFounder()`, codées, testées, poussées (`16ff1af`, `c08bdd0`).
+- Pendant que les prérequis externes se règlent (de son côté, en parallèle, sans bloquer le reste) :
+  construire en amont tout ce qui ne dépend pas d'eux — schéma d'auth lien magique, composants
+  dashboard/cockpit branchés sur `withFounder`, câblage Resend de `/api/enquiry` derrière une variable
+  d'environnement absente en dev — pour brancher immédiatement dès que la base/l'email arrivent.
+- Une fois les prérequis levés : lancer le lot de test de **20 établissements confirmé** (sous-ensemble du
+  lot complet de ~150 du runbook — décision arbitrée : test à 20 d'abord, le lot complet suit au Cycle 2
+  selon les résultats, voir §1.2)
 - Produire les 20 premiers scores Leak Index sur données publiques
 - Envoyer les 20 premiers emails personnalisés (score + perte estimée en objet)
-- **Livrable vérifiable au 10 août : délégation d'approbation codée et testée ; 20 scores calculés, 20
-  emails envoyés, taux d'ouverture mesuré (ces trois derniers conditionnés aux prérequis externes)**
+- **Livrable vérifiable au 10 août : délégation d'approbation codée et testée (✅ fait) ; 20 scores
+  calculés, 20 emails envoyés, taux d'ouverture mesuré (conditionnés aux prérequis externes, gérés par la
+  fondatrice en parallèle)**
 
 ### Cycle 2 — 11 au 24 août 2026
 **Objectif : premières signatures de LOI à distance, ajustement du message**
@@ -286,7 +328,7 @@ réels (Resend), logo transparent, fichier prospects (~150 lignes selon le runbo
 - [ ] Sourcing du tableau comparatif concurrentiel
 - [ ] Bio fondatrice intégrée au corps du dossier (v1 §2)
 - [ ] Vue de trésorerie mensuelle mois 1-6 (v1 §2)
-- [ ] État technique horodaté et documenté à chaque cycle
+- [x] État technique horodaté et documenté à chaque cycle *(Cycle 1 : §4bis mis à jour, auth/contrat/intake/read-model + cockpit/dashboard livrés)*
 
 **Bonus (au-delà de 95)**
 - [ ] Publication de données agrégées à la presse professionnelle avant dépôt (cycle 8)
@@ -307,7 +349,7 @@ est visé et vérifier son modèle spécifique.
 ## Sources
 
 **Croisement code/documents (v2, 29 juillet 2026)**
-- `docs/etape-4-proposition-agents-restants.md` — roster figé à 12 agents, 4 construits
+- `docs/etape-4-proposition-agents-restants.md` — roster figé à 12 agents (les 12 sont désormais construits, ce document décrit l'architecture d'origine, pas le statut actuel)
 - `docs/campagne-3-aout-runbook.md` — échelle réelle de la campagne (~150 établissements), prérequis bloquants
 - `docs/anesis-business-complet.md`, Partie 12 — roadmap Mois 1-3 à réconcilier avec le plan en 9 cycles
 
