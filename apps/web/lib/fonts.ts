@@ -1,4 +1,12 @@
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Cormorant_Garamond, Inter, Pinyon_Script } from "next/font/google";
+
+/** Script calligraphique — écho de la lettrine du logo. Réservé au nom de marque (jamais le corps). */
+export const pinyon = Pinyon_Script({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-script",
+  display: "swap",
+});
 
 /** Serif éditorial fin (titres, gros chiffres, citations) — vibe old money, jamais épais. */
 export const cormorant = Cormorant_Garamond({

@@ -36,6 +36,7 @@ const config: Config = {
       fontFamily: {
         serif: ["var(--font-cormorant)", "Cormorant Garamond", "Georgia", "serif"],
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
+        script: ["var(--font-script)", "Pinyon Script", "cursive"],
       },
       letterSpacing: {
         eyebrow: "0.28em", // petites capitales largement espacées (labels, eyebrows)

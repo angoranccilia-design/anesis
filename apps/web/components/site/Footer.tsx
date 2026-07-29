@@ -27,7 +27,8 @@ export function Footer({ footer, nav }: { footer: FooterCopy; nav: NavCopy }) {
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <Image src="/logo.png" alt="Anesis Acquisition" width={120} height={120} className="h-16 w-16 object-contain" />
-            <p className="eyebrow mt-3">{nav.tagline}</p>
+            <p className="mt-3 font-script text-3xl leading-none text-forest-900">Anesis Acquisition</p>
+            <p className="eyebrow mt-2">{nav.tagline}</p>
             <p className="mt-4 max-w-sm font-sans text-sm leading-relaxed text-forest-800/75">{footer.blurb}</p>
           </div>
 

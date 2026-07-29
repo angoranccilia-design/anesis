@@ -47,7 +47,7 @@ export function Header({ lang, nav }: { lang: Lang; nav: NavCopy }) {
         <Link href="/" className="flex items-center gap-3">
           <Image src="/logo.png" alt="Anesis Acquisition" width={100} height={100} priority className="h-11 w-11 object-contain" />
           <span className="flex flex-col leading-none">
-            <span className="font-serif text-[1.25rem] tracking-[0.1em] text-forest-900">Anesis Acquisition</span>
+            <span className="font-script text-[1.85rem] leading-none text-forest-900">Anesis Acquisition</span>
             <span className="mt-1 font-sans text-[0.5rem] uppercase tracking-eyebrow text-gold-deep">{nav.tagline}</span>
           </span>
         </Link>

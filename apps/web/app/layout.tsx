@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cormorant, inter } from "@/lib/fonts";
+import { cormorant, inter, pinyon } from "@/lib/fonts";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import "./globals.css";
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${cormorant.variable} ${inter.variable}`}>
+    <html lang="en-GB" className={`${cormorant.variable} ${inter.variable} ${pinyon.variable}`}>
       <body>
         <SmoothScroll />
         {children}
