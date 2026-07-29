@@ -59,6 +59,7 @@ describe("document Thèse d'Acquisition (Porte 2)", () => {
 
   it("rendu Markdown : en-GB, £, conditionnel, jamais $ ni mandat signé", () => {
     const md = renderThesisMarkdown(deriveThesisDocument(thesis, { ...opts, formula: "growth", termMonths: 6 }));
+    expect(md).toContain("![Anesis Acquisition](https://anesisacquisition.com/logo.png)"); // logo en en-tête
     expect(md).toContain("# Acquisition Thesis — The Cotswold Mill");
     expect(md).toContain("Anesis Revenue Leak Index: 71/100");
     expect(md).toContain("£34,700"); // recoverable total en £ (pence/100)

@@ -7,13 +7,24 @@
  * aucun paiement n'est dû ni effectué avant cette date. Ce sont des GABARITS : les signatures/dates
  * réelles restent des espaces à compléter — rien n'est signé ici.
  */
-import type { Money } from "@anesis/core";
+import { BRAND, type Money } from "@anesis/core";
 
 export interface LetterParty {
   readonly propertyName: string;
   readonly region?: string;
   readonly contactName?: string;
+  /** URL du logo transparent pour l'en-tête (rendu markdown/HTML/PDF). Défaut : BRAND.logoUrl. */
+  readonly logoUrl?: string;
 }
+
+/** En-tête de marque (logo + nom) commun aux lettres. */
+const letterhead = (p: LetterParty): string[] => [
+  `![${BRAND.name}](${p.logoUrl ?? BRAND.logoUrl})`,
+  ``,
+  `**${BRAND.name}**`,
+  `_${BRAND.tagline}_`,
+  ``,
+];
 
 export interface LoiInput extends LetterParty {
   /** Date de la lettre (texte libre, ex. « 14 August 2026 »). Laissé en blanc si absent. */
@@ -44,6 +55,7 @@ export function loiLetter(input: LoiInput): string {
       : `We understand Anesis would measure our recoverable direct revenue from our own data during the assessment.`;
 
   return [
+    ...letterhead(input),
     `LETTER OF INTENT`,
     ``,
     ...header(input),
@@ -83,6 +95,7 @@ export function conditionalEngagementLetter(input: ConditionalEngagementInput): 
       : `The specific formula and term would be as set out in our Acquisition Thesis. `;
 
   return [
+    ...letterhead(input),
     `LETTER OF CONDITIONAL ENGAGEMENT`,
     ``,
     ...header(input, input.date),

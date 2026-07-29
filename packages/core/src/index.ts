@@ -3,6 +3,7 @@
  * Types, machines à états et invariants purs. Aucune dépendance runtime.
  */
 export * from "./primitives.js";
+export * from "./brand.js";
 export * from "./autonomy.js";
 export * from "./state-machine.js";
 export * from "./operator.js";

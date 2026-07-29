@@ -9,6 +9,7 @@
  * termes sont conditionnels — aucun mandat payant n'est réputé exécuté avant l'installation UK.
  */
 import {
+  BRAND,
   gbp,
   iso,
   makeCommercialTerms,
@@ -121,8 +122,10 @@ const pct = (fraction: number): string => `${Math.round(fraction * 100)}%`;
 const FORMULA_LABEL: Record<MandateFormula, string> = { growth: "Growth", domination: "Domination" };
 
 /** Rend le document en Markdown lisible (en-GB). Le texte ne recalcule aucun chiffre. */
-export function renderThesisMarkdown(doc: ThesisDocument): string {
+export function renderThesisMarkdown(doc: ThesisDocument, opts?: { logoUrl?: string }): string {
   const out: string[] = [];
+  out.push(`![${BRAND.name}](${opts?.logoUrl ?? BRAND.logoUrl})`);
+  out.push("");
   out.push(`# Acquisition Thesis — ${doc.propertyName}`);
   out.push(doc.region ? `_${doc.region} · United Kingdom_` : `_United Kingdom_`);
   out.push("");

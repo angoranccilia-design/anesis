@@ -7,6 +7,7 @@ describe("Lettre d'intention (Cycle 2)", () => {
 
   it("non contraignante, sans obligation de paiement, personnalisée", () => {
     const l = loiLetter(base);
+    expect(l).toContain("![Anesis Acquisition]"); // en-tête logo
     expect(l).toContain("LETTER OF INTENT");
     expect(l).toContain("Dear Ms Fell,");
     expect(l).toContain("not binding");
@@ -29,6 +30,7 @@ describe("Lettre d'engagement conditionnel (Cycle 5)", () => {
 
   it("strictement conditionnel : effet uniquement à l'installation UK, aucun paiement avant", () => {
     const l = conditionalEngagementLetter(base);
+    expect(l).toContain("![Anesis Acquisition]"); // en-tête logo
     expect(l).toContain("LETTER OF CONDITIONAL ENGAGEMENT");
     expect(l).toContain("conditional");
     expect(l).toContain("only from the date of Anesis's official establishment in the United Kingdom");
