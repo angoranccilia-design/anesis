@@ -12,6 +12,8 @@ import { HERO_NAV, type HeroContent } from "@/lib/hero-content";
 export interface HeroProps extends Omit<HeroContent, "key"> {
   /** Optionnel : en preview, change de page au clic sur la nav plutôt que de naviguer. */
   onNavigate?: (key: "method" | "results" | "insights" | "contact") => void;
+  /** Masque la navbar interne du hero (on utilise le Header de marque du site à la place). */
+  hideNav?: boolean;
 }
 
 export function Hero({
@@ -25,6 +27,7 @@ export function Hero({
   primaryCta,
   secondaryCta,
   onNavigate,
+  hideNav = false,
 }: HeroProps) {
   const [open, setOpen] = useState(false);
 
@@ -57,7 +60,8 @@ export function Hero({
       {/* Flou bas uniquement (z-1) — pas d'assombrissement */}
       <div className="pointer-events-none fixed inset-0 z-[1] hero-bottom-blur" aria-hidden="true" />
 
-      {/* Navbar (z-50) */}
+      {/* Navbar interne — masquée quand on utilise le Header de marque du site (hideNav) */}
+      {!hideNav && (
       <nav className="relative z-50 flex items-center justify-between px-4 py-4 sm:px-6 md:px-12 md:py-6">
         <a
           href="/"
@@ -114,8 +118,10 @@ export function Hero({
           </button>
         </div>
       </nav>
+      )}
 
-      {/* Menu mobile (z-40) */}
+      {/* Menu mobile interne — également masqué avec hideNav */}
+      {!hideNav && (
       <div
         className={`absolute inset-x-0 top-[72px] z-40 border-b border-t border-gray-800 bg-gray-900/95 shadow-2xl backdrop-blur-lg transition-all duration-500 ease-out lg:hidden ${
           open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0"
@@ -142,23 +148,24 @@ export function Hero({
           </div>
         </div>
       </div>
+      )}
 
       {/* Contenu (z-10) — ancré en bas */}
       <div className="relative z-10 flex flex-1 flex-col justify-end px-4 pb-8 sm:px-6 md:px-12 md:pb-16">
         <p
-          className="animate-blur-fade-up text-xs uppercase tracking-wide text-gray-400"
+          className="animate-blur-fade-up text-[0.7rem] uppercase tracking-eyebrow text-gold-light"
           style={{ animationDelay: "300ms" }}
         >
           {eyebrow}
         </p>
         <h1
-          className="animate-blur-fade-up mb-4 text-3xl font-normal sm:text-5xl md:mb-6 md:text-6xl lg:text-7xl"
-          style={{ animationDelay: "400ms", letterSpacing: "-0.04em", textWrap: "balance" }}
+          className="animate-blur-fade-up mb-4 font-serif text-4xl font-light leading-[1.05] sm:text-5xl md:mb-6 md:text-6xl lg:text-7xl"
+          style={{ animationDelay: "400ms", letterSpacing: "-0.01em", textWrap: "balance" }}
         >
           {title}
         </h1>
         <p
-          className="animate-blur-fade-up mb-6 max-w-2xl text-base text-gray-400 sm:text-lg md:mb-12 md:text-xl"
+          className="animate-blur-fade-up mb-6 max-w-2xl font-sans text-base text-cream-100/85 sm:text-lg md:mb-12 md:text-xl"
           style={{ animationDelay: "500ms" }}
         >
           {description}
@@ -166,7 +173,7 @@ export function Hero({
         <div className="flex flex-wrap gap-3 sm:gap-4">
           <button
             type="button"
-            className="animate-blur-fade-up inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 font-medium text-black transition-colors hover:bg-gray-200 sm:px-8 sm:py-3"
+            className="animate-blur-fade-up inline-flex items-center gap-2 rounded-full bg-cream-50 px-6 py-2.5 font-medium text-forest-900 transition-colors hover:bg-white sm:px-8 sm:py-3"
             style={{ animationDelay: "600ms" }}
           >
             {primaryCta}
