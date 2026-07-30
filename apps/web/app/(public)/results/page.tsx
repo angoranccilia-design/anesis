@@ -2,6 +2,7 @@ import { Hero } from "@/components/Hero";
 import { getHero } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
+import { SloganBanner } from "@/components/site/SloganBanner";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -71,6 +72,11 @@ export default async function ResultsPage() {
           <p className="mt-10 max-w-prose font-sans text-xs leading-relaxed text-forest-800/55">{c.demoBadge}</p>
         </div>
       </section>
+
+      <SloganBanner
+        image="/img/new-resort-infinity-pool.jpg"
+        slogan={L("We are paid on the gap we actually close. Nothing else.", "Nous sommes rémunérés sur l'écart que nous refermons réellement. Rien d'autre.")}
+      />
 
       {/* Quand nous refusons. */}
       <section className="py-24 md:py-32">

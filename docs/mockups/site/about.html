@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Anesis Acquisition</title>
+<meta name="description" content="Why Anesis Acquisition exists, why the UK, and the ten-year vision behind it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --green-deep:#1c3829; --green-mid:#2f5240; --gold:#b08d57; --gold-light:#dcc79a; --cream:#f7f3ea; --ivory:#fffdf8; --text-dark:#1c2620; --text-muted:#6b7268; --line:#e4ddc9; }
+  * { box-sizing:border-box; } html{ scroll-behavior:smooth; }
+  body { margin:0; background:var(--ivory); color:var(--text-dark); font-family:'Inter',sans-serif; line-height:1.6; }
+  h1,h2,h3,.serif { font-family:'Playfair Display',serif; font-weight:600; color:var(--green-deep); }
+  a { color:inherit; } .wrap { max-width:1120px; margin:0 auto; padding:0 32px; }
+  .eyebrow { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  nav.top { position:sticky; top:0; z-index:50; background:var(--green-deep); color:var(--ivory); }
+  nav.top .wrap { display:flex; align-items:center; justify-content:space-between; padding:18px 32px; }
+  .brandmark { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .brandmark .ring { width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gold-light); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .brandmark .ring span { font-family:'Playfair Display',serif; color:var(--gold-light); font-size:17px; }
+  .brandmark .name { font-family:'Playfair Display',serif; letter-spacing:.05em; font-size:19px; color:var(--ivory); }
+  .brandmark .name b { color: var(--gold-light); font-weight:600; }
+  .brandmark small { display:block; font-size:9px; letter-spacing:.22em; color:var(--gold-light); text-transform:uppercase; margin-top:1px; }
+  nav.top ul { list-style:none; display:flex; gap:30px; margin:0; padding:0; font-size:14px; }
+  nav.top ul a { text-decoration:none; color:var(--cream); opacity:.85; }
+  nav.top ul a:hover, nav.top ul a.active { opacity:1; color:var(--gold-light); }
+  .btn { display:inline-block; padding:13px 26px; border-radius:2px; font-size:13px; letter-spacing:.04em; text-decoration:none; font-weight:600; border:1px solid transparent; }
+  .btn-gold { background:var(--gold); color:var(--green-deep); } .btn-gold:hover { background:var(--gold-light); }
+  .btn-outline { border-color:var(--gold-light); color:var(--ivory); } .btn-outline:hover { background:rgba(255,255,255,.08); }
+  section { padding:88px 0; } section.tight{ padding:56px 0; }
+  .section-alt { background:var(--cream); } .section-deep { background:var(--green-deep); color:var(--ivory); }
+  .section-deep h2, .section-deep h3 { color:var(--ivory); }
+  .center { text-align:center; } .lede { font-size:19px; color:var(--text-muted); max-width:680px; }
+  .center .lede { margin-left:auto; margin-right:auto; }
+  .page-hero { background:linear-gradient(180deg, var(--green-deep) 0%, var(--green-mid) 100%); color:var(--ivory); padding:90px 0 70px; }
+  .page-hero h1 { color:var(--ivory); font-size:42px; margin:14px 0 0; max-width:760px; }
+  .grid { display:grid; gap:28px; } .grid-3 { grid-template-columns:repeat(3,1fr); } .grid-4 { grid-template-columns:repeat(4,1fr); } .grid-2 { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:900px){ .grid-3,.grid-4,.grid-2 { grid-template-columns:1fr; } nav.top ul{ display:none; } }
+  .card { background:var(--ivory); border:1px solid var(--line); border-radius:4px; padding:32px; }
+  .card h3 { font-size:19px; margin:0 0 10px; } .card p { color:var(--text-muted); font-size:15px; margin:0; }
+  .stat { text-align:center; } .stat .num { font-family:'Playfair Display',serif; font-size:38px; color:var(--gold); }
+  .stat .label { font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+  .quote-block { border-left:3px solid var(--gold); padding-left:24px; font-family:'Playfair Display',serif; font-size:21px; color:var(--green-deep); font-style:italic; }
+  .timeline { border-left:2px solid var(--gold-light); padding-left:28px; margin-left:10px; }
+  .timeline .year { position:relative; margin-bottom:36px; }
+  .timeline .year::before { content:""; position:absolute; left:-33px; top:6px; width:10px; height:10px; border-radius:50%; background:var(--gold); }
+  .timeline .year .label { font-family:'Playfair Display',serif; color:var(--gold); font-size:15px; }
+  footer { background:var(--green-deep); color:var(--cream); padding:64px 0 28px; }
+  footer .grid-4 { margin-bottom:48px; } footer h4 { color:var(--gold-light); font-size:13px; text-transform:uppercase; letter-spacing:.1em; margin:0 0 14px; }
+  footer ul { list-style:none; margin:0; padding:0; } footer ul li { margin-bottom:8px; }
+  footer a { text-decoration:none; color:var(--cream); opacity:.85; } footer a:hover { opacity:1; color:var(--gold-light); }
+  footer .fine { border-top:1px solid rgba(255,255,255,.12); padding-top:24px; font-size:12px; color:var(--gold-light); opacity:.7; text-align:center; }
+  .cta-band { background:var(--gold); color:var(--green-deep); text-align:center; } .cta-band h2{ color:var(--green-deep); }
+  .cta-band .btn-gold { background:var(--green-deep); color:var(--ivory); } .cta-band .btn-gold:hover { background:var(--green-mid); }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brandmark" href="index.html">
+      <span class="ring"><span>A</span></span>
+      <span><span class="name">ANESIS <b>ACQUISITION</b></span><small>Hospitality Underwriting</small></span>
+    </a>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html" class="active">About</a></li>
+      <li><a href="results.html">Results &amp; Method</a></li>
+      <li><a href="diagnostic.html">Diagnostic</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a class="btn btn-gold" href="diagnostic.html">Get My Acquisition Score</a>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="wrap">
+    <p class="eyebrow">About Anesis Acquisition</p>
+    <h1>A new firm, in a new market — built on a founder's real track record.</h1>
+  </div>
+</header>
+
+<section>
+  <div class="wrap grid grid-2" style="align-items:flex-start;">
+    <div>
+      <p class="eyebrow">Where we come from</p>
+      <h2 style="font-size:28px; margin:12px 0 16px;">From KAIROS to Anesis.</h2>
+      <p style="color:var(--text-muted); font-size:16px;">Our founder built her track record under the name KAIROS, working with independent hospitality clients across Canada and French-speaking markets — real results, for real clients: a 22x return on advertising spend for a glamping operator, +372% Instagram growth for a spa, +156% direct bookings for a hammam &amp; spa. Those results don't disappear. They travel with her as personal experience — presented separately from the new company.</p>
+      <p style="color:var(--text-muted); font-size:16px;">Anesis Acquisition Ltd is a new entity, registered in the United Kingdom, that has not yet traded. That distinction matters for two reasons: our underwriting engine — the product itself — did not exist under the previous practice, and this is a new company built for a new market, not a rebrand carrying over an old trading history.</p>
+    </div>
+    <div>
+      <p class="eyebrow">Why the United Kingdom, not North America</p>
+      <h2 style="font-size:28px; margin:12px 0 16px;">The problem is simply worth more here.</h2>
+      <ul style="color:var(--text-dark); font-size:16px; line-height:2; padding-left:20px; margin:0;">
+        <li>Platform dependency runs structurally deeper in UK independent hospitality than in North America — the leakage we price is larger.</li>
+        <li>Our model requires a physical presence — photo and video production, owners met in person — and the UK's geographic density makes that viable where a similarly-served Canadian market would not.</li>
+        <li>Independent UK hospitality trades year-round, supporting a full-time team, unlike a seasonal Atlantic Canadian market.</li>
+        <li>The UK is a gateway into the whole of Europe, where North America opens onto a single market dominated by large chains.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap center">
+    <p class="eyebrow">What we are — and what we are not</p>
+    <h2 style="font-size:30px; margin:14px auto 30px;">An AI Hospitality Underwriting Firm. A Revenue Recovery Company.</h2>
+  </div>
+  <div class="wrap grid grid-2">
+    <div class="card">
+      <h3>We are not</h3>
+      <p>A marketing agency · A software (SaaS) vendor · A revenue management consultancy · A social media manager · A conventional service provider.</p>
+    </div>
+    <div class="card">
+      <h3>We are</h3>
+      <p>An AI Hospitality Underwriting Firm · A Revenue Recovery Company · A firm that underwrites hospitality revenue the way an insurer underwrites risk.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap center">
+    <p class="eyebrow">The team behind the engine</p>
+    <h2 style="font-size:30px; margin:14px auto 12px;">A team that never sleeps — but never signs off on your money or your brand without a human.</h2>
+    <p class="lede">Twelve specialised agents run the day-to-day: underwriting, daily performance tracking, content, reputation, paid media, rate parity, creative direction and more. Each carries its own autonomy level — some act instantly on routine, reversible work; anything that touches your budget, your pricing or your brand waits for a human "yes" first.</p>
+  </div>
+</section>
+
+<section class="section-deep">
+  <div class="wrap">
+    <p class="eyebrow" style="color:var(--gold-light);">Ten-year vision</p>
+    <h2 style="font-size:30px; margin:14px 0 40px;">Land, prove it, expand.</h2>
+    <div class="timeline">
+      <div class="year"><div class="label">2026 — Year 1</div><div>10 hotels under mandate, South West England &amp; the Cotswolds.</div></div>
+      <div class="year"><div class="label">2028 — Year 3</div><div>50 hotels under mandate, across the United Kingdom.</div></div>
+      <div class="year"><div class="label">2031 — Year 5</div><div>150+ hotels, expanding into France, Italy and Spain.</div></div>
+      <div class="year"><div class="label">2036 — Year 10</div><div>The global reference in hospitality revenue underwriting.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap center">
+    <h2 style="font-size:30px; margin:0 0 14px;">See if your hotel qualifies.</h2>
+    <p style="max-width:560px; margin:0 auto 26px; font-size:17px;">Free evaluation. A decline comes with a clear reason, not a sales pitch.</p>
+    <a class="btn btn-gold" href="diagnostic.html">Start my free diagnostic</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="grid grid-4">
+      <div>
+        <span class="name serif" style="color:var(--ivory); font-size:20px;">ANESIS <b style="color:var(--gold-light);">ACQUISITION</b></span>
+        <p style="color:var(--cream); opacity:.75; font-size:14px; margin-top:14px;">Hospitality acquisition underwriting for independent hotels — South West England &amp; the Cotswolds first.</p>
+      </div>
+      <div><h4>Firm</h4><ul><li><a href="about.html">About</a></li><li><a href="results.html">Results &amp; Method</a></li></ul></div>
+      <div><h4>Tools</h4><ul><li><a href="diagnostic.html">Free Diagnostic</a></li><li><a href="contact.html">Book a Call</a></li></ul></div>
+      <div><h4>Contact</h4><ul><li><a href="mailto:hello@anesisacquisition.com">hello@anesisacquisition.com</a></li><li><a href="contact.html">Enquiry form</a></li></ul></div>
+    </div>
+    <div class="fine">© 2026 Anesis Acquisition Ltd. Registered in England &amp; Wales. London, United Kingdom.</div>
+  </div>
+</footer>
+
+</body>
+</html>

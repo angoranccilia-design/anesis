@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anesis Acquisition — More direct bookings. Less revenue leaking away.</title>
+<meta name="description" content="Anesis underwrites independent UK hotels the way an insurer underwrites risk: we measure what you're losing to OTA commissions and weak conversion, price it in pounds, and recover it under contract.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep: #1c3829;
+    --green-mid: #2f5240;
+    --gold: #b08d57;
+    --gold-light: #dcc79a;
+    --cream: #f7f3ea;
+    --ivory: #fffdf8;
+    --text-dark: #1c2620;
+    --text-muted: #6b7268;
+    --line: #e4ddc9;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; background:var(--ivory); color:var(--text-dark); font-family:'Inter',sans-serif; line-height:1.6; }
+  h1,h2,h3,.serif { font-family:'Playfair Display',serif; font-weight:600; color:var(--green-deep); }
+  a { color:inherit; }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 32px; }
+  .eyebrow { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  nav.top { position:sticky; top:0; z-index:50; background:var(--green-deep); color:var(--ivory); }
+  nav.top .wrap { display:flex; align-items:center; justify-content:space-between; padding:18px 32px; }
+  .brandmark { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .brandmark .ring { width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gold-light); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .brandmark .ring span { font-family:'Playfair Display',serif; color:var(--gold-light); font-size:17px; }
+  .brandmark .name { font-family:'Playfair Display',serif; letter-spacing:.05em; font-size:19px; color:var(--ivory); }
+  .brandmark .name b { color: var(--gold-light); font-weight:600; }
+  .brandmark small { display:block; font-size:9px; letter-spacing:.22em; color:var(--gold-light); text-transform:uppercase; margin-top:1px; }
+  nav.top ul { list-style:none; display:flex; gap:30px; margin:0; padding:0; font-size:14px; }
+  nav.top ul a { text-decoration:none; color:var(--cream); opacity:.85; }
+  nav.top ul a:hover, nav.top ul a.active { opacity:1; color:var(--gold-light); }
+  .btn { display:inline-block; padding:13px 26px; border-radius:2px; font-size:13px; letter-spacing:.04em; text-decoration:none; font-weight:600; border:1px solid transparent; }
+  .btn-gold { background:var(--gold); color:var(--green-deep); }
+  .btn-gold:hover { background:var(--gold-light); }
+  .btn-outline { border-color:var(--gold-light); color:var(--ivory); }
+  .btn-outline:hover { background:rgba(255,255,255,.08); }
+  .btn-ghost-dark { border-color:var(--green-mid); color:var(--green-deep); }
+  section { padding:88px 0; }
+  section.tight { padding:64px 0; }
+  .section-alt { background:var(--cream); }
+  .section-deep { background:var(--green-deep); color:var(--ivory); }
+  .section-deep h2, .section-deep h3 { color:var(--ivory); }
+  .center { text-align:center; }
+  .lede { font-size:19px; color:var(--text-muted); max-width:680px; }
+  .center .lede { margin-left:auto; margin-right:auto; }
+  .hero { background:linear-gradient(180deg, var(--green-deep) 0%, var(--green-mid) 100%); color:var(--ivory); padding:130px 0 100px; }
+  .hero h1 { color:var(--ivory); font-size:52px; line-height:1.12; max-width:820px; margin:18px 0 22px; }
+  .hero p.lede { color:var(--gold-light); font-size:20px; max-width:620px; margin-bottom:36px; }
+  .hero-ctas { display:flex; gap:16px; flex-wrap:wrap; }
+  .grid { display:grid; gap:28px; }
+  .grid-3 { grid-template-columns:repeat(3,1fr); }
+  .grid-4 { grid-template-columns:repeat(4,1fr); }
+  .grid-2 { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:900px){ .grid-3,.grid-4,.grid-2 { grid-template-columns:1fr; } .hero h1{ font-size:36px; } nav.top ul{ display:none; } }
+  .card { background:var(--ivory); border:1px solid var(--line); border-radius:4px; padding:32px; }
+  .card h3 { font-size:20px; margin:0 0 12px; }
+  .card p { color:var(--text-muted); font-size:15px; margin:0; }
+  .stat { text-align:center; }
+  .stat .num { font-family:'Playfair Display',serif; font-size:44px; color:var(--gold); }
+  .stat .label { font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+  .section-deep .stat .label { color:var(--gold-light); }
+  table.compare { width:100%; border-collapse:collapse; background:var(--ivory); }
+  table.compare th, table.compare td { padding:16px 20px; border-bottom:1px solid var(--line); text-align:left; font-size:15px; }
+  table.compare th { background:var(--green-deep); color:var(--ivory); font-family:'Playfair Display',serif; font-weight:600; }
+  table.compare td.yes { color:var(--green-mid); font-weight:600; }
+  table.compare td.no { color:#a45; }
+  .quote-block { border-left:3px solid var(--gold); padding-left:24px; font-family:'Playfair Display',serif; font-size:22px; color:var(--green-deep); font-style:italic; }
+  .door { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-bottom:1px solid var(--line); }
+  .door .num { font-family:'Playfair Display',serif; font-size:34px; color:var(--gold); width:56px; flex-shrink:0; }
+  footer { background:var(--green-deep); color:var(--cream); padding:64px 0 28px; }
+  footer .grid-4 { margin-bottom:48px; }
+  footer h4 { color:var(--gold-light); font-size:13px; text-transform:uppercase; letter-spacing:.1em; margin:0 0 14px; }
+  footer ul { list-style:none; margin:0; padding:0; }
+  footer ul li { margin-bottom:8px; }
+  footer a { text-decoration:none; color:var(--cream); opacity:.85; }
+  footer a:hover { opacity:1; color:var(--gold-light); }
+  footer .fine { border-top:1px solid rgba(255,255,255,.12); padding-top:24px; font-size:12px; color:var(--gold-light); opacity:.7; text-align:center; }
+  .cta-band { background:var(--gold); color:var(--green-deep); text-align:center; }
+  .cta-band h2 { color:var(--green-deep); }
+  .cta-band .btn-gold { background:var(--green-deep); color:var(--ivory); }
+  .cta-band .btn-gold:hover { background:var(--green-mid); }
+  .pillar { display:flex; align-items:center; gap:16px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .pillar .bar-wrap { flex:1; height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .pillar .bar { height:100%; background:var(--gold); }
+  .pillar .pct { width:44px; text-align:right; font-weight:600; color:var(--green-mid); font-size:14px; }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brandmark" href="index.html">
+      <span class="ring"><span>A</span></span>
+      <span>
+        <span class="name">ANESIS <b>ACQUISITION</b></span>
+        <small>Hospitality Underwriting</small>
+      </span>
+    </a>
+    <ul>
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="results.html">Results &amp; Method</a></li>
+      <li><a href="diagnostic.html">Diagnostic</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a class="btn btn-gold" href="diagnostic.html">Get My Acquisition Score</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Hospitality Acquisition Underwriting — United Kingdom</p>
+    <h1>More direct bookings. Less revenue leaking to the platforms.</h1>
+    <p class="lede">Anesis underwrites independent hotels the way an insurer underwrites risk: we measure what your establishment is losing, price it in pounds, decide whether to take you on, and recover that revenue under contract — with part of our fee tied to the result we actually deliver.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-gold" href="diagnostic.html">Get My Acquisition Score — free</a>
+      <a class="btn btn-outline" href="results.html">See the method &amp; the track record →</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap center">
+    <p class="eyebrow">Our philosophy</p>
+    <h2 style="font-size:34px; max-width:760px; margin:14px auto 20px;">Your problem isn't marketing. <em>It's leakage.</em></h2>
+    <p class="lede">Most independent hotels never measure the three places their revenue quietly disappears — until we show them the number, in pounds.</p>
+  </div>
+  <div class="wrap" style="margin-top:48px;">
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>Platform commission</h3>
+        <p>Bookings that could have been direct instead pay 15–20% to Booking.com or Expedia, month after month, on reservations you already had.</p>
+      </div>
+      <div class="card">
+        <h3>Slow, weak enquiries</h3>
+        <p>Prospective guests write in and receive a reply too late, or too flat, to convert — demand you already earned, lost at the last step.</p>
+      </div>
+      <div class="card">
+        <h3>Under-exploited assets</h3>
+        <p>A site, a set of reviews, a run of adverts that could be doing far more — demand you already paid to attract, leaking away unmeasured.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap">
+    <div class="grid grid-2" style="align-items:center;">
+      <div>
+        <p class="eyebrow">Who we take on</p>
+        <h2 style="font-size:32px; margin:14px 0 18px;">Built for a specific kind of hotel — not every hotel.</h2>
+        <p style="color:var(--text-muted); font-size:16px;">We don't segment by hotel, spa or glamping — we segment by economic situation. A country house hotel and a luxury lodge share the same problem the moment they share this profile:</p>
+      </div>
+      <div class="card">
+        <ul style="margin:0; padding-left:20px; color:var(--text-dark); font-size:16px; line-height:2;">
+          <li>Independent, experience-led stay — UK-based</li>
+          <li>12 to 80 keys</li>
+          <li>Average nightly rate above <strong>£140</strong></li>
+          <li>No in-house marketing director</li>
+          <li>More than <strong>35%</strong> of bookings via commissioned platforms</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap center">
+    <p class="eyebrow">How it works</p>
+    <h2 style="font-size:34px; margin:14px auto 12px;">Three doors, each narrower than the last.</h2>
+    <p class="lede">We don't sell a subscription to a tool. We underwrite a result — and we say no when a hotel isn't a fit.</p>
+  </div>
+  <div class="wrap" style="max-width:820px; margin-top:20px;">
+    <div class="door">
+      <div class="num">01</div>
+      <div>
+        <h3 style="margin:0 0 8px;">The Evaluation — free</h3>
+        <p style="color:var(--text-muted); margin:0;">Our engine reads what's public — your site, your reviews, your visible advertising, your platform presence — and returns a verdict: eligible, or declined with a clear reason. A well-explained decline is not a loss; it tells you exactly where to look next.</p>
+      </div>
+    </div>
+    <div class="door">
+      <div class="num">02</div>
+      <div>
+        <h3 style="margin:0 0 8px;">The Underwriting — for eligible hotels only</h3>
+        <p style="color:var(--text-muted); margin:0;">Three weeks of deep analysis with access to your real data. The deliverable is your <strong>Acquisition Thesis</strong>: recoverable revenue, priced in pounds and broken down line by line, the method behind the number, a 90-day plan, and the terms we're proposing. This fee is deducted from your first month if you sign.</p>
+      </div>
+    </div>
+    <div class="door">
+      <div class="num">03</div>
+      <div>
+        <h3 style="margin:0 0 8px;">The Mandate — the contract</h3>
+        <p style="color:var(--text-muted); margin:0;">We recover the revenue we priced, under a monthly retainer scoped to what we measured for your hotel — not a universal rate card. Part of our fee only ever applies to the increase you wouldn't have had without us, settled once, at the end of the term.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-deep">
+  <div class="wrap center">
+    <p class="eyebrow" style="color:var(--gold-light);">The Anesis Leak Index™</p>
+    <h2 style="font-size:32px; margin:14px auto 30px;">Your Acquisition Score, out of 100, in two minutes.</h2>
+  </div>
+  <div class="wrap grid grid-2" style="align-items:center;">
+    <div>
+      <div class="pillar"><div style="width:150px;">Website speed</div><div class="bar-wrap"><div class="bar" style="width:25%;"></div></div><div class="pct">25%</div></div>
+      <div class="pillar"><div style="width:150px;">Reviews &amp; reputation</div><div class="bar-wrap"><div class="bar" style="width:25%;"></div></div><div class="pct">25%</div></div>
+      <div class="pillar"><div style="width:150px;">OTA dependency</div><div class="bar-wrap"><div class="bar" style="width:30%;"></div></div><div class="pct">30%</div></div>
+      <div class="pillar"><div style="width:150px;">Retargeting</div><div class="bar-wrap"><div class="bar" style="width:20%;"></div></div><div class="pct">20%</div></div>
+    </div>
+    <div>
+      <p style="color:var(--gold-light); font-size:17px; line-height:1.8;">Four measurable pillars, one deterministic score. No guesswork, no vanity metric — a number, a monthly loss in pounds, and a clear decision: qualified, declined, or worth a second look.</p>
+      <a class="btn btn-gold" href="diagnostic.html" style="margin-top:12px;">Get my score — free</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap center">
+    <p class="eyebrow">The founder's track record</p>
+    <h2 style="font-size:32px; margin:14px auto 8px;">Proven in North America. Built for the UK.</h2>
+    <p class="lede">Anesis Acquisition is a new firm with a new underwriting engine — but its founder isn't new to this. These results were achieved for real hospitality clients under her previous practice.</p>
+  </div>
+  <div class="wrap grid grid-4" style="margin-top:36px;">
+    <div class="stat"><div class="num">22x</div><div class="label">Advertising ROAS — glamping client</div></div>
+    <div class="stat"><div class="num">+372%</div><div class="label">Instagram growth — spa client</div></div>
+    <div class="stat"><div class="num">+156%</div><div class="label">Direct bookings — hammam &amp; spa</div></div>
+    <div class="stat"><div class="num">64%</div><div class="label">Client retention rate</div></div>
+  </div>
+  <div class="wrap center" style="margin-top:36px;">
+    <a class="btn btn-ghost-dark btn-outline" style="color:var(--green-deep); border-color:var(--green-mid);" href="results.html">Read the full methodology →</a>
+  </div>
+</section>
+
+<section>
+  <div class="wrap center">
+    <p class="eyebrow">Why we're not "just an AI tool"</p>
+    <h2 style="font-size:32px; margin:14px auto 30px;">A firm that answers for a result — not software you operate yourself.</h2>
+  </div>
+  <div class="wrap grid grid-2">
+    <div class="card"><p style="color:var(--text-dark); font-size:16px;">You never touch the AI yourself. You engage a firm that takes responsibility for an outcome and answers for it financially — the same way you'd engage an accountant, not buy accounting software.</p></div>
+    <div class="card"><p style="color:var(--text-dark); font-size:16px;">We decline clients. No software does that. It's an act of professional judgement, not a sales funnel.</p></div>
+    <div class="card"><p style="color:var(--text-dark); font-size:16px;">Part of our fee depends on the result we actually deliver. No software vendor accepts that risk.</p></div>
+    <div class="card"><p style="color:var(--text-dark); font-size:16px;">We never sell the engine itself to anyone. It's internal infrastructure that runs a service — never a shelf product.</p></div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap center">
+    <p class="eyebrow">Positioning</p>
+    <blockquote class="quote-block" style="max-width:760px; margin:24px auto 0; text-align:left;">
+      "Anesis underwrites independent hospitality businesses the way an insurer underwrites risk: we measure, we price it in pounds, we decide whether to accept or decline, then we recover that revenue under contract — with part of our fee indexed to the result actually achieved."
+    </blockquote>
+  </div>
+  <div class="wrap" style="margin-top:48px;">
+    <table class="compare">
+      <thead><tr><th>A conventional agency</th><th>Anesis Acquisition</th></tr></thead>
+      <tbody>
+        <tr><td>Sells time and deliverables</td><td class="yes">Underwrites revenue risk</td></tr>
+        <tr><td>Fixed fee, no result guaranteed</td><td class="yes">Fee partly tied to the result achieved</td></tr>
+        <tr><td>Accepts every client</td><td class="yes">Declines hotels that aren't a fit</td></tr>
+        <tr><td>No financial accountability</td><td class="yes">Carries financial accountability for what it advances</td></tr>
+        <tr><td>Bills for marketing activity</td><td class="yes">Bills for recovered revenue</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap center">
+    <h2 style="font-size:32px; margin:0 0 14px;">Find out where your revenue is leaking.</h2>
+    <p style="max-width:560px; margin:0 auto 28px; font-size:17px;">Free. No obligation. A decline is useful information too.</p>
+    <a class="btn btn-gold" href="diagnostic.html">Start my free diagnostic</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="grid grid-4">
+      <div>
+        <span class="name serif" style="color:var(--ivory); font-size:20px;">ANESIS <b style="color:var(--gold-light);">ACQUISITION</b></span>
+        <p style="color:var(--cream); opacity:.75; font-size:14px; margin-top:14px;">Hospitality acquisition underwriting for independent hotels — South West England &amp; the Cotswolds first.</p>
+      </div>
+      <div>
+        <h4>Firm</h4>
+        <ul><li><a href="about.html">About</a></li><li><a href="results.html">Results &amp; Method</a></li></ul>
+      </div>
+      <div>
+        <h4>Tools</h4>
+        <ul><li><a href="diagnostic.html">Free Diagnostic</a></li><li><a href="contact.html">Book a Call</a></li></ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul><li><a href="mailto:hello@anesisacquisition.com">hello@anesisacquisition.com</a></li><li><a href="contact.html">Enquiry form</a></li></ul>
+      </div>
+    </div>
+    <div class="fine">© 2026 Anesis Acquisition Ltd. Registered in England &amp; Wales. London, United Kingdom.</div>
+  </div>
+</footer>
+
+</body>
+</html>

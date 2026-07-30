@@ -4,6 +4,7 @@ import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { ThesisPreview } from "@/components/ThesisPreview";
 import { DifferentiationToggle } from "@/components/DifferentiationToggle";
+import { SloganBanner } from "@/components/site/SloganBanner";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -15,9 +16,49 @@ export default async function MethodPage() {
   const c = getCopy(lang).method;
   const L = <T,>(en: T, fr: T): T => (lang === "fr" ? fr : en);
 
+  const gates = [
+    { h: L("A free assessment", "Une évaluation gratuite"), b: L("We read your hotel from the outside — channel mix, response times, rate parity, reputation, website — and give you a first sense of the leak. No charge, no obligation.", "Nous lisons votre hôtel de l'extérieur — mix de canaux, temps de réponse, parité tarifaire, réputation, site web — et vous donnons un premier ordre de grandeur de la fuite. Sans frais, sans obligation.") },
+    { h: L("A paid Acquisition Thesis", "Une Thèse d'Acquisition payante"), b: L("Over about two weeks, the assessment becomes a written document you own: where the loss sits, pillar by pillar, the sum we believe is recoverable, and a ninety-day plan to recover it.", "En deux semaines environ, l'évaluation devient un document écrit qui vous appartient : où se loge la perte, pilier par pilier, la somme que nous croyons récupérable, et un plan à quatre-vingt-dix jours pour la récupérer.") },
+    { h: L("A mandate — only if it holds", "Un mandat — seulement s'il tient"), b: L("If, and only if, the thesis convinces you, we begin. We are paid on the gap we actually close, not on the plan.", "Si, et seulement si, la thèse vous convainc, nous commençons. Nous sommes rémunérés sur l'écart que nous refermons réellement, pas sur le plan.") },
+  ];
+
+  const monthly = [
+    L("A monthly Revenue Leak Index — the same score, tracked over time.", "Un Indice de Fuite de Revenu mensuel — le même score, suivi dans le temps."),
+    L("A recovery ledger: what you kept in direct bookings this month, not the platforms.", "Un registre de récupération : ce que vous avez gardé en réservations directes ce mois-ci, pas les plateformes."),
+    L("A 120-day leak calendar — where the next losses are likely, before they happen.", "Un calendrier de fuite à 120 jours — où les prochaines pertes sont probables, avant qu'elles n'arrivent."),
+    L("A content and social calendar, planned and published.", "Un calendrier de contenu et de réseaux sociaux, planifié et publié."),
+    L("A monthly newsletter to your past guests.", "Une newsletter mensuelle à vos anciens clients."),
+    L("Rate-parity monitoring across the platforms.", "Une surveillance de la parité tarifaire sur les plateformes."),
+    L("Website conversion work — the direct booking path, kept sharp.", "Un travail de conversion du site — le chemin de réservation directe, gardé net."),
+    L("A plain-English report, signed by a person — never an automated dashboard alone.", "Un rapport en langage clair, signé par une personne — jamais un tableau de bord automatisé seul."),
+  ];
+
   return (
     <>
       <Hero {...getHero(lang, "method")} hideNav />
+
+      {/* Comment ça marche, dans l'ordre. */}
+      <section className="border-b border-gold/15 py-24 md:py-32">
+        <div className="container-editorial">
+          <Reveal className="max-w-2xl">
+            <p className="eyebrow">{L("How this actually works, in order", "Comment ça marche, dans l'ordre")}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">
+              {L("Three gates. You pass each before the next.", "Trois portes. Vous franchissez chacune avant la suivante.")}
+            </h2>
+          </Reveal>
+          <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-3">
+            {gates.map((g, i) => (
+              <Reveal key={g.h} index={i}>
+                <div className="border-t border-forest-900/12 pt-6">
+                  <span className="font-serif text-2xl text-gold-deep">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="mt-2 font-serif text-2xl font-light text-forest-900">{g.h}</h3>
+                  <p className="mt-3 font-sans text-base leading-relaxed text-forest-800/85">{g.b}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Les cinq piliers. */}
       <section className="border-b border-gold/15 py-24 md:py-32">
@@ -43,6 +84,11 @@ export default async function MethodPage() {
           </div>
         </div>
       </section>
+
+      <SloganBanner
+        image="/img/new-banner-corridor-geometric.jpg"
+        slogan={L("The machine gathers. The number is fixed. A person signs it.", "La machine collecte. Le chiffre est arrêté. Une personne le signe.")}
+      />
 
       {/* Calculateur illustratif. */}
       <section className="border-b border-gold/15 bg-cream-100/60 py-24 md:py-32">
@@ -71,6 +117,33 @@ export default async function MethodPage() {
           <Reveal index={1}><ThesisPreview /></Reveal>
         </div>
       </section>
+
+      {/* Ce que vous recevez chaque mois. */}
+      <section className="border-b border-gold/15 py-24 md:py-32">
+        <div className="container-editorial">
+          <Reveal className="max-w-2xl">
+            <p className="eyebrow">{L("Once the mandate begins", "Une fois le mandat commencé")}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">
+              {L("What you actually receive each month.", "Ce que vous recevez réellement chaque mois.")}
+            </h2>
+          </Reveal>
+          <div className="mt-12 grid gap-x-12 gap-y-6 md:grid-cols-2">
+            {monthly.map((m, i) => (
+              <Reveal key={i} index={i % 2}>
+                <div className="flex gap-4 border-t border-forest-900/12 pt-5">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                  <p className="font-sans text-base leading-relaxed text-forest-800/85">{m}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <SloganBanner
+        image="/img/new-banner-reception-gold.jpg"
+        slogan={L("Every pound we report, you could check yourself.", "Chaque livre que nous rapportons, vous pourriez la vérifier vous-même.")}
+      />
 
       {/* Différenciation. */}
       <section className="py-24 md:py-32">
