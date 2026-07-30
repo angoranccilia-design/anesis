@@ -18,20 +18,20 @@ export function getCopy(lang: Lang) {
       journal: p(lang, "Journal", "Journal"),
       contact: p(lang, "Contact", "Contact"),
       cta: p(lang, "Request an assessment", "Demander une évaluation"),
-      tagline: p(lang, "An underwriting firm for independent hotels", "Un cabinet de souscription pour hôtels indépendants"),
+      tagline: p(lang, "An underwriting firm for independent hotels", "Une firme d'acquisition pour hôtels indépendants"),
     },
     footer: {
       blurb: p(
         lang,
         "An underwriting firm for independent UK hotels. We measure, in pounds, the direct revenue you're losing to Booking.com and the other OTAs — and we take financial responsibility for recovering it.",
-        "Un cabinet de souscription pour hôtels indépendants britanniques. Nous mesurons, en livres, le revenu direct que vous perdez au profit de Booking.com et des autres OTA — et nous assumons la responsabilité financière de le récupérer.",
+        "Une firme d'acquisition pour hôtels indépendants britanniques. Nous mesurons, en livres, le revenu direct que vous perdez au profit de Booking.com et des autres OTA — et nous assumons la responsabilité financière de le récupérer.",
       ),
-      firm: p(lang, "The firm", "Le cabinet"),
+      firm: p(lang, "The firm", "La firme"),
       begin: p(lang, "Begin", "Commencer"),
       contact: p(lang, "Contact", "Contact"),
       country: p(lang, "United Kingdom", "Royaume-Uni"),
       rights: p(lang, "All figures in pounds sterling.", "Tous les montants en livres sterling."),
-      line: p(lang, "Anesis Acquisition · United Kingdom · Hospitality underwriting", "Anesis Acquisition · Royaume-Uni · Souscription hôtelière"),
+      line: p(lang, "Anesis Acquisition · United Kingdom · Hospitality underwriting", "Anesis Acquisition · Royaume-Uni · Firme d'acquisition hôtelière"),
     },
     demoBadge: p(
       lang,
@@ -49,8 +49,8 @@ export function getCopy(lang: Lang) {
       ),
       ctaPrimary: p(lang, "Request an assessment", "Demander une évaluation"),
       ctaGhost: p(lang, "How we work", "Comment nous travaillons"),
-      underEyebrow: p(lang, "Why a firm, not an agency", "Pourquoi un cabinet, pas une agence"),
-      underTitle: p(lang, "We're an underwriting firm — and we work like one.", "Nous sommes un cabinet de souscription — et nous travaillons comme tel."),
+      underEyebrow: p(lang, "Why a firm, not an agency", "Pourquoi une firme, pas une agence"),
+      underTitle: p(lang, "We're an underwriting firm — and we work like one.", "Nous sommes une firme d'acquisition — et nous travaillons comme tel."),
       underLede: p(
         lang,
         "That's not a label we borrow to sound serious. We don't run activity and hope it works: we measure the direct revenue you lose to Booking.com and the other OTAs, price exactly what's recoverable, and put our own fee on the outcome.",
@@ -150,11 +150,11 @@ export function getCopy(lang: Lang) {
     },
     about: {
       eyebrow: p(lang, "About", "À propos"),
-      title: p(lang, "An underwriting firm for independent UK hotels.", "Un cabinet de souscription pour hôtels indépendants britanniques."),
+      title: p(lang, "An underwriting firm for independent UK hotels.", "Une firme d'acquisition pour hôtels indépendants britanniques."),
       lede: p(
         lang,
         "Anesis is an underwriting firm, and we mean it literally. We take on one problem — the direct revenue you lose to Booking.com and the other OTAs — measure it precisely, price what's recoverable, and take financial responsibility for bringing it back.",
-        "Anesis est un cabinet de souscription, au sens strict. Nous prenons en charge un seul problème — le revenu direct que vous perdez au profit de Booking.com et des autres OTA — le mesurons précisément, chiffrons ce qui est récupérable, et assumons la responsabilité financière de le récupérer.",
+        "Anesis est une firme d'acquisition, au sens strict. Nous prenons en charge un seul problème — le revenu direct que vous perdez au profit de Booking.com et des autres OTA — le mesurons précisément, chiffrons ce qui est récupérable, et assumons la responsabilité financière de le récupérer.",
       ),
       body: [
         p(lang, "We're not a marketing agency. We don't start by spending your money on ads. We start by measuring, in pounds, how much direct revenue you're losing and how much we can realistically bring back.", "Nous ne sommes pas une agence de marketing. Nous ne commençons pas par dépenser votre argent en publicité. Nous commençons par mesurer, en livres, combien de revenu direct vous perdez et combien nous pouvons raisonnablement récupérer."),

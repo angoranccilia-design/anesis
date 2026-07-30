@@ -51,7 +51,7 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
     backgroundType: "image",
     backgroundSrc: "/img/hero-opt-4.jpg",
     zoom: true,
-    eyebrow: { en: "Hospitality Underwriting Firm · United Kingdom", fr: "Cabinet de souscription hôtelière · Royaume-Uni" },
+    eyebrow: { en: "Hospitality Underwriting Firm · United Kingdom", fr: "Firme d'acquisition hôtelière · Royaume-Uni" },
     title: {
       en: "More direct bookings. Less paid to the platforms.",
       fr: "Plus de réservations directes. Moins versé aux plateformes.",
