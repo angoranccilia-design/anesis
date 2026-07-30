@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ARTICLES, ISSUE, bySlug } from "@/content/journal";
+import { ARTICLES, ISSUE, bySlug, resolveArticle } from "@/content/journal";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -11,7 +11,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const a = bySlug(slug);
-  return a ? { title: a.title, description: a.dek } : { title: "The Anesis Journal" };
+  return a ? { title: a.title.en, description: a.dek.en } : { title: "The Anesis Journal" };
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -21,7 +21,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   const lang = await getLang();
   const c = getCopy(lang);
-  const [first, ...rest] = article.body;
+  const art = resolveArticle(article, lang);
+  const [first, ...rest] = art.body;
 
   return (
     <article className="pt-36 pb-24">
@@ -31,11 +32,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <span className="h-1 w-1 rounded-full bg-gold" />
           <span>{ISSUE.label}</span>
           <span className="h-1 w-1 rounded-full bg-gold" />
-          <span>{article.readMinutes} {c.readMin}</span>
+          <span>{art.readMinutes} {c.readMin}</span>
         </div>
 
-        <h1 className="mt-6 font-serif text-4xl font-light leading-[1.08] text-forest-900 md:text-6xl">{article.title}</h1>
-        <p className="mt-5 font-serif text-2xl font-light italic leading-relaxed text-forest-800/80">{article.dek}</p>
+        <h1 className="mt-6 font-serif text-4xl font-light leading-[1.08] text-forest-900 md:text-6xl">{art.title}</h1>
+        <p className="mt-5 font-serif text-2xl font-light italic leading-relaxed text-forest-800/80">{art.dek}</p>
 
         <div className="mt-8 h-px w-full bg-forest-900/20" />
 

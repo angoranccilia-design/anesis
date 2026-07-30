@@ -66,8 +66,9 @@ export function Hero({
         <img src={backgroundSrc} alt="" className={`absolute inset-0 z-0 h-full w-full object-cover${zoom ? " hero-kenburns" : ""}`} />
       )}
 
-      {/* Flou bas uniquement (z-1) — pas d'assombrissement */}
-      <div className="pointer-events-none absolute inset-0 z-[1] hero-bottom-blur" aria-hidden="true" />
+      {/* Overlay sombre (lisibilité garantie du texte sur toute image) + flou bas */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-forest-950/55" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 z-[2] hero-bottom-blur" aria-hidden="true" />
 
       {/* Navbar interne — masquée quand on utilise le Header de marque du site (hideNav) */}
       {!hideNav && (

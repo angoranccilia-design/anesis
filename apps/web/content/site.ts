@@ -199,7 +199,7 @@ export function getCopy(lang: Lang) {
       eyebrow: p(lang, "The Anesis Journal", "Le Journal Anesis"),
       lead: p(lang, "This month's lead", "L'article du mois"),
       read: p(lang, "min · read the piece →", "min · lire l'article →"),
-      note: p(lang, "Written in English. A French edition is planned.", "Rédigé en anglais. Une édition française est prévue."),
+      note: p(lang, "New field notes each month.", "De nouvelles notes de terrain chaque mois."),
     },
     form: {
       name: p(lang, "Your name", "Votre nom"),

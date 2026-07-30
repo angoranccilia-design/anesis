@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Reveal } from "@/components/Reveal";
-import { ARTICLES, ISSUE } from "@/content/journal";
+import { ARTICLES, ISSUE, resolveArticle } from "@/content/journal";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -15,8 +15,9 @@ export default async function JournalPage() {
   const lang = await getLang();
   const j = getCopy(lang).journal;
   const L = <T,>(en: T, fr: T): T => (lang === "fr" ? fr : en);
-  const lead = ARTICLES.find((a) => a.lead) ?? ARTICLES[0]!;
-  const rest = ARTICLES.filter((a) => a.slug !== lead.slug);
+  const articles = ARTICLES.map((a) => resolveArticle(a, lang));
+  const lead = articles.find((a) => a.lead) ?? articles[0]!;
+  const rest = articles.filter((a) => a.slug !== lead.slug);
 
   return (
     <>
