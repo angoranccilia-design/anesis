@@ -110,6 +110,14 @@
   }
 }
 
+/* Zoom cinématique lent sur l'image de hero (accueil). */
+@keyframes heroZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.09); }
+}
+.hero-kenburns { animation: heroZoom 28s ease-out forwards; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .hero-kenburns { animation: none; } }
+
 /* Marquee (bandeau défilant — la chaîne du système). */
 @keyframes anesis-marquee {
   from { transform: translateX(0); }

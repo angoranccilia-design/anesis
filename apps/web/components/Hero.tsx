@@ -26,6 +26,7 @@ export function Hero({
   description,
   primaryCta,
   secondaryCta,
+  zoom = false,
   onNavigate,
   hideNav = false,
 }: HeroProps) {
@@ -52,7 +53,7 @@ export function Hero({
       {/* Fond plein écran (z-0) */}
       {backgroundType === "video" ? (
         <video
-          className="absolute inset-0 z-0 h-full w-full object-cover"
+          className={`absolute inset-0 z-0 h-full w-full object-cover${zoom ? " hero-kenburns" : ""}`}
           src={backgroundSrc}
           poster={poster}
           autoPlay
@@ -62,7 +63,7 @@ export function Hero({
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={backgroundSrc} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+        <img src={backgroundSrc} alt="" className={`absolute inset-0 z-0 h-full w-full object-cover${zoom ? " hero-kenburns" : ""}`} />
       )}
 
       {/* Flou bas uniquement (z-1) — pas d'assombrissement */}

@@ -13,6 +13,8 @@ export interface HeroContent {
   backgroundType: "video" | "image";
   backgroundSrc: string;
   poster?: string;
+  /** Léger zoom cinématique sur l'image de fond (accueil). */
+  zoom?: boolean;
   eyebrow: string;
   title: string;
   description: string;
@@ -34,9 +36,9 @@ export const HERO_PAGES: Record<HeroPageKey, HeroContent> = {
   home: {
     key: "home",
     activeNav: null,
-    backgroundType: "video",
-    backgroundSrc: "/hero/home.mp4",
-    poster: "/img/new-glamping-misty-forest.jpg",
+    backgroundType: "image",
+    backgroundSrc: "/img/uk-estate.jpg",
+    zoom: true,
     eyebrow: "Independent Hospitality · United Kingdom",
     title: "We recover the revenue you didn't know you were losing.",
     description:
