@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/site/PageHeader";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
@@ -12,7 +13,7 @@ export default async function AboutPage() {
 
   return (
     <>
-      <PageHeader eyebrow={c.eyebrow} title={c.title} lede={c.lede} image="/img/new-hotel-reception-coastal.jpg" />
+      <Hero {...HERO_PAGES.about} hideNav />
 
       <section className="border-b border-gold/15 py-24 md:py-32">
         <div className="container-editorial grid gap-14 md:grid-cols-[0.8fr_1.2fr]">

@@ -4,7 +4,7 @@
  * Fonds : Pexels (hotlink autorisé) en attendant les médias finaux ; l'accueil attend une vidéo
  * cinématique dans /public/hero/home.mp4 (le poster estate s'affiche tant qu'elle n'est pas déposée).
  */
-export type HeroPageKey = "home" | "method" | "results" | "insights" | "contact";
+export type HeroPageKey = "home" | "method" | "results" | "insights" | "contact" | "about";
 
 export interface HeroContent {
   key: HeroPageKey;
@@ -37,7 +37,7 @@ export const HERO_PAGES: Record<HeroPageKey, HeroContent> = {
     key: "home",
     activeNav: null,
     backgroundType: "image",
-    backgroundSrc: "/img/uk-estate.jpg",
+    backgroundSrc: "/img/hero-opt-4.jpg",
     zoom: true,
     eyebrow: "Independent Hospitality · United Kingdom",
     title: "We recover the revenue you didn't know you were losing.",
@@ -50,7 +50,7 @@ export const HERO_PAGES: Record<HeroPageKey, HeroContent> = {
     key: "method",
     activeNav: "method",
     backgroundType: "image",
-    backgroundSrc: "/img/new-glamping-dome-01.jpg",
+    backgroundSrc: "/img/hero-opt-7.jpg",
     eyebrow: "Our Method",
     title: "We price the leak before we promise anything.",
     description: "A three-step underwriting process — evaluation, diagnosis, mandate — built to be verified, not just trusted.",
@@ -83,11 +83,23 @@ export const HERO_PAGES: Record<HeroPageKey, HeroContent> = {
     key: "contact",
     activeNav: "contact",
     backgroundType: "image",
-    backgroundSrc: "/img/new-spa-elegant-02.jpg",
+    backgroundSrc: "/img/new-hotel-hall-chandelier.jpg",
     eyebrow: "Get in Touch",
     title: "Let's put a number on it.",
     description: "Tell us about your property. We'll tell you, in pounds, what your distribution is really costing you.",
     primaryCta: "Start the Conversation",
+    secondaryCta: "Book a Diagnostic",
+  },
+  about: {
+    key: "about",
+    activeNav: null,
+    backgroundType: "image",
+    backgroundSrc: "/img/hero-opt-5.jpg",
+    eyebrow: "About",
+    title: "An underwriting firm, working quietly for British hotels.",
+    description:
+      "We borrow a discipline from finance — underwriting — and apply it to the revenue an independent hotel loses without ever seeing it.",
+    primaryCta: "Our Method",
     secondaryCta: "Book a Diagnostic",
   },
 };
