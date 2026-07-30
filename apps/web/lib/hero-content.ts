@@ -51,14 +51,14 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
     backgroundType: "image",
     backgroundSrc: "/img/hero-opt-4.jpg",
     zoom: true,
-    eyebrow: { en: "Hospitality Underwriting Firm · United Kingdom", fr: "Firme d'acquisition hôtelière · Royaume-Uni" },
+    eyebrow: { en: "Hospitality Underwriting Firm · United Kingdom", fr: "Firme d'acquisition · Royaume-Uni" },
     title: {
       en: "More direct bookings. Less paid to the platforms.",
       fr: "Plus de réservations directes. Moins versé aux plateformes.",
     },
     description: {
-      en: "We help independent UK hotels, spas and glamping sites win back the bookings they lose to Booking.com and the others — and we're paid on the extra revenue we bring in.",
-      fr: "Nous aidons les hôtels, spas et sites de glamping indépendants britanniques à récupérer les réservations perdues au profit de Booking.com et des autres — et nous sommes payés sur le revenu supplémentaire que nous apportons.",
+      en: "We help independent hotels, spas, retreats and glamping estates win back the bookings they lose to Booking.com and the others — and we're paid on the extra revenue we bring in.",
+      fr: "Nous aidons hôtels, spas, retraites et domaines de glamping indépendants à récupérer les réservations perdues au profit de Booking.com et des autres — et nous sommes payés sur le revenu supplémentaire que nous apportons.",
     },
     primaryCta: { en: "See what you're losing", fr: "Voir ce que vous perdez" },
     secondaryCta: { en: "How it works", fr: "Comment ça marche" },
@@ -68,10 +68,10 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
     backgroundType: "image",
     backgroundSrc: "/img/hero-opt-7.jpg",
     eyebrow: { en: "Our Method", fr: "Notre méthode" },
-    title: { en: "We measure what you're losing\nbefore we promise anything.", fr: "Nous mesurons vos pertes\navant toute promesse." },
+    title: { en: "We measure the loss\nbefore any promise.", fr: "Nous chiffrons la perte\navant toute promesse." },
     description: {
-      en: "A clear three-step process — free assessment, written thesis, then a mandate. Built so you can check every number.",
-      fr: "Un processus clair en trois étapes — évaluation gratuite, thèse écrite, puis mandat. Conçu pour que vous puissiez vérifier chaque chiffre.",
+      en: "Free assessment, written thesis, then a mandate — every figure yours to check.",
+      fr: "Évaluation gratuite, thèse écrite, puis mandat — chaque chiffre vérifiable.",
     },
     primaryCta: { en: "See the process", fr: "Voir le processus" },
     secondaryCta: BOOK,
@@ -102,8 +102,8 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
       fr: "Notes pratiques pour obtenir plus de réservations directes.",
     },
     description: {
-      en: "What we learn working with independent hotels, spas and glamping sites across the UK.",
-      fr: "Ce que nous apprenons en travaillant avec des hôtels, spas et sites de glamping indépendants au Royaume-Uni.",
+      en: "What we learn working with independent hotels, spas, retreats and glamping estates across the UK.",
+      fr: "Ce que nous apprenons en travaillant avec des hôtels, spas, retraites et domaines de glamping indépendants au Royaume-Uni.",
     },
     primaryCta: { en: "Read the latest", fr: "Lire les derniers articles" },
     secondaryCta: BOOK,
@@ -127,8 +127,8 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
     backgroundSrc: "/img/hero-opt-5.jpg",
     eyebrow: { en: "About", fr: "À propos" },
     title: {
-      en: "A UK firm that gets independent hotels more direct bookings.",
-      fr: "Une firme britannique qui obtient plus de réservations directes pour les hôtels indépendants.",
+      en: "A UK underwriting firm that wins back your direct bookings.",
+      fr: "Une firme d'acquisition britannique qui récupère vos réservations directes.",
     },
     description: {
       en: "We find where you lose bookings to the platforms — and where slow replies and weak pricing cost you guests — then we fix it.",

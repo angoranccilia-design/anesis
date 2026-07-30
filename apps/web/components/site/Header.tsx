@@ -83,12 +83,12 @@ export function Header({ lang, nav, onDark = false }: { lang: Lang; nav: NavCopy
 
         <nav className="hidden items-center gap-8 lg:flex">
           {links.map((n) => (
-            <Link key={n.href} href={n.href} className={clsx("link-underline font-sans text-sm", navLink)}>
+            <Link key={n.href} href={n.href} className={clsx("link-underline whitespace-nowrap font-sans text-sm", navLink)}>
               {n.label}
             </Link>
           ))}
           <LangToggle lang={lang} onDark={light} />
-          <Link href="/diagnostic" className={clsx("rounded-full px-5 py-2.5 font-sans text-sm transition-colors", cta)}>
+          <Link href="/diagnostic" className={clsx("whitespace-nowrap rounded-full px-5 py-2.5 font-sans text-sm transition-colors", cta)}>
             {nav.cta}
           </Link>
         </nav>

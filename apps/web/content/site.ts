@@ -18,13 +18,13 @@ export function getCopy(lang: Lang) {
       journal: p(lang, "Journal", "Journal"),
       contact: p(lang, "Contact", "Contact"),
       cta: p(lang, "Request an assessment", "Demander une évaluation"),
-      tagline: p(lang, "An underwriting firm for independent hotels", "Une firme d'acquisition pour hôtels indépendants"),
+      tagline: p(lang, "An underwriting firm for independent hospitality", "Une firme d'acquisition pour établissements indépendants"),
     },
     footer: {
       blurb: p(
         lang,
-        "An underwriting firm for independent UK hotels. We measure, in pounds, the direct revenue you're losing to Booking.com and the other OTAs — and we take financial responsibility for recovering it.",
-        "Une firme d'acquisition pour hôtels indépendants britanniques. Nous mesurons, en livres, le revenu direct que vous perdez au profit de Booking.com et des autres OTA — et nous assumons la responsabilité financière de le récupérer.",
+        "An underwriting firm for independent UK hospitality — hotels, spas, retreats, glamping and small resorts. We measure, in pounds, the direct revenue you're losing to Booking.com and the other OTAs, and we take financial responsibility for recovering it.",
+        "Une firme d'acquisition pour les établissements indépendants britanniques — hôtels, spas, retraites, glamping et petits resorts. Nous mesurons, en livres, le revenu direct que vous perdez au profit de Booking.com et des autres OTA, et nous assumons la responsabilité financière de le récupérer.",
       ),
       firm: p(lang, "The firm", "La firme"),
       begin: p(lang, "Begin", "Commencer"),
@@ -39,13 +39,13 @@ export function getCopy(lang: Lang) {
       "Exemple illustratif — hôtels britanniques fictifs. Aucun chiffre ici n'est un résultat client réel.",
     ),
     home: {
-      eyebrow: p(lang, "Direct bookings for independent UK hotels", "Réservations directes pour hôtels indépendants au Royaume-Uni"),
+      eyebrow: p(lang, "Direct bookings for independent UK hospitality", "Réservations directes pour établissements indépendants au Royaume-Uni"),
       heroTitleA: p(lang, "More direct bookings.", "Plus de réservations directes."),
       heroTitleB: p(lang, "Less paid to the platforms.", "Moins versé aux plateformes."),
       heroSub: p(
         lang,
-        "We help independent UK hotels win back the bookings they lose to Booking.com and the others — and we're paid on the extra revenue we bring in.",
-        "Nous aidons les hôtels indépendants britanniques à récupérer les réservations qu'ils perdent au profit de Booking.com et des autres — et nous sommes payés sur le revenu supplémentaire que nous apportons.",
+        "We help independent hotels, spas, retreats and glamping estates win back the bookings they lose to Booking.com and the others — and we're paid on the extra revenue we bring in.",
+        "Nous aidons hôtels, spas, retraites et domaines de glamping indépendants à récupérer les réservations qu'ils perdent au profit de Booking.com et des autres — et nous sommes payés sur le revenu supplémentaire que nous apportons.",
       ),
       ctaPrimary: p(lang, "Request an assessment", "Demander une évaluation"),
       ctaGhost: p(lang, "How we work", "Comment nous travaillons"),
@@ -150,7 +150,7 @@ export function getCopy(lang: Lang) {
     },
     about: {
       eyebrow: p(lang, "About", "À propos"),
-      title: p(lang, "An underwriting firm for independent UK hotels.", "Une firme d'acquisition pour hôtels indépendants britanniques."),
+      title: p(lang, "An underwriting firm for independent hospitality.", "Une firme d'acquisition pour les établissements indépendants."),
       lede: p(
         lang,
         "Anesis is an underwriting firm, and we mean it literally. We take on one problem — the direct revenue you lose to Booking.com and the other OTAs — measure it precisely, price what's recoverable, and take financial responsibility for bringing it back.",
@@ -172,8 +172,8 @@ export function getCopy(lang: Lang) {
       title: p(lang, "Five places where hotels lose direct bookings.", "Cinq endroits où les hôtels perdent des réservations directes."),
       lede: p(
         lang,
-        "The Anesis Revenue Leak Index checks five areas where independent hotels lose direct bookings. We measure each one from your real data, then build the plan around what we find.",
-        "L'Anesis Revenue Leak Index examine cinq domaines où les hôtels indépendants perdent des réservations directes. Nous mesurons chacun sur vos données réelles, puis construisons le plan autour de ce que nous trouvons.",
+        "The Anesis Revenue Leak Index checks five areas where independent hospitality loses direct bookings. We measure each one from your real data, then build the plan around what we find.",
+        "L'Anesis Revenue Leak Index examine cinq domaines où les établissements indépendants perdent des réservations directes. Nous mesurons chacun sur vos données réelles, puis construisons le plan autour de ce que nous trouvons.",
       ),
       pillarsEyebrow: p(lang, "The five checks", "Les cinq points de contrôle"),
       pillars: [

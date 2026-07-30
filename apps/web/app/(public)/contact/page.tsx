@@ -23,7 +23,7 @@ export default async function ContactPage() {
     { q: L("How long is a mandate?", "Quelle est la durée d'un mandat ?"), a: L("Six or twelve months — your choice. The incentive rate follows the duration you pick.", "Six ou douze mois — à votre choix. Le taux d'intéressement suit la durée que vous choisissez.") },
     { q: L("What access will you need?", "De quels accès aurez-vous besoin ?"), a: L("Once a mandate begins, your booking channels, Google Business Profile, review platforms and social accounts — so we can work on the leak directly. Never before.", "Une fois le mandat commencé, vos canaux de réservation, votre fiche Google Business, vos plateformes d'avis et vos comptes sociaux — pour agir directement sur la fuite. Jamais avant.") },
     { q: L("How quickly will I hear back?", "Sous quel délai aurai-je une réponse ?"), a: L("A person reads every enquiry — never a queue. You'll hear back within two working days.", "Une personne lit chaque demande — jamais une file d'attente. Vous aurez une réponse sous deux jours ouvrés.") },
-    { q: L("Do you work outside the UK?", "Travaillez-vous hors du Royaume-Uni ?"), a: L("We focus on independent hotels of character in the United Kingdom.", "Nous nous concentrons sur les hôtels de caractère indépendants au Royaume-Uni.") },
+    { q: L("Do you work outside the UK?", "Travaillez-vous hors du Royaume-Uni ?"), a: L("We focus on independent hospitality across the United Kingdom — hotels, spas, retreats, glamping and small resorts.", "Nous nous concentrons sur les établissements indépendants au Royaume-Uni — hôtels, spas, retraites, glamping et petits resorts.") },
   ];
 
   return (
