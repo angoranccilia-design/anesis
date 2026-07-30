@@ -69,6 +69,7 @@ export interface AgentCard {
   readonly id: AgentId;
   readonly name: string;
   readonly initials: string;
+  readonly photo: string;
   readonly role: string;
   readonly tier: AutonomyTier;
   readonly what: string;
@@ -86,6 +87,7 @@ export function agentTeam(): AgentCard[] {
       id,
       name,
       initials: name.slice(0, 1) + ROSTER[id].role.slice(0, 1),
+      photo: `/img/agents/${id}.jpg`,
       role: ROSTER[id].role,
       tier,
       what: WHAT[id],
@@ -102,6 +104,39 @@ export interface ActivityItem {
   readonly initials: string;
   readonly text: string;
 }
+/** Les 5 niveaux d'autonomie, en langage clair (mappés sur les tiers T0–T5). */
+export interface AutonomyLevel {
+  readonly n: number;
+  readonly label: string;
+  readonly meaning: string;
+  readonly tiers: string;
+}
+export const AUTONOMY_LEVELS: readonly AutonomyLevel[] = [
+  { n: 1, label: "Autonomous", meaning: "Runs on its own — internal only.", tiers: "T0" },
+  { n: 2, label: "Post-review", meaning: "Acts, then you review.", tiers: "T1" },
+  { n: 3, label: "Grace window", meaning: "Acts after a 2-hour hold you can stop.", tiers: "T2" },
+  { n: 4, label: "Prior approval", meaning: "Waits for your approval before acting.", tiers: "T3–T4" },
+  { n: 5, label: "Reserved decision", meaning: "Only you decide.", tiers: "T5" },
+];
+
+/** Entrées illustratives du journal d'audit en ajout seul (le vrai vient de la table `events`). */
+export interface AuditSample {
+  readonly agent: string;
+  readonly initials: string;
+  readonly action: string;
+  readonly tier: string;
+  readonly reversible: boolean;
+  readonly ago: string;
+}
+export const AUDIT_SAMPLE: readonly AuditSample[] = [
+  { agent: "David", initials: "DR", action: "rate.parity.corrected — closed an OTA undercut for 2 Aug", tier: "T4", reversible: true, ago: "3m" },
+  { agent: "Marcus", initials: "MM", action: "ads.budget.shifted — +£300 to branded search", tier: "T4", reversible: true, ago: "18m" },
+  { agent: "Anna", initials: "AR", action: "review.replied — Google, 5★", tier: "T2", reversible: true, ago: "41m" },
+  { agent: "Olivia", initials: "OS", action: "post.scheduled — Instagram + TikTok", tier: "T1", reversible: true, ago: "1h" },
+  { agent: "Nora", initials: "NA", action: "assessment.scored — Leak Index 61/100", tier: "T0", reversible: false, ago: "2h" },
+  { agent: "Julie", initials: "JC", action: "content.drafted — 4 Reels, awaiting your approval", tier: "T5", reversible: true, ago: "3h" },
+];
+
 export const SAMPLE_ACTIVITY: readonly ActivityItem[] = [
   { agent: "Marcus", initials: "MM", text: "Optimised the Meta campaign — cost per direct booking down 12% this week." },
   { agent: "Anna", initials: "AR", text: "Replied to 3 new Google reviews in under an hour. Rating holding at 4.6★." },

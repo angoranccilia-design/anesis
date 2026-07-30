@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import type { AgentCard, ActivityItem, AgentGroup } from "@/lib/agents";
+import type { AgentCard, ActivityItem, AgentGroup, AutonomyLevel, AuditSample } from "@/lib/agents";
 
 const GROUPS: AgentGroup[] = ["Assess & plan", "Win the booking", "Presence & creative", "Keep & grow"];
 
@@ -17,7 +17,17 @@ interface Msg {
   text: string;
 }
 
-export function TeamHub({ agents, activity }: { agents: AgentCard[]; activity: ActivityItem[] }) {
+export function TeamHub({
+  agents,
+  activity,
+  autonomy,
+  audit,
+}: {
+  agents: AgentCard[];
+  activity: ActivityItem[];
+  autonomy: AutonomyLevel[];
+  audit: AuditSample[];
+}) {
   const [feed, setFeed] = useState<ActivityItem[]>(() => activity.slice(0, 4));
   const [tick, setTick] = useState(4);
   const [active, setActive] = useState<AgentCard | null>(null);
@@ -39,7 +49,7 @@ export function TeamHub({ agents, activity }: { agents: AgentCard[]; activity: A
           <div className="flex items-center gap-3">
             <Image src="/logo.png" alt="Anesis" width={80} height={80} className="h-9 w-9 object-contain" />
             <div className="leading-none">
-              <p className="font-script text-2xl text-forest-900">Anesis Studio</p>
+              <p className="font-script text-2xl text-forest-900">Anesis Office</p>
               <p className="mt-0.5 text-[0.7rem] uppercase tracking-[0.2em] text-gold-deep">Your team of 12 specialists</p>
             </div>
           </div>
@@ -49,6 +59,18 @@ export function TeamHub({ agents, activity }: { agents: AgentCard[]; activity: A
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
             <span className="text-sm text-forest-800/80">12 online · ready</span>
+          </div>
+        </div>
+        {/* Autonomy legend — the 5 levels */}
+        <div className="border-t border-forest-900/8 bg-cream-100/60">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-1 px-6 py-2 text-[0.72rem] text-forest-800/70">
+            <span className="font-semibold uppercase tracking-[0.18em] text-gold-deep">Autonomy</span>
+            {autonomy.map((l) => (
+              <span key={l.n} title={l.meaning}>
+                <span className="font-semibold text-forest-900">{l.n}</span> {l.label}
+                {l.n >= 4 && <span className="text-gold-deep"> 🔒</span>}
+              </span>
+            ))}
           </div>
         </div>
       </header>
@@ -94,6 +116,45 @@ export function TeamHub({ agents, activity }: { agents: AgentCard[]; activity: A
         </aside>
       </div>
 
+      {/* Audit journal — append-only, immutable */}
+      <div className="mx-auto max-w-7xl px-6 pb-16">
+        <div className="rounded-2xl border border-forest-900/10 bg-white p-6 shadow-[0_20px_50px_-30px_rgba(18,42,29,0.4)]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-serif text-xl font-light">Audit journal</p>
+              <p className="mt-1 text-sm text-forest-800/60">Every agent action — timestamped, reversible, and impossible to alter.</p>
+            </div>
+            <span className="rounded-full border border-emerald-600/30 bg-emerald-50 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-wide text-emerald-700">
+              Append-only · immutable
+            </span>
+          </div>
+          <ul className="mt-5 divide-y divide-forest-900/8">
+            {audit.map((e, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-3 py-3">
+                <Avatar initials={e.initials} size="sm" />
+                <span className="min-w-0 flex-1 text-sm text-forest-800/90">
+                  <span className="font-medium text-forest-900">{e.agent}</span>{" "}
+                  <span className="font-mono text-[0.8rem] text-forest-800/80">{e.action}</span>
+                </span>
+                <span className="rounded-full border border-forest-900/12 px-2 py-0.5 text-[0.6rem] font-semibold text-forest-800/60" title="Autonomy level">
+                  {e.tier}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[0.6rem] font-semibold ${e.reversible ? "bg-emerald-50 text-emerald-700" : "bg-forest-900/5 text-forest-800/50"}`}
+                  title={e.reversible ? "A compensating action is recorded — this can be undone" : "Internal read-only action"}
+                >
+                  {e.reversible ? "reversible" : "read-only"}
+                </span>
+                <span className="w-12 text-right text-[0.68rem] uppercase tracking-wide text-forest-800/40">{e.ago} ago</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-[0.7rem] text-forest-800/45">
+            Illustrative entries. The live journal is written to an append-only Postgres table — UPDATE and DELETE are revoked, so no one, including us, can rewrite history.
+          </p>
+        </div>
+      </div>
+
       {active && <ChatDrawer agent={active} onClose={() => setActive(null)} />}
     </div>
   );
@@ -105,7 +166,7 @@ function AgentCardView({ a, onMessage }: { a: AgentCard; onMessage: () => void }
     <div className="group flex h-full flex-col rounded-2xl border border-forest-900/10 bg-white p-5 transition-shadow hover:shadow-[0_20px_50px_-30px_rgba(18,42,29,0.45)]">
       <div className="flex items-start gap-3">
         <div className="relative">
-          <Avatar initials={a.initials} />
+          <Avatar initials={a.initials} photo={a.photo} />
           <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" title="Online" />
         </div>
         <div className="min-w-0">
@@ -167,7 +228,7 @@ function ChatDrawer({ agent, onClose }: { agent: AgentCard; onClose: () => void 
       <div className="relative flex h-full w-full max-w-md flex-col bg-cream-50 shadow-2xl">
         <div className="flex items-center gap-3 border-b border-forest-900/10 bg-white px-5 py-4">
           <div className="relative">
-            <Avatar initials={agent.initials} />
+            <Avatar initials={agent.initials} photo={agent.photo} />
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
           </div>
           <div className="min-w-0">
@@ -225,10 +286,15 @@ function ChatDrawer({ agent, onClose }: { agent: AgentCard; onClose: () => void 
   );
 }
 
-function Avatar({ initials, size = "md" }: { initials: string; size?: "sm" | "md" }) {
-  const dim = size === "sm" ? "h-8 w-8 text-[0.7rem]" : "h-11 w-11 text-sm";
+function Avatar({ initials, photo, size = "md" }: { initials: string; photo?: string; size?: "sm" | "md" }) {
+  const dim = size === "sm" ? "h-8 w-8" : "h-11 w-11";
+  if (photo) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={photo} alt={initials} className={`${dim} rounded-full border border-gold/40 object-cover`} />;
+  }
+  const txt = size === "sm" ? "text-[0.7rem]" : "text-sm";
   return (
-    <div className={`flex ${dim} items-center justify-center rounded-full border border-gold/40 bg-gradient-to-br from-cream-100 to-cream-200 font-semibold uppercase tracking-wide text-forest-900`}>
+    <div className={`flex ${dim} ${txt} items-center justify-center rounded-full border border-gold/40 bg-gradient-to-br from-cream-100 to-cream-200 font-semibold uppercase tracking-wide text-forest-900`}>
       {initials}
     </div>
   );
