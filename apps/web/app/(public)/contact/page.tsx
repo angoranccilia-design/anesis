@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/site/PageHeader";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { EnquiryForm } from "@/components/EnquiryForm";
 import { getLang } from "@/lib/i18n";
@@ -15,7 +16,7 @@ export default async function ContactPage() {
 
   return (
     <>
-      <PageHeader eyebrow={ct.eyebrow} title={ct.title} lede={ct.lede} image="/img/new-banner-lounge-circular.jpg" />
+      <Hero {...HERO_PAGES.contact} hideNav />
       <section className="py-20 md:py-28">
         <div className="container-editorial grid gap-14 md:grid-cols-[0.85fr_1.15fr] md:items-start">
           <Reveal>

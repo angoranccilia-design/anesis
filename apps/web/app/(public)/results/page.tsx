@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/site/PageHeader";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
 import { getLang } from "@/lib/i18n";
@@ -22,7 +23,7 @@ export default async function ResultsPage() {
 
   return (
     <>
-      <PageHeader eyebrow={r.eyebrow} title={r.title} lede={r.lede} image="/img/new-resort-infinity-pool.jpg" />
+      <Hero {...HERO_PAGES.results} hideNav />
 
       {/* Trajectoire (Recharts) : ligne de base vs récupéré. */}
       <section className="border-b border-gold/15 py-24 md:py-32">

@@ -5,7 +5,7 @@
  * par props (matrice dans lib/hero-content.ts) : seuls le média de fond et les 4 champs texte/CTA
  * changent d'une page à l'autre. Navbar, animations, verre liquide, timings : identiques partout.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { HERO_NAV, type HeroContent } from "@/lib/hero-content";
 
@@ -31,6 +31,14 @@ export function Hero({
 }: HeroProps) {
   const [open, setOpen] = useState(false);
 
+  // Signale au Header qu'un hero sombre est en tête de page → header en mode clair au-dessus.
+  useEffect(() => {
+    document.body.dataset.heroDark = "true";
+    return () => {
+      delete document.body.dataset.heroDark;
+    };
+  }, []);
+
   const navClick = (key: "method" | "results" | "insights" | "contact") => (e: React.MouseEvent) => {
     if (onNavigate) {
       e.preventDefault();
@@ -44,7 +52,7 @@ export function Hero({
       {/* Fond plein écran (z-0) */}
       {backgroundType === "video" ? (
         <video
-          className="fixed inset-0 z-0 h-full w-full object-cover"
+          className="absolute inset-0 z-0 h-full w-full object-cover"
           src={backgroundSrc}
           poster={poster}
           autoPlay
@@ -54,11 +62,11 @@ export function Hero({
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={backgroundSrc} alt="" className="fixed inset-0 z-0 h-full w-full object-cover" />
+        <img src={backgroundSrc} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
       )}
 
       {/* Flou bas uniquement (z-1) — pas d'assombrissement */}
-      <div className="pointer-events-none fixed inset-0 z-[1] hero-bottom-blur" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 z-[1] hero-bottom-blur" aria-hidden="true" />
 
       {/* Navbar interne — masquée quand on utilise le Header de marque du site (hideNav) */}
       {!hideNav && (

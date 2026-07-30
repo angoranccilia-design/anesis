@@ -4,6 +4,8 @@ import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
 import { BeforeAfterFeed } from "@/components/BeforeAfterFeed";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -29,29 +31,8 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ── Hero (photo pleine hauteur) ─────────────────────────────────────── */}
-      <section className="relative flex min-h-screen items-center overflow-hidden">
-        <Image src="/img/new-hotel-hall-chandelier.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,31,22,0.55)_0%,rgba(14,31,22,0.5)_45%,rgba(14,31,22,0.8)_100%)]" />
-        <div className="container-editorial relative py-32 text-center text-cream-50">
-          <div className="animate-fade-rise">
-            <Image src="/logo.png" alt="Anesis Acquisition" width={200} height={200} priority className="mx-auto h-24 w-24 object-contain md:h-28 md:w-28" />
-            <p className="mt-7 font-sans text-[0.7rem] uppercase tracking-eyebrow text-gold-light">{c.eyebrow}</p>
-            <h1 className="mx-auto mt-6 max-w-4xl font-serif text-5xl font-light leading-[1.06] md:text-7xl">
-              {c.heroTitleA}
-              <br />
-              <span className="italic text-gold-light">{c.heroTitleB}</span>
-            </h1>
-            <p className="mx-auto mt-8 max-w-2xl font-sans text-lg leading-relaxed text-cream-100/85">{c.heroSub}</p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
-              <Link href="/diagnostic" className="btn-gold">{c.ctaPrimary}</Link>
-              <Link href="/method" className="font-sans text-sm text-cream-50 underline-offset-4 hover:underline">
-                {c.ctaGhost} →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── Hero cinématique (vidéo glamping + header de marque) ───────────────── */}
+      <Hero {...HERO_PAGES.home} hideNav />
 
       {/* ── The hidden number ───────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">

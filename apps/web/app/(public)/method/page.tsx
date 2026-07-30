@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/site/PageHeader";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { ThesisPreview } from "@/components/ThesisPreview";
@@ -16,7 +17,7 @@ export default async function MethodPage() {
 
   return (
     <>
-      <PageHeader eyebrow={c.eyebrow} title={c.title} lede={c.lede} image="/img/new-banner-corridor-geometric.jpg" />
+      <Hero {...HERO_PAGES.method} hideNav />
 
       {/* Les cinq piliers. */}
       <section className="border-b border-gold/15 py-24 md:py-32">

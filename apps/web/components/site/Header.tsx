@@ -21,12 +21,22 @@ interface NavCopy {
 export function Header({ lang, nav, onDark = false }: { lang: Lang; nav: NavCopy; onDark?: boolean }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [overHero, setOverHero] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 24);
+      // Clair tant qu'on survole le hero sombre (premier écran) ; crème une fois passé.
+      const hero = document.body.dataset.heroDark === "true";
+      setOverHero(hero && window.scrollY < window.innerHeight - 90);
+    };
     onScroll();
+    const id = window.setTimeout(onScroll, 50); // laisse le hero poser son dataset
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   const links = [
@@ -37,15 +47,16 @@ export function Header({ lang, nav, onDark = false }: { lang: Lang; nav: NavCopy
     { href: "/contact", label: nav.contact },
   ];
 
-  // Sur fond sombre : jamais de bandeau crème, texte clair. Sinon : comportement crème habituel.
-  const solid = scrolled && !onDark;
-  const wordmark = onDark ? "text-cream-50" : "text-forest-900";
-  const tagline = onDark ? "text-gold-light" : "text-gold-deep";
-  const navLink = onDark ? "text-cream-100/85 hover:text-white" : "";
-  const cta = onDark
+  // Clair sur le hero sombre (prop onDark ou survol du hero) ; sinon crème/encre habituel.
+  const light = onDark || overHero;
+  const solid = scrolled && !light;
+  const wordmark = light ? "text-cream-50" : "text-forest-900";
+  const tagline = light ? "text-gold-light" : "text-gold-deep";
+  const navLink = light ? "text-cream-100/85 hover:text-white" : "";
+  const cta = light
     ? "bg-cream-50 text-forest-900 hover:bg-white"
     : "bg-forest-900 text-cream-50 hover:bg-forest-800";
-  const burger = onDark ? "bg-cream-50" : "bg-forest-900";
+  const burger = light ? "bg-cream-50" : "bg-forest-900";
 
   return (
     <header
@@ -62,7 +73,7 @@ export function Header({ lang, nav, onDark = false }: { lang: Lang; nav: NavCopy
             width={100}
             height={100}
             priority
-            className={clsx("h-11 w-11 object-contain", onDark && "brightness-0 invert")}
+            className={clsx("h-11 w-11 object-contain transition-all", light && "brightness-0 invert")}
           />
           <span className="flex flex-col leading-none">
             <span className={clsx("font-script text-[1.85rem] leading-none", wordmark)}>Anesis Acquisition</span>
@@ -76,7 +87,7 @@ export function Header({ lang, nav, onDark = false }: { lang: Lang; nav: NavCopy
               {n.label}
             </Link>
           ))}
-          <LangToggle lang={lang} onDark={onDark} />
+          <LangToggle lang={lang} onDark={light} />
           <Link href="/diagnostic" className={clsx("rounded-full px-5 py-2.5 font-sans text-sm transition-colors", cta)}>
             {nav.cta}
           </Link>
