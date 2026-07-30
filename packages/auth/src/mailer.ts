@@ -13,7 +13,7 @@ export type MailerMode = "resend" | "noop";
 export interface Mailer {
   readonly mode: MailerMode;
   /** Envoi générique (réutilisé par la campagne, l'intake, etc.). Copie fournie par l'appelant. */
-  send(to: string | string[], subject: string, text: string, opts?: { replyTo?: string; html?: string }): Promise<void>;
+  send(to: string | string[], subject: string, text: string, opts?: { replyTo?: string; html?: string; from?: string }): Promise<void>;
   /** Envoi spécialisé du lien magique (construit son propre sujet/corps). */
   sendMagicLink(to: string, link: string): Promise<void>;
 }
@@ -55,13 +55,13 @@ export function makeMailer(cfg: MailerConfig = {}): Mailer {
     to: string | string[],
     subject: string,
     text: string,
-    opts?: { replyTo?: string; html?: string },
+    opts?: { replyTo?: string; html?: string; from?: string },
   ): Promise<void> => {
     const res = await doFetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
-        from,
+        from: opts?.from ?? from,
         to,
         subject,
         text,

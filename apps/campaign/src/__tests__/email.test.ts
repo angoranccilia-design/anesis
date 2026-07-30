@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Mailer } from "@anesis/auth";
-import { generateCampaignEmail, sendCampaignEmail } from "../email.js";
+import { generateCampaignEmail, sendCampaignEmail, CAMPAIGN_FROM } from "../email.js";
 
 const QUALIFIED = { propertyName: "The Cotswold Mill", leakIndex: 71, monthlyLossPence: 740_000, decisionCode: "QUALIFIED" };
 
@@ -63,6 +63,7 @@ describe("envoi via le mailer partagé", () => {
     expect(send).toHaveBeenCalledWith("owner@millhotel.co.uk", email.subject, email.text, {
       replyTo: "enquiries@anesisacquisition.com",
       html: email.html,
+      from: CAMPAIGN_FROM,
     });
   });
 });

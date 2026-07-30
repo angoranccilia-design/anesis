@@ -81,12 +81,19 @@ export function generateCampaignEmail(input: CampaignEmailInput): CampaignEmail 
   return { subject, text, html };
 }
 
+/** Adresse d'expédition de la prospection froide (distincte de enquiries@ pour la délivrabilité). */
+export const CAMPAIGN_FROM = `${BRAND.name} <hello@anesisacquisition.com>`;
+
 /** Envoi via le mailer partagé (Resend si configuré, sinon no-op). N'exécute rien à l'import. */
 export async function sendCampaignEmail(
   mailer: Mailer,
   to: string,
   email: CampaignEmail,
-  opts?: { replyTo?: string },
+  opts?: { replyTo?: string; from?: string },
 ): Promise<void> {
-  await mailer.send(to, email.subject, email.text, { replyTo: opts?.replyTo, html: email.html });
+  await mailer.send(to, email.subject, email.text, {
+    replyTo: opts?.replyTo,
+    html: email.html,
+    from: opts?.from ?? CAMPAIGN_FROM,
+  });
 }
