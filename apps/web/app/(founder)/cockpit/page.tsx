@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCockpitOverview } from "@/lib/cockpit-data";
 import { poundsFromPence, pct, FORMULA_LABEL } from "@/lib/format";
+import { agentTeam, AGENT_GROUPS, type AgentCard } from "@/lib/agents";
 import { decideApprovalAction } from "./actions";
 
 export const metadata = { title: "Founder cockpit — Anesis Acquisition" };
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic"; // lecture par requête (session + donn�
  */
 export default async function CockpitPage() {
   const o = await getCockpitOverview();
+  const agents = agentTeam();
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16 text-forest-900">
@@ -136,7 +138,64 @@ export default async function CockpitPage() {
           </table>
         </div>
       </section>
+
+      {/* Your team — the 12 agents */}
+      <section className="mt-14">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-serif text-2xl font-light">Your team — the 12 agents</h2>
+          <p className="text-xs text-forest-800/60">
+            Each agent has an autonomy level. Higher levels act only with your approval.
+          </p>
+        </div>
+        <div className="mt-6 space-y-8">
+          {AGENT_GROUPS.map((group) => {
+            const members = agents.filter((a) => a.group === group);
+            return (
+              <div key={group}>
+                <p className="eyebrow text-gold-deep">{group}</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {members.map((a) => (
+                    <AgentTile key={a.id} a={a} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </main>
+  );
+}
+
+function AgentTile({ a }: { a: AgentCard }) {
+  const gated = a.tier === "T3" || a.tier === "T4" || a.tier === "T5";
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-forest-900/12 bg-cream-100/50 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-serif text-lg font-light text-forest-900">{a.role}</p>
+        <TierBadge tier={a.tier} />
+      </div>
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-forest-800/80">{a.what}</p>
+      <p className={`mt-4 text-xs font-medium ${gated ? "text-gold-deep" : "text-forest-800/55"}`}>
+        {gated ? "🔒 " : ""}
+        {a.autonomy}
+      </p>
+    </div>
+  );
+}
+
+function TierBadge({ tier }: { tier: string }) {
+  const rank = Number(tier.slice(1));
+  const cls =
+    rank <= 0
+      ? "border-forest-900/20 bg-forest-900/5 text-forest-800/70"
+      : rank <= 2
+        ? "border-gold/40 bg-gold/10 text-gold-deep"
+        : "border-forest-900/30 bg-forest-900 text-cream-50";
+  return (
+    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide ${cls}`} title="Autonomy level">
+      {tier}
+    </span>
   );
 }
 
