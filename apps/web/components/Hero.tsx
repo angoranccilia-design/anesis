@@ -171,7 +171,11 @@ export function Hero({
           className="animate-blur-fade-up mb-4 font-serif text-4xl font-light leading-[1.05] sm:text-5xl md:mb-6 md:text-6xl lg:text-7xl"
           style={{ animationDelay: "400ms", letterSpacing: "-0.01em", textWrap: "balance" }}
         >
-          {title}
+          {title.split("\n").map((line, i) => (
+            <span key={i} className="block">
+              {line}
+            </span>
+          ))}
         </h1>
         <p
           className="animate-blur-fade-up mb-6 max-w-2xl font-sans text-base text-cream-100/85 sm:text-lg md:mb-12 md:text-xl"

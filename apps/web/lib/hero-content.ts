@@ -68,7 +68,7 @@ const RAW: Record<HeroPageKey, HeroRaw> = {
     backgroundType: "image",
     backgroundSrc: "/img/hero-opt-7.jpg",
     eyebrow: { en: "Our Method", fr: "Notre méthode" },
-    title: { en: "We price the leak before we promise anything.", fr: "Nous chiffrons la fuite avant toute promesse." },
+    title: { en: "We price the leak before we promise anything.", fr: "Nous chiffrons la fuite\navant toute promesse." },
     description: {
       en: "A three-step underwriting process — evaluation, diagnosis, mandate — built to be verified, not just trusted.",
       fr: "Un processus de souscription en trois étapes — évaluation, diagnostic, mandat — fait pour être vérifié, pas seulement cru.",
