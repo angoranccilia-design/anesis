@@ -1,5 +1,5 @@
 import { Hero } from "@/components/Hero";
-import { HERO_PAGES } from "@/lib/hero-content";
+import { getHero } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { EnquiryForm } from "@/components/EnquiryForm";
 import { getLang } from "@/lib/i18n";
@@ -16,7 +16,7 @@ export default async function DiagnosticPage() {
 
   return (
     <>
-      <Hero {...HERO_PAGES.diagnostic} hideNav />
+      <Hero {...getHero(lang, "diagnostic")} hideNav />
       <section className="py-20 md:py-28">
         <div className="container-editorial grid gap-14 md:grid-cols-[0.85fr_1.15fr] md:items-start">
           <Reveal>

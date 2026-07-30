@@ -5,7 +5,7 @@ import { LeakAuditWidget } from "@/components/LeakAuditWidget";
 import { TrajectoryChartLazy } from "@/components/TrajectoryChartLazy";
 import { BeforeAfterFeed } from "@/components/BeforeAfterFeed";
 import { Hero } from "@/components/Hero";
-import { HERO_PAGES } from "@/lib/hero-content";
+import { getHero } from "@/lib/hero-content";
 import { getLang } from "@/lib/i18n";
 import { getCopy } from "@/content/site";
 
@@ -32,7 +32,7 @@ export default async function HomePage() {
   return (
     <>
       {/* ── Hero cinématique (vidéo glamping + header de marque) ───────────────── */}
-      <Hero {...HERO_PAGES.home} hideNav />
+      <Hero {...getHero(lang, "home")} hideNav />
 
       {/* ── The hidden number ───────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">
