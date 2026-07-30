@@ -17,8 +17,8 @@ export default async function HomePage() {
   const L = <T,>(en: T, fr: T): T => (lang === "fr" ? fr : en);
 
   const chain = L(
-    ["Your feed shapes your leads", "Your leads shape your conversion", "Your conversion shapes your reviews", "Your reviews shape your visibility", "Your visibility shapes your calendar", "Your calendar shapes your revenue"],
-    ["Votre feed influence vos leads", "Vos leads influencent votre conversion", "Votre conversion influence vos avis", "Vos avis influencent votre visibilité", "Votre visibilité influence votre calendrier", "Votre calendrier influence votre revenu"],
+    ["More direct bookings", "Less commission paid to platforms", "Faster replies to enquiries", "Better online reviews", "A social presence that's actually kept up", "Revenue you can measure"],
+    ["Plus de réservations directes", "Moins de commissions versées aux plateformes", "Des réponses plus rapides aux demandes", "De meilleurs avis en ligne", "Une présence sociale vraiment tenue", "Un revenu que vous pouvez mesurer"],
   );
 
   const categories = [
@@ -33,6 +33,28 @@ export default async function HomePage() {
     <>
       {/* ── Hero cinématique (vidéo glamping + header de marque) ───────────────── */}
       <Hero {...getHero(lang, "home")} hideNav />
+
+      {/* ── Underwriting firm — positionnement / éducation ──────────────────── */}
+      <section className="border-t border-gold/15 bg-cream-100/60 py-28 md:py-36">
+        <div className="container-editorial">
+          <Reveal className="max-w-3xl">
+            <p className="eyebrow">{c.underEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">{c.underTitle}</h2>
+            <p className="mt-6 max-w-2xl font-sans text-base leading-relaxed text-forest-800/85">{c.underLede}</p>
+          </Reveal>
+          <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-3">
+            {c.under.map((u, i) => (
+              <Reveal key={u.h} index={i}>
+                <div className="border-t-2 border-gold/40 pt-6">
+                  <span className="font-serif text-2xl text-gold-deep">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="mt-2 font-serif text-2xl font-light text-forest-900">{u.h}</h3>
+                  <p className="mt-3 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">{u.b}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── The hidden number ───────────────────────────────────────────────── */}
       <section className="border-t border-gold/15 py-28 md:py-36">
@@ -80,6 +102,26 @@ export default async function HomePage() {
           <Reveal index={1}>
             <LeakAuditWidget />
           </Reveal>
+        </div>
+      </section>
+
+      {/* ── What we do (services concrets) ──────────────────────────────────── */}
+      <section className="border-t border-gold/15 py-28 md:py-36">
+        <div className="container-editorial">
+          <Reveal className="max-w-2xl">
+            <p className="eyebrow">{c.servicesEyebrow}</p>
+            <h2 className="mt-5 font-serif text-4xl font-light leading-tight text-forest-900 md:text-5xl">{c.servicesTitle}</h2>
+          </Reveal>
+          <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-3">
+            {c.services.map((s, i) => (
+              <Reveal key={s.h} index={i % 3}>
+                <div className="border-t border-forest-900/12 pt-6">
+                  <h3 className="font-serif text-2xl font-light text-forest-900">{s.h}</h3>
+                  <p className="mt-3 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">{s.b}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 

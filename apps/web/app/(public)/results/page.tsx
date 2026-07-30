@@ -17,9 +17,9 @@ export default async function ResultsPage() {
 
   // Modèles ILLUSTRATIFs (établissements fictifs UK) — jamais présentés comme des résultats réels.
   const models = [
-    { label: L("Illustrative · Cotswolds country house · 28 keys", "Illustratif · maison de campagne des Cotswolds · 28 clés"), figure: "£7,400", body: L("Modelled monthly direct revenue recovered once the channel mix is rebalanced away from the platforms.", "Revenu direct mensuel modélisé, récupéré une fois le mix de canaux rééquilibré hors plateformes.") },
-    { label: L("Illustrative · Cornwall coastal inn · 24 keys", "Illustratif · auberge côtière de Cornouailles · 24 clés"), figure: "31%", body: L("Modelled share of bookings returned to the direct channel over two seasons, without more advertising.", "Part des réservations modélisée, rendue au canal direct sur deux saisons, sans publicité supplémentaire.") },
-    { label: L("Illustrative · South-West spa retreat · 40 keys", "Illustratif · retraite spa du Sud-Ouest · 40 clés"), figure: "4.6★", body: L("Modelled review rating held with reply times under two hours — reputation as a booking driver.", "Note d'avis modélisée maintenue avec des réponses en moins de deux heures — la réputation comme moteur de réservation.") },
+    { label: L("Example · Cotswolds country house · 28 rooms", "Exemple · maison de campagne des Cotswolds · 28 chambres"), figure: "£7,400", body: L("Example of the direct revenue recovered each month once fewer bookings go through the platforms.", "Exemple de revenu direct récupéré chaque mois une fois que moins de réservations passent par les plateformes.") },
+    { label: L("Example · Cornwall coastal inn · 24 rooms", "Exemple · auberge côtière de Cornouailles · 24 chambres"), figure: "31%", body: L("Example share of bookings moved back to the hotel's own website over two seasons, with no extra ad spend.", "Exemple de part des réservations ramenée vers le site de l'hôtel sur deux saisons, sans dépense publicitaire supplémentaire.") },
+    { label: L("Example · South-West spa retreat · 40 rooms", "Exemple · retraite spa du Sud-Ouest · 40 chambres"), figure: "4.6★", body: L("Example rating kept high by replying to every review within two hours.", "Exemple de note maintenue élevée en répondant à chaque avis en moins de deux heures.") },
   ];
 
   return (
@@ -33,7 +33,7 @@ export default async function ResultsPage() {
             <p className="eyebrow">{L("The mechanism, drawn", "Le mécanisme, dessiné")}</p>
             <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">{r.title}</h2>
             <p className="mt-6 max-w-prose font-sans text-base leading-relaxed text-forest-800/85">
-              {L("The flat line is what the direct channel would do, left alone. The rising one is the same channel, recovered. Our reward is tied to the gap — never to how much you spend.", "La courbe plate, c'est ce que ferait le canal direct laissé seul. La courbe montante, c'est le même canal, récupéré. Notre rémunération est liée à l'écart — jamais à ce que vous dépensez.")}
+              {L("The flat line is your direct bookings if nothing changes. The rising line is the same channel after we've worked on it. We're paid on the gap — never on what you spend.", "La courbe plate, ce sont vos réservations directes si rien ne change. La courbe montante, c'est le même canal une fois que nous y avons travaillé. Nous sommes payés sur l'écart — jamais sur ce que vous dépensez.")}
             </p>
           </Reveal>
           <Reveal index={1} className="mt-12 rounded-2xl border border-forest-900/12 bg-cream-100/70 p-6 md:p-10">

@@ -14,10 +14,10 @@ export default async function AboutPage() {
   const L = <T,>(en: T, fr: T): T => (lang === "fr" ? fr : en);
 
   const icp = [
-    { h: L("Boutique & country-house hotels", "Hôtels de charme & maisons de campagne"), b: L("Twenty to sixty keys, with a name people already recommend — and a booking mix that quietly leans on the platforms.", "De vingt à soixante clés, avec un nom que l'on recommande déjà — et un mix de réservations qui s'appuie discrètement sur les plateformes.") },
-    { h: L("Spa & wellness retreats", "Retraites spa & bien-être"), b: L("Where the experience is the product, and a slow reply or a parity slip costs a booking that was already half-won.", "Là où l'expérience est le produit, et où une réponse lente ou un écart de parité coûte une réservation déjà à moitié gagnée.") },
-    { h: L("Glamping estates & eco-lodges", "Domaines de glamping & éco-lodges"), b: L("High-season demand that the OTAs are happy to take a cut of — when it could have come direct.", "Une demande de haute saison dont les OTA prélèvent volontiers leur part — alors qu'elle aurait pu venir en direct.") },
-    { h: L("Small independent resorts", "Petits resorts indépendants"), b: L("Enough rooms to feel the leak clearly, small enough that one honest hand on the channel mix changes the year.", "Assez de chambres pour sentir la fuite nettement, assez petits pour qu'une main honnête sur le mix de canaux change l'année.") },
+    { h: L("Boutique & country-house hotels", "Hôtels de charme & maisons de campagne"), b: L("Twenty to sixty rooms, a good reputation, but too many bookings coming through the platforms.", "De vingt à soixante chambres, une bonne réputation, mais trop de réservations qui passent par les plateformes.") },
+    { h: L("Spa & wellness retreats", "Retraites spa & bien-être"), b: L("Where a slow reply or the wrong price loses a booking you'd almost won.", "Où une réponse lente ou un mauvais prix fait perdre une réservation presque gagnée.") },
+    { h: L("Glamping & eco-lodges", "Glamping & éco-lodges"), b: L("Strong seasonal demand that too often reaches you through a platform taking its cut.", "Une forte demande saisonnière qui vous parvient trop souvent via une plateforme qui prend sa commission.") },
+    { h: L("Small independent resorts", "Petits resorts indépendants"), b: L("Big enough to feel the lost commission, small enough that fixing it changes your year.", "Assez grands pour sentir les commissions perdues, assez petits pour qu'y remédier change votre année.") },
   ];
 
   return (
@@ -40,7 +40,7 @@ export default async function AboutPage() {
 
       <SloganBanner
         image="/img/uk-countryside.jpg"
-        slogan={L("We don't sell more marketing. We sell back what was already yours.", "Nous ne vendons pas plus de marketing. Nous vous rendons ce qui vous appartenait déjà.")}
+        slogan={L("Fewer bookings through the platforms. More straight to you.", "Moins de réservations via les plateformes. Plus directement chez vous.")}
       />
 
       {/* Qui nous accompagnons (ICP). */}
@@ -49,7 +49,7 @@ export default async function AboutPage() {
           <Reveal className="max-w-2xl">
             <p className="eyebrow">{L("Who we work with", "Qui nous accompagnons")}</p>
             <h2 className="mt-5 font-serif text-4xl font-light text-forest-900 md:text-5xl">
-              {L("Places with a name — and a leak.", "Des lieux qui ont un nom — et une fuite.")}
+              {L("The hotels we help.", "Les hôtels que nous aidons.")}
             </h2>
           </Reveal>
           <div className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-2">
@@ -85,7 +85,7 @@ export default async function AboutPage() {
 
       <SloganBanner
         image="/img/uk-estate.jpg"
-        slogan={L("Most firms want every client. We only want the ones we can be honest with.", "La plupart des cabinets veulent tous les clients. Nous ne voulons que ceux avec qui nous pouvons être honnêtes.")}
+        slogan={L("We only take hotels we're confident we can help.", "Nous n'acceptons que les hôtels que nous sommes sûrs de pouvoir aider.")}
       />
     </>
   );
