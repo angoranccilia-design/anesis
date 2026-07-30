@@ -4,7 +4,7 @@
  * Fonds : Pexels (hotlink autorisé) en attendant les médias finaux ; l'accueil attend une vidéo
  * cinématique dans /public/hero/home.mp4 (le poster estate s'affiche tant qu'elle n'est pas déposée).
  */
-export type HeroPageKey = "home" | "method" | "results" | "insights" | "contact" | "about";
+export type HeroPageKey = "home" | "method" | "results" | "insights" | "contact" | "about" | "diagnostic";
 
 export interface HeroContent {
   key: HeroPageKey;
@@ -101,5 +101,17 @@ export const HERO_PAGES: Record<HeroPageKey, HeroContent> = {
       "We borrow a discipline from finance — underwriting — and apply it to the revenue an independent hotel loses without ever seeing it.",
     primaryCta: "Our Method",
     secondaryCta: "Book a Diagnostic",
+  },
+  diagnostic: {
+    key: "diagnostic",
+    activeNav: null,
+    backgroundType: "image",
+    backgroundSrc: "/img/uk-estate.jpg",
+    eyebrow: "The assessment · free",
+    title: "Request your assessment.",
+    description:
+      "Tell us where to look. We measure your Anesis Revenue Leak Index from your real data, price the recoverable loss, and reply ourselves — free, and with no obligation.",
+    primaryCta: "Start below",
+    secondaryCta: "How It Works",
   },
 };

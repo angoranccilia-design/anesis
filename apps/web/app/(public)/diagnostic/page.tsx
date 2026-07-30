@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/site/PageHeader";
+import { Hero } from "@/components/Hero";
+import { HERO_PAGES } from "@/lib/hero-content";
 import { Reveal } from "@/components/Reveal";
 import { EnquiryForm } from "@/components/EnquiryForm";
 import { getLang } from "@/lib/i18n";
@@ -15,7 +16,7 @@ export default async function DiagnosticPage() {
 
   return (
     <>
-      <PageHeader eyebrow={d.eyebrow} title={d.title} lede={d.lede} image="/img/new-banner-reception-gold.jpg" />
+      <Hero {...HERO_PAGES.diagnostic} hideNav />
       <section className="py-20 md:py-28">
         <div className="container-editorial grid gap-14 md:grid-cols-[0.85fr_1.15fr] md:items-start">
           <Reveal>
