@@ -15,6 +15,7 @@
     "@anesis/core": "workspace:*",
     "@anesis/db": "workspace:*",
     "@anesis/events": "workspace:*",
+    "@anesis/planning": "workspace:*",
     "@anesis/readmodel": "workspace:*",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",

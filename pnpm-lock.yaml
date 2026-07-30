@@ -69,6 +69,9 @@ importers:
       '@anesis/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@anesis/planning':
+        specifier: workspace:*
+        version: link:../../packages/planning
       '@anesis/readmodel':
         specifier: workspace:*
         version: link:../../packages/readmodel
