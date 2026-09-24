@@ -1,0 +1,11 @@
+{
+  "name": "@anesis/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS Commercial Intelligence Engine — deterministic implementation of the Commercial Decision Methodology: observe, diagnose, anticipate, value information, prioritise, decide, pre-register, measure, learn. No DB, no LLM, no UI. Every number carries provenance.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {},
+  "devDependencies": { "@types/node": "^22.10.2", "typescript": "^5.7.2", "vitest": "^2.1.8" }
+}
