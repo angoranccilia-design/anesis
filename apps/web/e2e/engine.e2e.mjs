@@ -34,7 +34,7 @@ await step("2. run full decision cycle: events stream with real timestamps, core
 });
 await step("3. limiting constraint explained and deduplicated value below naive total", async () => {
   const why = await page.locator('[data-testid="binding-why"]').innerText();
-  if (!/lowest in the new-guest chain/.test(why)) throw new Error(why);
+  if (!/lowest in the value chain/.test(why)) throw new Error(why);
   await page.locator('[data-testid="dedup"]').waitFor();
 });
 await step("4. clicking a number opens the evidence inspector with source, formula, status", async () => {

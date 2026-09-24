@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Answer { intent: string; headline: string; facts: string[]; refs: string[]; sufficient: boolean }
-interface Reply { intent: string; tier: string; executed: boolean; runId?: string | null; language?: string; locale?: string; answer: Answer & { notice?: string; language?: string }; llm?: { enabled: boolean; text: string | null }; outcome?: unknown }
+interface Reply { intent: string; tier: string; level?: number; executed: boolean; runId?: string | null; language?: string; locale?: string; answer: Answer & { notice?: string; language?: string }; llm?: { enabled: boolean; text: string | null }; outcome?: unknown }
 const LANGS = [["auto", "Auto"], ["en", "English"], ["fr", "Français"], ["es", "Español"], ["de", "Deutsch"], ["it", "Italiano"], ["pt", "Português"], ["nl", "Nederlands"]] as const;
 const LOCALE: Record<string, string> = { en: "en-GB", fr: "fr-FR", es: "es-ES", de: "de-DE", it: "it-IT", pt: "pt-PT", nl: "nl-NL" };
 
@@ -41,13 +41,13 @@ export function AskPanel({ runId, onRunCreated, onOpenRef }: { runId: string | n
     if (!question.trim()) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/engine/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, runId, channel, language }) });
+      const res = await fetch("/api/engine/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, runId, channel, language, previous: log[0] ? { refs: log[0].r.answer.refs, topic: (log[0].r.answer as { topic?: string }).topic } : undefined }) });
       const r = (await res.json()) as Reply;
       setLog((l) => [{ q: question, r, channel }, ...l]);
-      if (r.runId && r.intent === "run_cycle") onRunCreated(r.runId);
+      if (r.runId && r.intent === "run_cycle" && r.executed) onRunCreated(r.runId);
       if (channel === "voice") speak(`${r.answer.headline} ${r.answer.facts.slice(0, 2).join(" ")}`, r.locale ?? "en-GB");
     } finally { setBusy(false); setQ(""); }
-  }, [runId, onRunCreated, speak, language]);
+  }, [runId, onRunCreated, speak, language, log]);
 
   const listen = useCallback(() => {
     const w = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
@@ -87,8 +87,8 @@ export function AskPanel({ runId, onRunCreated, onOpenRef }: { runId: string | n
       <div className="mt-4 space-y-3">
         {log.map((it, n) => (
           <div key={n} className="border-t border-forest-900/8 py-5 text-sm" data-testid="ask-answer">
-            <p className="text-forest-800/55">{it.channel === "voice" ? "🎙 " : ""}{it.q} <span className="ml-2 rounded border border-gold/40 px-1 text-[0.62rem] uppercase tracking-wider text-gold-deep">{it.r.intent} · {it.r.tier}{it.r.executed ? "" : " · not executed"}</span></p>
-            <p className={`mt-2 font-serif text-xl font-light ${it.r.answer.sufficient ? "text-forest-900" : "text-gold-deep"}`}>{it.r.answer.headline}</p>
+            <p className="text-forest-800/55">{it.channel === "voice" ? "🎙 " : ""}{it.q} <span className="ml-2 rounded border border-gold/40 px-1 text-[0.62rem] uppercase tracking-wider text-gold-deep">{it.r.intent} · {it.r.tier}{it.r.level !== undefined ? ` · L${it.r.level}` : ""}{it.r.executed ? "" : " · not executed"}</span></p>
+            <p className={`mt-2 font-serif text-xl font-light ${!it.r.executed ? "text-gold-deep" : it.r.answer.sufficient ? "text-forest-900" : "text-gold-deep"}`} data-executed={it.r.executed}>{it.r.answer.headline}</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-forest-800/80">{it.r.answer.facts.map((f, k) => <li key={k}>{f}</li>)}</ul>
             {it.r.answer.notice && <p className="mt-2 text-xs italic text-forest-800/55">{it.r.answer.notice}</p>}
             {it.r.answer.refs.length > 0 && <p className="mt-2 flex flex-wrap gap-1">{it.r.answer.refs.map((ref) => <button key={ref} onClick={() => onOpenRef(ref)} className="rounded border border-gold/50 px-1.5 py-0.5 font-mono text-[0.68rem] text-gold-deep hover:border-gold">{ref}</button>)}</p>}

@@ -18,6 +18,8 @@ describe("governance", () => {
   });
   it("classifies reads as L0, reversible actions as L1, preparation as L2 and £50,000+ as L4", () => {
     expect(classifyCommand("why is paid acquisition blocked?").level).toBe(0);
+    expect(classifyCommand("Where should we put the next £20,000?").level).toBe(0); // a question about money is not a commitment
+    expect(classifyCommand("Launch the campaign with £20,000.").level).toBe(3);
     expect(classifyCommand("run the scenario again").level).toBe(0);
     expect(classifyCommand("pause the meta campaign").level).toBe(1);
     expect(classifyCommand("prepare a recommendation for the owner").level).toBe(2);

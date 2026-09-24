@@ -6,7 +6,10 @@ import { EvidenceInspector } from "./EvidenceInspector";
 import { AskPanel } from "./AskPanel";
 import Image from "next/image";
 
-interface RunRecord { id: string; createdAt: string; label: string; durationMs: number; input: { seed: number; budgetGbp: number; spec?: Record<string, unknown>; benchmarks?: Record<string, number>; memoryUsed: number }; result: CycleResult; diff?: { field: string; a: string; b: string }[] }
+interface RunRecord { id: string; createdAt: string; label: string; durationMs: number; input: { seed: number; budgetGbp: number; spec?: Record<string, unknown>; benchmarks?: Record<string, number>; memoryUsed: number; resolvedConstraints: number; connected: string[] }; result: CycleResult; diff?: { field: string; a: string; b: string }[]; explanation?: string[] }
+interface MemoryView { property: { decisions: { runId: string; decisionId: string; at: string; selected: string[]; rejected: { id: string; reasons: string[]; status: string }[]; binding: string | null }[]; measured: { interventionId: string; planId: string; status: string; planStatus: string; incrementalGbp: number; expectedGbp: number; at: string }[]; failedHypotheses: { interventionId: string; planId: string; at: string; note: string }[]; recall: { interventionId: string; statement: string; timesConsidered: number }[] }; learning: LearningRecord[]; methodology: { calibration: Record<string, { factor: number; cycles: number }>; note: string }; portfolio: { properties: number; pooling: string; note: string } }
+const STATUS_LABEL: Record<string, string> = { FUNDED: "Funded", BLOCKED: "Action blocked", INVESTIGATE: "Investigate first", REJECTED: "Rejected", DEFERRED: "Deferred (budget)" };
+const SCENARIO_WEATHER = (kind: "storm" | "heatwave", from: string) => ({ location: { name: "scenario", lat: 0, lon: 0 }, issuedAt: from, provider: "SCENARIO (declared, not a forecast)", modelNote: "operator-declared scenario weather", days: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.parse(from) + i * 86400e3).toISOString().slice(0, 10), precipitationMm: kind === "storm" ? 22 : 0, tMaxC: kind === "storm" ? 9 : 27, tMinC: kind === "storm" ? 4 : 15, windMaxKmh: kind === "storm" ? 70 : 8, sunshineHours: kind === "storm" ? 1 : 12 })) });
 interface RunSummary { id: string; createdAt: string; label: string; durationMs: number; summary: { binding: string | null; selected: string[]; assay: string; measurement: string | null; expectedValueGbp: number } }
 type Ev = EngineEvent & { runId: string };
 
@@ -26,6 +29,16 @@ async function readSse(res: Response, onEvent: (type: string, data: unknown) => 
   }
 }
 
+const Section = ({ n, title, note, id, children }: { n: string; title: string; note?: string; id: string; children: React.ReactNode }) => (
+    <section className="border-t border-forest-900/10 py-12" data-testid={id}>
+      <div className="grid gap-8 md:grid-cols-[180px_1fr]">
+        <div><p className="eyebrow">{n}</p><h2 className="mt-2 font-serif text-3xl font-light leading-tight text-forest-900">{title}</h2>{note && <p className="mt-3 text-xs leading-relaxed text-forest-800/55">{note}</p>}</div>
+        <div className="min-w-0">{children}</div>
+      </div>
+    </section>);
+const Figure = ({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) => (
+    <div><p className="eyebrow">{label}</p><p className="mt-2 font-serif text-4xl font-light tracking-tight text-forest-900">{value}</p>{note && <p className="mt-1 text-xs text-forest-800/55">{note}</p>}</div>);
+
 export function EngineConsole({ initial }: { initial: RunRecord | null }) {
   const [run, setRun] = useState<RunRecord | null>(initial);
   const [events, setEvents] = useState<Ev[]>(initial ? initial.result.events.map((e) => ({ ...e, runId: initial.id })) : []);
@@ -33,14 +46,15 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
   const [running, setRunning] = useState(false);
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [memory, setMemory] = useState<LearningRecord[]>([]);
+  const [memView, setMemView] = useState<MemoryView | null>(null);
   const [inspect, setInspect] = useState<string | null>(null);
   const [compareWith, setCompareWith] = useState<string>("");
   const [pace, setPace] = useState<"instant" | "replay">("instant");
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const [scenario, setScenario] = useState({ seed: 1, budgetGbp: 16000, convMobile: 0.0068, otaShare: 0.47, repeatRate: 0.09, ownerPlan: "I-004", benchConv: 0.012, useMemory: true });
+  const [scenario, setScenario] = useState({ seed: 1, budgetGbp: 16000, adrGbp: 192, occupancy: 0.68, sessionsPerYear: 118000, convMobile: 0.0068, otaShare: 0.47, repeatRate: 0.09, peakOccupancy: 0.86, staffingCoverage: 0.95, ownerPlan: "I-004", benchConv: 0.012, weather: "live" as "live" | "none" | "storm" | "heatwave", stalePms: false, useMemory: true });
   const streamRef = useRef<EventSource | null>(null);
 
-  const refreshRuns = useCallback(async () => { const j = await (await fetch("/api/engine/runs")).json(); setRuns(j.runs); setMemory(j.memory); }, []);
+  const refreshRuns = useCallback(async () => { const j = await (await fetch("/api/engine/runs")).json(); setRuns(j.runs); setMemory(j.memory); const m = (await (await fetch("/api/engine/memory")).json()) as MemoryView; setMemView(m); }, []);
   const loadRun = useCallback(async (id: string, compare?: string) => {
     const j = (await (await fetch(`/api/engine/runs/${id}${compare ? `?compare=${compare}` : ""}`)).json()) as RunRecord;
     setRun(j); setEvents(j.result.events.map((e) => ({ ...e, runId: j.id }))); setState("IDLE");
@@ -56,9 +70,10 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
 
   const startRun = useCallback(async (opts: { sameInputs?: boolean } = {}) => {
     setRunning(true); setEvents([]); setInspect(null);
+    if (!opts.sameInputs) await fetch("/api/engine/registers", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(scenario.stalePms ? { stale: { source: "SRC-SIM-WEB", ageHours: 24 * 30, completeness: 0.8 } } : { clear: true }) });
     const body = opts.sameInputs && run
-      ? { seed: run.input.seed, budgetGbp: run.input.budgetGbp, spec: run.input.spec, benchmarks: run.input.benchmarks, useMemory: run.input.memoryUsed > 0, label: `again: ${run.label}` }
-      : { seed: scenario.seed, budgetGbp: scenario.budgetGbp, spec: { convMobile: scenario.convMobile, otaShare: scenario.otaShare, repeatRate: scenario.repeatRate, ownerPlan: scenario.ownerPlan || null }, benchmarks: { "conv.mobile.p50": scenario.benchConv }, useMemory: scenario.useMemory };
+      ? { repeatOf: run.id, useMemory: run.input.memoryUsed > 0 || run.input.resolvedConstraints > 0 }
+      : { seed: scenario.seed, budgetGbp: scenario.budgetGbp, spec: { adrGbp: scenario.adrGbp, occupancy: scenario.occupancy, sessionsPerYear: scenario.sessionsPerYear, convMobile: scenario.convMobile, otaShare: scenario.otaShare, repeatRate: scenario.repeatRate, peakOccupancy: scenario.peakOccupancy, staffingCoverage: scenario.staffingCoverage, ownerPlan: scenario.ownerPlan || null }, benchmarks: { "conv.mobile.p50": scenario.benchConv }, useMemory: scenario.useMemory, weatherOverride: scenario.weather === "live" ? undefined : scenario.weather === "none" ? null : SCENARIO_WEATHER(scenario.weather, new Date().toISOString()) };
     const res = await fetch("/api/engine/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const queue: Ev[] = []; let runId: string | null = null;
     await readSse(res, (type, data) => {
@@ -74,15 +89,6 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
 
   const r = run?.result ?? null; const d = r?.diagnosis ?? null;
   const num = (id: string, text: string, cls = "") => <button onClick={() => setInspect(id)} className={`underline decoration-gold/50 decoration-dotted underline-offset-[5px] transition-colors hover:text-gold-deep hover:decoration-gold ${cls}`} data-evidence={id}>{text}</button>;
-  const Section = ({ n, title, note, id, children }: { n: string; title: string; note?: string; id: string; children: React.ReactNode }) => (
-    <section className="border-t border-forest-900/10 py-12" data-testid={id}>
-      <div className="grid gap-8 md:grid-cols-[180px_1fr]">
-        <div><p className="eyebrow">{n}</p><h2 className="mt-2 font-serif text-3xl font-light leading-tight text-forest-900">{title}</h2>{note && <p className="mt-3 text-xs leading-relaxed text-forest-800/55">{note}</p>}</div>
-        <div className="min-w-0">{children}</div>
-      </div>
-    </section>);
-  const Figure = ({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) => (
-    <div><p className="eyebrow">{label}</p><p className="mt-2 font-serif text-4xl font-light tracking-tight text-forest-900">{value}</p>{note && <p className="mt-1 text-xs text-forest-800/55">{note}</p>}</div>);
   const shownEvents = showAllEvents ? [...events].reverse() : [...events].reverse().slice(0, 6);
 
 
@@ -134,9 +140,11 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
             <summary className="cursor-pointer font-serif text-xl font-light">Scenario lab</summary>
             <p className="mt-1 text-xs text-forest-800/55">Change the property or an assumption, then run. Same inputs and memory always give the same decision.</p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
-              {([["seed", "Seed", 1], ["budgetGbp", "Budget £", 1000], ["convMobile", "Mobile conversion", 0.0005], ["otaShare", "OTA share", 0.01], ["repeatRate", "Repeat rate", 0.01], ["benchConv", "Benchmark conv. p50", 0.0005]] as const).map(([k, label, step]) => (
+              {([["seed", "Seed", 1], ["budgetGbp", "Budget £", 1000], ["adrGbp", "ADR £", 5], ["occupancy", "Occupancy", 0.01], ["sessionsPerYear", "Traffic (sessions/yr)", 5000], ["convMobile", "Mobile conversion", 0.0005], ["otaShare", "OTA share", 0.01], ["repeatRate", "Repeat rate", 0.01], ["peakOccupancy", "Peak occupancy (capacity)", 0.01], ["staffingCoverage", "Staffing coverage", 0.01], ["benchConv", "Benchmark conv. p50", 0.0005]] as const).map(([k, label, step]) => (
                 <label key={k} className="flex flex-col gap-1 text-forest-800/60">{label}<input type="number" step={step} value={scenario[k]} onChange={(e) => setScenario((s) => ({ ...s, [k]: Number(e.target.value) }))} className="rounded-md border border-forest-900/15 bg-cream-50 px-2 py-1.5 text-forest-900 focus:border-gold focus:outline-none" data-testid={`scenario-${k}`} /></label>))}
               <label className="flex flex-col gap-1 text-forest-800/60">Owner's plan<select value={scenario.ownerPlan} onChange={(e) => setScenario((s) => ({ ...s, ownerPlan: e.target.value }))} className="rounded-md border border-forest-900/15 bg-cream-50 px-2 py-1.5 text-forest-900"><option value="">none</option><option>I-001</option><option>I-002</option><option>I-003</option><option>I-004</option></select></label>
+              <label className="flex flex-col gap-1 text-forest-800/60">Weather<select value={scenario.weather} onChange={(e) => setScenario((s) => ({ ...s, weather: e.target.value as typeof s.weather }))} className="rounded-md border border-forest-900/15 bg-cream-50 px-2 py-1.5 text-forest-900" data-testid="scenario-weather"><option value="live">live forecast</option><option value="none">no forecast</option><option value="storm">scenario: 14-day storm</option><option value="heatwave">scenario: 14-day heatwave</option></select></label>
+              <label className="flex items-center gap-2 self-end text-forest-800/60"><input type="checkbox" checked={scenario.stalePms} onChange={(e) => setScenario((s) => ({ ...s, stalePms: e.target.checked }))} data-testid="scenario-stale" /> web data 30 days stale</label>
               <label className="flex items-center gap-2 self-end text-forest-800/60"><input type="checkbox" checked={scenario.useMemory} onChange={(e) => setScenario((s) => ({ ...s, useMemory: e.target.checked }))} /> use memory</label>
             </div>
           </details>
@@ -151,7 +159,7 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
           </div>
         </div>
 
-        {run?.diff && <section className="mt-6 rounded-2xl border border-gold/40 bg-white/60 p-6" data-testid="comparison"><p className="eyebrow">Comparison · {compareWith} → {run.id}</p>{run.diff.length === 0 ? <p className="mt-2 font-serif text-xl font-light">Identical outputs: same inputs, same memory, same decision.</p> : <table className="mt-3 w-full text-xs"><tbody>{run.diff.map((x) => <tr key={x.field} className="border-t border-forest-900/8 align-top"><th className="py-1.5 pr-4 text-left font-normal text-gold-deep">{x.field}</th><td className="py-1.5 pr-4 text-forest-800/55">{x.a}</td><td className="py-1.5 text-forest-900">{x.b}</td></tr>)}</tbody></table>}</section>}
+        {run?.diff && <section className="mt-6 rounded-2xl border border-gold/40 bg-white/60 p-6" data-testid="comparison"><p className="eyebrow">Comparison · {compareWith} → {run.id}</p>{run.explanation && <ul className="mt-2 space-y-1 font-serif text-lg font-light" data-testid="explanation">{run.explanation.map((x, k) => <li key={k}>{x}</li>)}</ul>}{run.diff.length === 0 ? <p className="mt-2 font-serif text-xl font-light">Identical outputs: same inputs, same memory, same decision.</p> : <table className="mt-3 w-full text-xs"><tbody>{run.diff.map((x) => <tr key={x.field} className="border-t border-forest-900/8 align-top"><th className="py-1.5 pr-4 text-left font-normal text-gold-deep">{x.field}</th><td className="py-1.5 pr-4 text-forest-800/55">{x.a}</td><td className="py-1.5 text-forest-900">{x.b}</td></tr>)}</tbody></table>}</section>}
 
         <div className="mt-6">
           {/* Event ledger */}
@@ -187,13 +195,24 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
               <ul className="divide-y divide-forest-900/8">{r.exposures.map((e) => <li key={e.id} className="py-4"><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-serif text-xl font-light">{num(e.id, e.name)}</p><p className="font-serif text-xl font-light">{num(e.id, `${gbp(e.valueAtRiskGbp.low)} – ${gbp(e.valueAtRiskGbp.high)}`)}</p></div><p className="mt-1 text-xs text-forest-800/55">{e.horizonMonths} months · probability {e.probability} · <span className="uppercase tracking-wider text-gold-deep">modelled assumption</span> — {e.probabilityBasis}</p></li>)}</ul>
             </Section>
 
+            <Section n="II · Context" title="External signals" note="Every signal is tested for relevance before it may influence anything. E = R × C × M against a materiality threshold; the decision is re-run to test for impact. Silence is a valid result." id="external">
+              {r.dataQualityNotes.length > 0 && <p className="mb-4 rounded-xl border border-gold/50 bg-white/70 p-4 text-sm text-gold-deep" data-testid="stale-note">{r.dataQualityNotes.join(" · ")}</p>}
+              <ul className="divide-y divide-forest-900/8" data-testid="fused">{r.fused.length === 0 && <li className="py-3 text-sm text-forest-800/50">No external signal available for this run.</li>}{r.fused.map((f) => <li key={f.id} className="py-3"><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-serif text-lg">{f.scope}</p><p className={`text-[0.62rem] uppercase tracking-[0.2em] ${f.verdict === "NO_DECISION_IMPACT" ? "text-forest-800/45" : "text-gold-deep"}`} data-verdict={f.verdict}>{f.verdict.replace(/_/g, " ")}</p></div><p className="mt-1 text-sm text-forest-800/75">{f.statement}</p><p className="mt-1 font-mono text-[0.68rem] text-forest-800/45">{f.relevance.formula}</p></li>)}</ul>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 text-sm">
+                <div><p className="eyebrow">Seasonality</p><p className="mt-2 text-forest-800/80">{r.seasonality.statement}</p><p className="mt-1 text-xs italic text-forest-800/50">{r.seasonality.causalNote}</p></div>
+                <div><p className="eyebrow">Internal or environmental?</p><p className="mt-2 text-forest-800/80">{r.attribution.verdict.replace("_", " ")} — {r.attribution.note}</p></div>
+              </div>
+              <table className="mt-6 w-full text-xs" data-testid="connectors"><thead><tr className="text-left text-[0.62rem] uppercase tracking-[0.2em] text-gold-deep"><th className="pb-2 font-normal">Connector</th><th className="pb-2 font-normal">State</th><th className="pb-2 font-normal">Freshness</th><th className="pb-2 font-normal">Provider · requires</th></tr></thead><tbody>{r.context.connectors.map((c) => <tr key={c.id} className="border-t border-forest-900/8 align-top"><td className="py-2 pr-3">{c.name}</td><td className={`py-2 pr-3 uppercase tracking-wider ${c.status === "CONNECTED" ? "text-gold-deep" : "text-forest-800/50"}`} data-connector={c.id} data-state={c.status}>{c.status.replace(/_/g, " ")}</td><td className="py-2 pr-3 text-forest-800/60">{c.freshness.replace("_", " ").toLowerCase()}</td><td className="py-2 text-forest-800/60">{c.provider}{c.requires.length ? ` · ${c.requires.join(", ")}` : ""}<br /><span className="text-forest-800/45">{c.statusNote}</span></td></tr>)}</tbody></table>
+            </Section>
+
             <Section n="III · Decide" title={r.decision.question} note={r.allocation.formula} id="decision">
               <div className="divide-y divide-forest-900/8">
                 {r.allocation.lines.map((l) => { const i = r.interventions.find((x) => x.id === l.interventionId)!; const v = r.voi.find((x) => x.interventionId === l.interventionId)!; return (
                   <div key={l.interventionId} className="py-6" data-testid={`line-${l.interventionId}`} data-funded={l.funded}>
-                    <div className="flex flex-wrap items-baseline justify-between gap-3"><p className="font-serif text-2xl font-light">{num(i.id, `${i.id} ${i.name}`)}</p><p className={`text-[0.65rem] uppercase tracking-[0.22em] ${l.funded ? "text-gold-deep" : "text-forest-800/50"}`}>{l.funded ? `Funded · ${gbp(l.allocatedGbp)}` : "Action blocked"}</p></div>
+                    <div className="flex flex-wrap items-baseline justify-between gap-3"><p className="font-serif text-2xl font-light">{num(i.id, `${i.id} ${i.name}`)}</p><p className={`text-[0.65rem] uppercase tracking-[0.22em] ${l.funded ? "text-gold-deep" : "text-forest-800/50"}`} data-status={l.status}>{l.funded ? `Funded · ${gbp(l.allocatedGbp)}` : STATUS_LABEL[l.status] ?? l.status}</p></div>
                     <p className="mt-2 text-xs text-forest-800/60">Cost {gbp(i.costGbp)} · effect if it works {num(i.id, `${gbp(i.effectIfWorksGbp.low)} – ${gbp(i.effectIfWorksGbp.high)}`)} · confidence {num(i.id, pct(i.confidence))}{i.calibration ? ` (calibrated ×${i.calibration.factor})` : ""} · reversibility {i.reversibility} · risk-adjusted {gbp(l.riskAdjustedValueGbp)} · information: {v.decision.replace(/_/g, " ").toLowerCase()}</p>
-                    {!l.funded && <div className="mt-4 rounded-xl bg-white/70 p-5"><p className="eyebrow">Why it is blocked</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-forest-800/85">{l.blockedBy.map((b, k) => <li key={k}>{b}</li>)}</ul><p className="mt-3 text-xs text-forest-800/70"><span className="font-medium text-forest-900">Required condition —</span> {l.requiredCondition}</p></div>}
+                    {(() => { const rec = r.records.find((x) => x.id === l.interventionId); return rec && <p className="mt-1 text-xs text-forest-800/50">owner {rec.owner} · {rec.team} · dependency {rec.dependency.join(", ") || "none"} ({rec.dependencyStatus.replace(/_/g, " ").toLowerCase()}) · approval L{rec.approvalLevel} {rec.approvalTier}{rec.history.includes("considered") ? ` · ${rec.history}` : ""}</p>; })()}
+                    {!l.funded && <div className="mt-4 rounded-xl bg-white/70 p-5"><p className="eyebrow">{l.status === "INVESTIGATE" ? "Why information comes first" : l.status === "REJECTED" ? "Why it is rejected" : l.status === "DEFERRED" ? "Why it is deferred" : "Why it is blocked"}</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-forest-800/85">{l.blockedBy.map((b, k) => <li key={k}>{b}</li>)}</ul><p className="mt-3 text-xs text-forest-800/70"><span className="font-medium text-forest-900">Required condition —</span> {l.requiredCondition}</p></div>}
                   </div>); })}
               </div>
               <div className="mt-8 grid gap-8 sm:grid-cols-2">
@@ -201,7 +220,11 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
                 <div><p className="eyebrow">Governance</p><p className="mt-2 font-serif text-2xl font-light">Level {r.decision.governance.level}</p><p className="mt-1 text-xs text-forest-800/60">{r.decision.governance.reason}</p></div>
               </div>
               <div className="mt-8"><p className="eyebrow">Commercial Assay verdict</p><p className="mt-2 font-serif text-2xl font-light">{r.assay.verdict.replace(/_/g, " ")}</p><p className="mt-1 text-sm leading-relaxed text-forest-800/70">{r.assay.reason}</p></div>
-              <div className="mt-8" data-testid="would-change"><p className="eyebrow">What would change this decision</p><ul className="mt-3 divide-y divide-forest-900/8 text-sm">{r.decision.wouldChangeIf.map((c, k) => <li key={k} className="py-2"><span className="font-mono text-xs text-gold-deep">{c.metric} {c.operator} {c.threshold}</span> <span className="text-forest-800/75">— {c.why}</span></li>)}</ul></div>
+              <div className="mt-8" data-testid="would-change"><p className="eyebrow">What would change this decision</p><ul className="mt-3 divide-y divide-forest-900/8 text-sm">{r.decision.wouldChangeIf.map((c, k) => <li key={k} className="py-2"><span className="font-mono text-xs text-gold-deep">{c.metric} {c.operator} {c.threshold}</span> <span className="text-forest-800/75">— {c.why}</span> <span className="text-[0.6rem] uppercase tracking-wider text-forest-800/40">{c.basis.replace(/_/g, " ")}</span></li>)}</ul></div>
+              <div className="mt-8 grid gap-8 sm:grid-cols-2" data-testid="sensitivity">
+                <div><p className="eyebrow">Which assumption drives this result</p><ul className="mt-3 divide-y divide-forest-900/8 text-sm">{r.sensitivity.slice(0, 5).map((x) => <li key={x.variable} className="flex justify-between gap-3 py-2"><span>{x.label}{x.flipsDecision && <span className="ml-2 rounded-full border border-gold px-2 py-0.5 text-[0.58rem] uppercase tracking-[0.18em] text-gold-deep">flips</span>}</span><span className="text-forest-800/60">{gbp(x.evSwingGbp)} swing</span></li>)}</ul><p className="mt-2 text-xs text-forest-800/50">±20 % of each input, decision re-run each time.</p></div>
+                <div data-testid="most-sensitive-unknown"><p className="eyebrow">What information would change the decision</p><p className="mt-3 font-serif text-xl font-light">{r.mostSensitiveUnknown.unknown}</p><p className="mt-1 text-sm">Value of information <b>{r.mostSensitiveUnknown.valueOfInformation}</b> · {r.mostSensitiveUnknown.recommendedNextAction}</p><p className="mt-1 text-xs text-forest-800/55">{r.mostSensitiveUnknown.reason}</p></div>
+              </div>
               <p className="mt-6 text-xs text-forest-800/50">{num(r.decision.id, `Decision record ${r.decision.id}`)} · alternatives {r.decision.alternatives.join(", ")} · rejected {r.decision.rejected.map((x) => x.id).join(", ") || "none"}</p>
             </Section>
 
@@ -218,6 +241,10 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
           </>)}
 
           <Section n="V · Learn" title="Anesis Memory" note="Property level: learning records from measured cycles. Methodology level: calibration derived from them. Portfolio level: planned." id="memory">
+            {memView && memView.property.decisions.length > 0 && <div className="mb-6 text-sm" data-testid="memory-history"><p className="eyebrow">Decision history</p><ul className="mt-2 divide-y divide-forest-900/8">{memView.property.decisions.map((d) => <li key={d.decisionId + d.at} className="py-2"><span className="font-mono text-xs text-gold-deep">{d.runId} · {d.decisionId}</span> · {d.at.slice(0, 16).replace("T", " ")} · funded {d.selected.join(", ") || "nothing"} · {d.rejected.map((x) => `${x.id} ${x.status}`).join(", ")}</li>)}</ul>
+              <p className="eyebrow mt-4">Recall</p><ul className="mt-2 space-y-1 text-forest-800/75">{memView.property.recall.filter((x) => x.timesConsidered > 0).map((x) => <li key={x.interventionId}>{x.statement}</li>)}</ul>
+              {memView.property.failedHypotheses.length > 0 && <><p className="eyebrow mt-4">Failed hypotheses</p><ul className="mt-2 space-y-1 text-forest-800/75">{memView.property.failedHypotheses.map((f, k) => <li key={k}>{f.interventionId} · {f.note}</li>)}</ul></>}
+              <p className="mt-3 text-xs text-forest-800/50">Portfolio: {memView.portfolio.note}; pooling {memView.portfolio.pooling}.</p></div>}
             {memory.length === 0 ? <p className="text-sm text-forest-800/50">Empty. Memory only holds what has been measured.</p> : <table className="w-full text-xs"><thead><tr className="text-left text-[0.62rem] uppercase tracking-[0.2em] text-gold-deep"><th className="pb-2 font-normal">Record</th><th className="pb-2 font-normal">Interventions</th><th className="pb-2 font-normal">Expected</th><th className="pb-2 font-normal">Observed</th><th className="pb-2 font-normal">Error</th><th className="pb-2 font-normal">Measurement</th><th className="pb-2 font-normal">Calibrated</th></tr></thead><tbody>{memory.map((l) => <tr key={l.id + l.timestamp} className="border-t border-forest-900/8"><td className="py-2">{l.id}</td><td>{l.interventionTypes.join(", ")}</td><td>{gbp(l.expectedGbp)}</td><td>{gbp(l.observedGbp)}</td><td>{pct(l.error)}</td><td>{l.measurementStatus}</td><td>{String(l.calibrationApplied)}</td></tr>)}</tbody></table>}
           </Section>
 
@@ -227,8 +254,8 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
 
           <Section n="Environment" title="Capabilities" note="What is connected, what is not." id="capabilities">
             <div className="grid gap-8 sm:grid-cols-2 text-sm">
-              <div><p className="eyebrow">Data connectors</p><ul className="mt-2 space-y-1 text-forest-800/75">{["SRC-SIM-PMS", "SRC-SIM-WEB", "SRC-SIM-CRM", "SRC-SIM-ADS", "SRC-SIM-COMPS"].map((s) => <li key={s}><button onClick={() => setInspect(s)} className="font-mono text-xs text-gold-deep hover:underline">{s}</button> <span className="text-[0.62rem] uppercase tracking-wider text-forest-800/45">simulated</span></li>)}</ul><p className="mt-2 text-xs text-forest-800/55">No property system is connected. Live adapters are planned and would authenticate through environment variables only.</p></div>
-              <div><p className="eyebrow">Video analysis</p><p className="mt-2 text-forest-800/75">Video analysis is not enabled in this environment.</p><p className="mt-1 text-xs text-forest-800/55">Contract: a clip would yield observations confirmed by a human before use. No model runs here; nothing is inferred.</p></div>
+              <div><p className="eyebrow">Property data sources</p><ul className="mt-2 space-y-1 text-forest-800/75">{["SRC-SIM-PMS", "SRC-SIM-WEB", "SRC-SIM-CRM", "SRC-SIM-ADS", "SRC-SIM-COMPS"].map((s) => <li key={s}><button onClick={() => setInspect(s)} className="font-mono text-xs text-gold-deep hover:underline">{s}</button> <span className="text-[0.62rem] uppercase tracking-wider text-forest-800/45">simulated</span></li>)}</ul><p className="mt-2 text-xs text-forest-800/55">No property system is connected; the PMS, booking-engine, analytics, ads and CRM contracts above declare the credentials they need.</p></div>
+              <div data-testid="camera"><p className="eyebrow">Camera / computer vision</p><p className="mt-2 text-forest-800/75">CAMERA SOURCE NOT CONNECTED.</p><p className="mt-1 text-xs text-forest-800/55">Camera source → stream → frame sampling → vision model → structured observation → confidence → engine. No stream URL is configured; no observation is produced or simulated. No facial recognition, no identity tracking (see COMPUTER_VISION_GOVERNANCE.md).</p></div>
               {run && <a href={`/api/engine/report/${run.id}`} target="_blank" className="link-underline sm:col-span-2 text-sm" data-testid="report-link">Open the printable decision report for {run.id} →</a>}
             </div>
           </Section>

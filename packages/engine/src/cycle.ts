@@ -293,10 +293,16 @@ export function compareRuns(a: CycleResult, b: CycleResult): RunDiff[] {
 export function explainChange(a: CycleResult, b: CycleResult): string[] {
   const out: string[] = [];
   const sa = Object.fromEntries(a.allocation.lines.map((l) => [l.interventionId, l.status])), sb = Object.fromEntries(b.allocation.lines.map((l) => [l.interventionId, l.status]));
+  const specA = { ...COUNTRY_HOUSE_34, ...a.input.spec } as unknown as Record<string, number>, specB = { ...COUNTRY_HOUSE_34, ...b.input.spec } as unknown as Record<string, number>;
+  const benchA = { ...benchMap(a.input.benchmarks) } as Record<string, number>, benchB = { ...benchMap(b.input.benchmarks) } as Record<string, number>;
+  const valueOf = (spec: Record<string, number>, bench: Record<string, number>, v: string) => (v in spec ? spec[v] : bench[v]) ?? NaN;
+  const changedVars = [...new Set([...Object.keys(specB).filter((k) => typeof specB[k] === "number" && specA[k] !== specB[k]), ...Object.keys(benchB).filter((k) => benchA[k] !== benchB[k])])];
   for (const id of Object.keys(sb)) if (sa[id] !== sb[id]) {
-    const t = a.thresholds.find((x) => x.interventionId === id && x.fromStatus === sa[id]);
+    // cite a threshold only if its variable actually moved between the runs and crossed the threshold value
+    const t = a.thresholds.find((x) => x.interventionId === id && x.fromStatus === sa[id] && changedVars.includes(x.variable) && (x.direction === "up" ? valueOf(specA, benchA, x.variable) < x.to && valueOf(specB, benchB, x.variable) >= x.to : valueOf(specA, benchA, x.variable) > x.to && valueOf(specB, benchB, x.variable) <= x.to));
     out.push(`${id}: ${sa[id]} → ${sb[id]}${t ? ` — threshold crossed: ${t.label} ${t.direction === "up" ? "≥" : "≤"} ${t.to.toPrecision(3)} (was ${t.from.toPrecision(3)})` : ""}${b.allocation.lines.find((l) => l.interventionId === id)?.blockedBy[0] ? `; now: ${b.allocation.lines.find((l) => l.interventionId === id)!.blockedBy[0]}` : ""}`);
   }
+  if (changedVars.length) out.push(`inputs changed: ${changedVars.map((v) => `${v} ${String(valueOf(specA, benchA, v))} → ${String(valueOf(specB, benchB, v))}`).join(", ")}`);
   if (a.diagnosis.binding !== b.diagnosis.binding) out.push(`limiting constraint: ${a.diagnosis.binding} → ${b.diagnosis.binding}`);
   const ra = resolvedConstraints(a.input.propertyMemory ?? emptyMemory("")).length, rb = resolvedConstraints(b.input.propertyMemory ?? emptyMemory("")).length;
   if (ra !== rb) out.push(`memory: ${rb} constraint(s) measured resolved (was ${ra}) — dependencies re-evaluated`);

@@ -27,3 +27,13 @@ Demand is only worth what conversion makes of it. An action on demand is blocked
 ## What the methodology is not
 
 It is not a guarantee of results. It is a way of being wrong in a recorded, measurable, correctable manner: the system can be wrong without the methodology being broken.
+
+## Additions in the final build
+
+- **Five constraint kinds.** DEMAND, CONVERSION, CAPACITY, OPERATIONAL, ECONOMIC (plus RETENTION as a separate chain). The value chain is demand → conversion → capacity → operational; the lowest attainment binds. Capacity binds at peak occupancy ≥ 92 %, operations below 85 % staffing coverage (declared).
+- **Statuses per intervention.** FUNDED · BLOCKED (an upstream/downstream dependency is unresolved) · INVESTIGATE (information is worth more than acting) · REJECTED · DEFERRED (budget). A dependency is moot when the constraint it addresses has no gap, or when memory shows it **measured resolved**.
+- **External context.** Signals enter only through the relevance test (`EXTERNAL_INTELLIGENCE.md`); seasonality is profiled and never treated as causal; internal vs environmental change is tested against comparables.
+- **Sensitivity.** Each input is perturbed ±20 % and the decision re-run: which assumption drives the value, and which flips the decision. Thresholds at which an intervention's status changes are found by bisection along an input; they become machine-readable conditions in "what would change this decision" and are cited by name when a scenario crosses one.
+- **Value of information, made real.** The most decision-sensitive unknown is named with its VOI (HIGH if EVSI > 2 × cost) and a recommended next action.
+- **Memory.** Every cycle is remembered (decisions, rejections with reasons, measurements, failed hypotheses, forecast errors). Recall answers "have we considered this?" with dates; measured-resolved constraints change the next cycle's dependencies; calibration changes its numbers. Portfolio pooling is implemented and off until validated.
+- **Governance.** Levels L0–L4 with amount-aware classification of free text (`GOVERNANCE.md`).
