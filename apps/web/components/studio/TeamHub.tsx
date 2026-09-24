@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * Anesis Studio — hub « bureau d'employés IA » (Phase 1, visuel + interactif léger).
- * 12 agents nommés, en ligne, groupés par équipe ; fil d'activité qui vit ; panneau de chat.
- * Branding clair : crème + vert + logo. Les réponses des agents sont, en Phase 1, contextuelles
- * mais locales — la Phase 2 les branchera sur la vraie IA (Anthropic) et le vrai flux d'événements.
+ * Anesis Studio — hub « bureau d'employés IA ».
+ * 12 agents nommés, groupés par équipe. Le fil d'activité est le VRAI flux d'événements du moteur
+ * (horodatages réels, rien de préécrit, rien de rejoué par minuterie) ; le panneau de conversation
+ * interroge « Ask Anesis », qui répond depuis les enregistrements structurés du dernier cycle.
  */
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -28,18 +28,18 @@ export function TeamHub({
   autonomy: AutonomyLevel[];
   audit: AuditSample[];
 }) {
-  const [feed, setFeed] = useState<ActivityItem[]>(() => activity.slice(0, 4));
-  const [tick, setTick] = useState(4);
+  const [feed, setFeed] = useState<ActivityItem[]>(() => activity.slice(0, 8));
   const [active, setActive] = useState<AgentCard | null>(null);
 
-  // Fil d'activité « vivant » : un nouvel événement toutes les ~4,5 s.
+  // Live feed: engine events emitted by this server process, as they happen (server-sent events).
   useEffect(() => {
-    const t = setInterval(() => {
-      setFeed((f) => [activity[tick % activity.length]!, ...f].slice(0, 6));
-      setTick((n) => n + 1);
-    }, 4500);
-    return () => clearInterval(t);
-  }, [activity, tick]);
+    const es = new EventSource("/api/engine/stream");
+    es.addEventListener("engine", (m) => {
+      const e = JSON.parse((m as MessageEvent).data) as { runId: string; seq: number; at: string; type: string; state: string; detail: string };
+      setFeed((f) => [{ agent: "Engine", initials: e.state.slice(0, 2), text: `${e.type} — ${e.detail}`, at: e.at }, ...f].slice(0, 8));
+    });
+    return () => es.close();
+  }, []);
 
   return (
     <div className="min-h-screen bg-cream-50 text-forest-900">
@@ -95,19 +95,18 @@ export function TeamHub({
           <div className="rounded-2xl border border-forest-900/10 bg-white p-5 shadow-[0_20px_50px_-30px_rgba(18,42,29,0.4)]">
             <div className="flex items-center justify-between">
               <p className="font-serif text-lg font-light">Live activity</p>
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span className="text-[0.65rem] uppercase tracking-wide text-forest-800/40">engine events · real time</span>
             </div>
+            {feed.length === 0 && <p className="mt-4 text-sm text-forest-800/50">No activity yet. Nothing is shown that has not happened — run a decision cycle in the Core.</p>}
             <ul className="mt-4 space-y-3">
               {feed.map((it, i) => (
-                <li key={`${it.agent}-${tick}-${i}`} className="flex gap-3">
+                <li key={`${it.at}-${i}`} className="flex gap-3">
                   <Avatar initials={it.initials} size="sm" />
                   <div>
                     <p className="text-sm leading-snug text-forest-800/90">
                       <span className="font-medium text-forest-900">{it.agent}</span> {it.text}
                     </p>
-                    <p className="mt-0.5 text-[0.65rem] uppercase tracking-wide text-forest-800/40">
-                      {i === 0 ? "just now" : `${i * 4 + 2}m ago`}
-                    </p>
+                    <p className="mt-0.5 text-[0.65rem] uppercase tracking-wide text-forest-800/40">{it.at.slice(11, 19)} UTC</p>
                   </div>
                 </li>
               ))}
@@ -128,6 +127,7 @@ export function TeamHub({
               Append-only · immutable
             </span>
           </div>
+          {audit.length === 0 && <p className="mt-4 text-sm text-forest-800/50">No decisions recorded yet in this process. The journal shows real engine decisions only.</p>}
           <ul className="mt-5 divide-y divide-forest-900/8">
             {audit.map((e, i) => (
               <li key={i} className="flex flex-wrap items-center gap-3 py-3">
@@ -196,7 +196,7 @@ function AgentCardView({ a, onMessage }: { a: AgentCard; onMessage: () => void }
 
 function ChatDrawer({ agent, onClose }: { agent: AgentCard; onClose: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([
-    { from: "agent", text: `Hi, I'm ${agent.name}, your ${agent.role}. ${agent.what} What would you like me to do?` },
+    { from: "agent", text: `${agent.name} — ${agent.role}. ${agent.what} Questions are answered from the records of the latest decision cycle; if the records do not contain an answer, you will be told so.` },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -212,14 +212,14 @@ function ChatDrawer({ agent, onClose }: { agent: AgentCard; onClose: () => void 
     setMessages((m) => [...m, { from: "you", text }]);
     setInput("");
     setTyping(true);
-    // Phase 1 : réponse contextuelle locale. Phase 2 : appel à la vraie IA (Anthropic) via route.
-    window.setTimeout(() => {
-      setTyping(false);
-      setMessages((m) => [
-        ...m,
-        { from: "agent", text: `On it — ${agent.what.replace(/\.$/, "").toLowerCase()}. I'll report back with the numbers.` },
-      ]);
-    }, 900);
+    // Real call: Ask Anesis reads the structured state of the latest run through the policy layer.
+    fetch("/api/engine/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: text, channel: "text" }) })
+      .then((r) => r.json())
+      .then((r: { answer: { headline: string; facts: string[] }; tier: string; executed: boolean }) => {
+        setMessages((m) => [...m, { from: "agent", text: `${r.answer.headline} ${r.answer.facts.slice(0, 3).join(" ")}${r.executed ? "" : " (not executed: tier " + r.tier + ")"}` }]);
+      })
+      .catch(() => setMessages((m) => [...m, { from: "agent", text: "The engine could not be reached." }]))
+      .finally(() => setTyping(false));
   }
 
   return (
@@ -279,7 +279,7 @@ function ChatDrawer({ agent, onClose }: { agent: AgentCard; onClose: () => void 
               Send
             </button>
           </div>
-          <p className="mt-2 text-center text-[0.65rem] text-forest-800/40">Live AI replies coming soon — Phase 2.</p>
+          <p className="mt-2 text-center text-[0.65rem] text-forest-800/40">Answers come from engine records. LLM phrasing is off without an API key.</p>
         </div>
       </div>
     </div>

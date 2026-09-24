@@ -98,11 +98,12 @@ export function agentTeam(): AgentCard[] {
   });
 }
 
-/** Exemples d'activité « en direct » pour le fil du hub (Phase 1 — remplacé par le vrai flux ensuite). */
+/** Une entrée du fil d'activité — un événement réel du moteur, avec son horodatage réel. */
 export interface ActivityItem {
   readonly agent: string;
   readonly initials: string;
   readonly text: string;
+  readonly at: string;
 }
 /** Les 5 niveaux d'autonomie, en langage clair (mappés sur les tiers T0–T5). */
 export interface AutonomyLevel {
@@ -119,7 +120,7 @@ export const AUTONOMY_LEVELS: readonly AutonomyLevel[] = [
   { n: 5, label: "Reserved decision", meaning: "Only you decide.", tiers: "T5" },
 ];
 
-/** Entrées illustratives du journal d'audit en ajout seul (le vrai vient de la table `events`). */
+/** Entrée du journal d'audit : une décision réelle du moteur (rien d'illustratif). */
 export interface AuditSample {
   readonly agent: string;
   readonly initials: string;
@@ -128,23 +129,5 @@ export interface AuditSample {
   readonly reversible: boolean;
   readonly ago: string;
 }
-export const AUDIT_SAMPLE: readonly AuditSample[] = [
-  { agent: "David", initials: "DR", action: "rate.parity.corrected — closed an OTA undercut for 2 Aug", tier: "T4", reversible: true, ago: "3m" },
-  { agent: "Marcus", initials: "MM", action: "ads.budget.shifted — +£300 to branded search", tier: "T4", reversible: true, ago: "18m" },
-  { agent: "Anna", initials: "AR", action: "review.replied — Google, 5★", tier: "T2", reversible: true, ago: "41m" },
-  { agent: "Olivia", initials: "OS", action: "post.scheduled — Instagram + TikTok", tier: "T1", reversible: true, ago: "1h" },
-  { agent: "Nora", initials: "NA", action: "assessment.scored — Leak Index 61/100", tier: "T0", reversible: false, ago: "2h" },
-  { agent: "Julie", initials: "JC", action: "content.drafted — 4 Reels, awaiting your approval", tier: "T5", reversible: true, ago: "3h" },
-];
 
-export const SAMPLE_ACTIVITY: readonly ActivityItem[] = [
-  { agent: "Marcus", initials: "MM", text: "Optimised the Meta campaign — cost per direct booking down 12% this week." },
-  { agent: "Anna", initials: "AR", text: "Replied to 3 new Google reviews in under an hour. Rating holding at 4.6★." },
-  { agent: "David", initials: "DR", text: "Caught an OTA undercut on 2 Aug and closed the parity gap." },
-  { agent: "Julie", initials: "JC", text: "Drafted 4 Reels from the last shoot — ready for your approval." },
-  { agent: "Grace", initials: "GL", text: "Sent the monthly newsletter to 2,140 past guests. 11 direct bookings so far." },
-  { agent: "Nora", initials: "NA", text: "Finished the Leak Index for a new enquiry — scored 61/100, worth a thesis." },
-  { agent: "Liam", initials: "LC", text: "Shipped a faster mobile checkout — completion up from 12.5% to 16%." },
-  { agent: "Olivia", initials: "OS", text: "Scheduled this week's posts across Instagram, Facebook and TikTok." },
-];
 

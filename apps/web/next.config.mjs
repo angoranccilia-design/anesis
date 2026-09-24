@@ -17,6 +17,7 @@ const nextConfig = {
     "@anesis/policy",
     "@anesis/readmodel",
     "@anesis/agent-runtime",
+    "@anesis/engine",
   ],
   webpack: (config) => {
     // …et résoudre leurs imports ESM en `.js` vers les sources `.ts`/`.tsx`.

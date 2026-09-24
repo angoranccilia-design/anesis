@@ -101,7 +101,7 @@ export function runCycle(input: CycleInput): CycleResult {
     plan = preregister(`MP-${String(n).padStart(3, "0")}`, funded, now);
     bus.emit("PLAN_REGISTERED", "MEASURING", `${plan.id} v${plan.version} sha256 ${plan.sha256.slice(0, 12)}…; expected £${plan.expectedGbp.low.toLocaleString("en-GB")}–£${plan.expectedGbp.high.toLocaleString("en-GB")} (point £${plan.expectedPointGbp.toLocaleString("en-GB")}) over ${plan.windowWeeks} weeks`, [plan.id]);
     if (input.measure !== false) {
-      const r = rng(input.seed * 7919 + n);
+      const r = rng(input.seed * 7919 + 1); // outcome draw depends on the seed only: same inputs → same outcome, whatever the run counter
       const o = applyOutcome(property.series, funded, obsValue(property, "room_revenue").value, r);
       outcome = { trueGainGbp: o.trueGainGbp, note: "SIMULATED OUTCOME — hidden from the estimator; each funded intervention works with its declared confidence and, if it works, its effect is drawn inside its range" };
       bus.emit("OUTCOME_SIMULATED", "MEASURING", `${plan.windowWeeks} post-weeks simulated (truth hidden from the estimator)`);

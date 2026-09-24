@@ -91,3 +91,7 @@ Everything else in the repo is either real computation or an honest adapter with
 8. Tests across all layers; documentation set; demo script.
 
 Nothing in the list above is claimed done until its tests pass and the acceptance test in §40 of the brief can be performed.
+
+## 7. Status after the build (same day)
+
+Steps 1–8 of the build order are done for the simulated environment: `packages/engine` (32 tests), the console at `/engine`, the API routes, Ask Anesis with governance, browser voice, the replacement of the mocked hub, the documentation set in `docs/`, and the 18-step acceptance run (`apps/web/e2e/engine.e2e.mjs`, all passing against the dev server). Still PLANNED, as recorded in `LIMITATIONS.md`: database persistence of runs, live property connectors, server-side realtime voice, video analysis, portfolio memory and data-rights fields.

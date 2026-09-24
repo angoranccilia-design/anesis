@@ -2,7 +2,7 @@
   "name": "@anesis/web",
   "version": "0.1.0",
   "private": true,
-  "description": "ANESIS — public site, client dashboard, founder cockpit (Next.js App Router).",
+  "description": "ANESIS \u2014 public site, client dashboard, founder cockpit (Next.js App Router).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,8 +14,10 @@
     "@anesis/auth": "workspace:*",
     "@anesis/core": "workspace:*",
     "@anesis/db": "workspace:*",
+    "@anesis/engine": "workspace:*",
     "@anesis/events": "workspace:*",
     "@anesis/planning": "workspace:*",
+    "@anesis/policy": "workspace:*",
     "@anesis/readmodel": "workspace:*",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
@@ -23,9 +25,9 @@
     "lucide-react": "^0.469.0",
     "next": "^15.1.6",
     "pg": "^8.13.1",
-    "recharts": "^2.15.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

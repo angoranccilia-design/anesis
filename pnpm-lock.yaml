@@ -66,12 +66,18 @@ importers:
       '@anesis/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@anesis/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
       '@anesis/events':
         specifier: workspace:*
         version: link:../../packages/events
       '@anesis/planning':
         specifier: workspace:*
         version: link:../../packages/planning
+      '@anesis/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
       '@anesis/readmodel':
         specifier: workspace:*
         version: link:../../packages/readmodel
