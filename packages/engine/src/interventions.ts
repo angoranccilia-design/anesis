@@ -18,7 +18,9 @@ export const PAID_CHANNELS = {
   google: { cpcGbp: 1.60, convMultiple: 1.5, name: "Google Search" },
 } as const;
 
-export function interventions(d: Diagnosis, inputs: FunnelInputs, cal: Calibration = {}, qualityFor: (constraintId: string) => number = () => 1): Intervention[] {
+export interface ShapeInputs { readonly rooms: number; readonly occupancy: number; readonly peakOccupancy: number; readonly weekendShare: number; readonly adrGbp: number }
+
+export function interventions(d: Diagnosis, inputs: FunnelInputs, cal: Calibration = {}, qualityFor: (constraintId: string) => number = () => 1, shape: ShapeInputs | null = null): Intervention[] {
   const c = (id: string): Constraint => { const x = d.constraints.find((k) => k.id === id); if (!x) throw new Error(`missing ${id}`); return x; };
   const C1 = c("C-001"), C2 = c("C-002"), C3 = c("C-003"), C4 = c("C-004");
   const blended = inputs.mobileShare * inputs.convMobile + (1 - inputs.mobileShare) * inputs.convDesktop;
@@ -36,6 +38,12 @@ export function interventions(d: Diagnosis, inputs: FunnelInputs, cal: Calibrati
     { id: "I-004", name: `Increase paid acquisition — ${PAID_CHANNELS.meta.name} (+£2,000/month)`, actsOn: "demand", addresses: ["C-004"], costGbp: 24_000, effectIfWorksGbp: { low: meta.revenue * 0.7, high: meta.revenue * 1.1 }, confidence: 0.40, confidenceBasis: `declared prior — ${meta.sessions.toFixed(0)} sessions at £${PAID_CHANNELS.meta.cpcGbp} CPC land on the current funnel (${(blended * 100).toFixed(2)} % × ${PAID_CHANNELS.meta.convMultiple}); ${((uplift - 1) * 100).toFixed(0)} % more once C-001 reaches benchmark`, risk: "Medium", reversibility: "Medium", timeToImpactWeeks: 4, mustFollow: ["I-001"], informationOption: { name: "4-week geo-holdout test", costGbp: 4_000, quality: 0.8 }, evidence: [...C4.evidence, ...C1.evidence], calibration: null },
     { id: "I-005", name: `Increase paid acquisition — ${PAID_CHANNELS.google.name} (+£2,000/month)`, actsOn: "demand", addresses: ["C-004"], costGbp: 24_000, effectIfWorksGbp: { low: google.revenue * 0.7, high: google.revenue * 1.1 }, confidence: 0.45, confidenceBasis: `declared prior — ${google.sessions.toFixed(0)} sessions at £${PAID_CHANNELS.google.cpcGbp} CPC with search intent (× ${PAID_CHANNELS.google.convMultiple} conversion); same funnel dependency`, risk: "Medium", reversibility: "High", timeToImpactWeeks: 4, mustFollow: ["I-001"], informationOption: { name: "4-week search-term holdout test", costGbp: 3_000, quality: 0.8 }, evidence: [...C4.evidence, ...C1.evidence], calibration: null },
   ];
+  if (shape && shape.peakOccupancy >= 0.85 && shape.occupancy <= 0.7) {
+    // Off-peak nights unsold per year: rooms × 365 × (1 − weekend share of nights) × (1 − off-peak occupancy), off-peak occupancy derived from annual and peak
+    const offPeakNights = shape.rooms * 365 * 0.71; const offPeakOcc = Math.max(0.1, (shape.occupancy - 0.29 * shape.peakOccupancy) / 0.71);
+    const unsold = offPeakNights * (1 - offPeakOcc);
+    base.push({ id: "I-006", name: "Off-peak demand programme (midweek packages, seasonal offers to the guest base)", actsOn: "offpeak_demand", addresses: ["C-005"], costGbp: 6_000, effectIfWorksGbp: { low: unsold * 0.05 * shape.adrGbp * 0.85, high: unsold * 0.15 * shape.adrGbp * 0.85 }, confidence: 0.5, confidenceBasis: `declared prior — ${Math.round(unsold).toLocaleString("en-GB")} off-peak room nights unsold a year (off-peak occupancy ${(offPeakOcc * 100).toFixed(0)} %); 5–15 % captured at a 15 % package discount (assumptions); does not collide with peak capacity`, risk: "Low", reversibility: "High", timeToImpactWeeks: 8, mustFollow: [], informationOption: { name: "midweek offer A/B test to the guest base", costGbp: 1_500, quality: 0.6 }, evidence: d.constraints.find((c) => c.id === "C-005")?.evidence ?? [], calibration: null });
+  }
   return base.map((i) => {
     const f = cal[i.id];
     const q = Math.min(...i.addresses.map(qualityFor), 1);

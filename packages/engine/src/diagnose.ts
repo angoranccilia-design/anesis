@@ -8,11 +8,14 @@ import type { Constraint, Diagnosis, Range } from "./model.js";
 import { obsValue, type SimulatedProperty } from "./property.js";
 import { bench, type BenchMap } from "./benchmarks.js";
 import { CAPACITY_BIND_OCC, STAFFING_BIND } from "./context/operations.js";
+import { NODE_BIND_UTILISATION, CHAIN_RELEVANCE } from "./context/capacity.js";
 
 const pos = (x: number): number => Math.max(0, x);
 const mid = (r: Range): number => (r.low + r.high) / 2;
 
-export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toISOString()): Diagnosis {
+import type { NodeAssessment } from "./context/capacity.js";
+
+export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toISOString(), capacity: readonly NodeAssessment[] = []): Diagnosis {
   const v = (m: string) => obsValue(p, m);
   const rooms = v("rooms"), revenue = v("room_revenue"), bookingValue = v("booking_value_avg");
   const mobileSessions = v("sessions.mobile"), convMobile = v("conv.mobile"), convDesktop = v("conv.desktop"), mobileShare = v("sessions.mobile_share");
@@ -76,7 +79,9 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   };
 
   // C-005 capacity: headroom on peak nights. Attainment 1 while peak occupancy leaves headroom; falls towards 0 as peak occupancy approaches 1.
-  const peak = v("ops.peak_occupancy"), staffing = v("ops.staffing_coverage"), ooo = v("ops.rooms_out_of_order");
+  const peak = v("ops.peak_occupancy"), staffing = v("ops.staffing_coverage"), ooo = v("ops.rooms_out_of_order"); const occupancyValue = v("occupancy").value;
+  const cCapBase = capacity;
+  void cCapBase;
   const capAttain = Math.min(1, (1 - peak.value) / (1 - CAPACITY_BIND_OCC));
   const cCap: Constraint = {
     id: "C-005", kind: "CAPACITY", factor: "capacity", name: "Room capacity on peak nights", metric: "ops.peak_occupancy",
@@ -93,24 +98,34 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
     assumptions: [`operations bind below ${STAFFING_BIND} coverage (declared)`], evidence: [staffing.id], dependsOn: [],
   };
   const constraints = [cConv, cDirect, cRet, cDemand, cCap, cOps];
+  // Capacity network: one constraint per non-room node with a known utilisation (spa, restaurant, experience, outdoor). Rooms are C-005 above;
+  // when the network's rooms node has a bottleneck other than rooms (housekeeping), it is reflected in C-005's assumptions.
+  const roomsNode = capacity.find((n) => n.activity === "rooms");
+  if (roomsNode && roomsNode.bottleneck && roomsNode.bottleneck.resourceId !== "R-ROOMS" && roomsNode.attainableRatio < 1) {
+    const i = constraints.indexOf(cCap);
+    constraints[i] = { ...cCap, attainment: Math.min(cCap.attainment, Math.min(1, (1 - roomsNode.utilisationOfAttainable) / (1 - NODE_BIND_UTILISATION))), assumptions: [...cCap.assumptions, roomsNode.explanation] };
+  }
+  let k = 7;
+  for (const n of capacity.filter((x) => x.activity !== "rooms")) {
+    const att = Math.min(1, Math.max(0, (1 - n.utilisationOfAttainable) / (1 - NODE_BIND_UTILISATION)), n.queue ? Math.max(0, 1 - n.queue.estimatedWaitMinutes / 30) : 1);
+    const inChain = n.demandRelevance >= CHAIN_RELEVANCE;
+    constraints.push({ id: `C-${String(k++).padStart(3, "0")}`, kind: "CAPACITY", factor: inChain ? "service_capacity" : `service_capacity:${n.activity}`, name: `Service capacity — ${n.name}${inChain ? "" : " (outside the room-booking chain)"}`, metric: `capacity.${n.activity}.utilisation`, observed: Number(n.utilisationOfAttainable.toFixed(3)), benchmark: NODE_BIND_UTILISATION, attainment: att, gapGbp: { low: 0, high: 0 }, confidence: n.confidence, status: "MODELLED", formula: n.formula, assumptions: [n.explanation, `bottleneck resource: ${n.bottleneck ? `${n.bottleneck.resource} (${(n.bottleneck.availabilityRatio * 100).toFixed(0)} %)` : "none"}`, `${(n.demandRelevance * 100).toFixed(0)} % of property-wide acquisition lands on this activity (declared) — ${inChain ? "in the acquisition chain" : "reported, not in the room-booking chain; affects this activity's own demand"}`], evidence: [rooms.id], dependsOn: [] });
+  }
   const totalAddressable = constraints.reduce((a, c) => a + mid(c.gapGbp), 0);
-
-  // Deduplication rule (explicit): part of C-001's missing bookings are not lost stays but stays that
-  // substitute to an OTA. For that share, recovering them is worth only the commission, and that value
-  // is already what C-002 counts. So C-001 is credited full value on (1 − s) and commission-only on s.
+  // Deduplication rule (explicit): part of C-001's missing bookings are not lost stays but stays that substitute to an OTA.
+  // For that share, recovering them is worth only the commission, which is exactly what C-002 counts.
   const s = bench(B, "substitution_to_ota");
   const dedupConv: Range = { low: convGap.low * ((1 - s) + s * commission.value), high: convGap.high * ((1 - s) + s * commission.value) };
-  const deduplicated: Range = {
-    low: dedupConv.low + cDirect.gapGbp.low + cRet.gapGbp.low,
-    high: dedupConv.high + cDirect.gapGbp.high + cRet.gapGbp.high,
-  };
-
-  // Limiting constraint: the new-guest chain demand → conversion → direct capture. Lowest attainment binds.
-  const chain = [cDemand, cConv, cCap, cOps, cDirect];
+  const deduplicated: Range = { low: dedupConv.low + cDirect.gapGbp.low + cRet.gapGbp.low, high: dedupConv.high + cDirect.gapGbp.high + cRet.gapGbp.high };
+  const svc = constraints.filter((c) => c.factor === "service_capacity");
+  const chain = [cDemand, cConv, cCap, ...svc, cOps, cDirect];
+  // Demand shape: peak nights saturated while annual occupancy is low → the property is capacity-bound only at peak; off-peak inventory is the opportunity.
+  const offPeakShape = peak.value >= 0.85 && occupancyValue <= 0.7;
   const binding = chain.reduce((a, c) => (c.attainment < a.attainment ? c : a));
   const bindingWhy = `${binding.name} (${binding.kind}): attainment ${(binding.attainment * 100).toFixed(0)} % is the lowest in the value chain (` +
     chain.map((c) => `${c.factor} ${(c.attainment * 100).toFixed(0)} %`).join(", ") +
-    `). ${binding.kind === "CAPACITY" || binding.kind === "OPERATIONAL" ? "Demand and conversion actions add bookings the property cannot serve until this is relieved." : "Investing upstream of the binding factor is multiplied by its current attainment; investing downstream cannot act on bookings that never happen."}`;
+    `). ${binding.kind === "CAPACITY" || binding.kind === "OPERATIONAL" ? "Demand exists, but incremental acquisition would currently collide with an operational capacity constraint" + (binding.factor.startsWith("service") ? ` (${binding.name.replace("Service capacity — ", "")}${binding.assumptions[1] ? "; " + binding.assumptions[1] : ""})` : "") + "." : "Investing upstream of the binding factor is multiplied by its current attainment; investing downstream cannot act on bookings that never happen."}` +
+    (offPeakShape ? ` Demand shape: peak nights are ${(peak.value * 100).toFixed(0)} % occupied while annual occupancy is ${(occupancyValue * 100).toFixed(0)} %: capacity binds only at peak; off-peak inventory is unsold, so acquisition should target off-peak periods rather than peak-time demand.` : "");
 
   return {
     actualGbp: revenue.value,

@@ -16,7 +16,15 @@ import { applyOutcome, measure } from "./measure.js";
 import { calibrationFactors, learningRecord } from "./learn.js";
 import { EngineBus } from "./bus.js";
 import { rng } from "./rng.js";
-import { sensitivity, ladder, type DecisionEval, type SensitivityRow, type Threshold } from "./sensitivity.js";
+import { sensitivity, ladder, decisionSensitivity, type DecisionEval, type SensitivityRow, type Threshold, type DecisionSensitivity } from "./sensitivity.js";
+import { plausibleRanges, type PlausibleRange } from "./plausible.js";
+import { assessCapacity, defaultGraph, type CapacityGraph, type NodeAssessment } from "./context/capacity.js";
+import { compression, type CompressionReading } from "./context/compression.js";
+import { reconcile, type Reconciliation } from "./context/reconcile.js";
+import { observationsFromSystems, mergeObservations } from "./context/systems.js";
+import { checkRequirements, type RequirementsResult } from "./requirements.js";
+import { providerBriefs, providerReliability, assignProvider, type ProviderBrief, type ProviderReliability, type ProviderEvidence } from "./providers.js";
+import { classifyDay } from "./context/weather.js";
 import { emptyMemory, recall, remember, resolvedConstraints, type PropertyMemory } from "./memory.js";
 import { pooledCalibration } from "./portfolio.js";
 import { LEVEL_TIER } from "./governance.js";
@@ -31,7 +39,7 @@ import { otaSignals } from "./context/ota.js";
 import { operationsSignals } from "./context/operations.js";
 import { fuse, type FusedVerdict } from "./context/fusion.js";
 import type { DecisionSignature } from "./context/relevance.js";
-import type { Allocation, AssayVerdict, ChangeCondition, Decision, Diagnosis, EngineEvent, Exposure, Intervention, InterventionRecord, LearningRecord, MeasurementPlan, MeasurementResult, VoiResult } from "./model.js";
+import type { Observation, Allocation, AssayVerdict, ChangeCondition, Decision, Diagnosis, EngineEvent, Exposure, Intervention, InterventionRecord, LearningRecord, MeasurementPlan, MeasurementResult, VoiResult } from "./model.js";
 
 export interface CycleInput {
   readonly seed: number;
@@ -68,8 +76,17 @@ export interface CycleResult {
   readonly interventions: Intervention[];
   readonly voi: VoiResult[];
   readonly mostSensitiveUnknown: MostSensitiveUnknown;
+  readonly plausibleRanges: PlausibleRange[];
   readonly sensitivity: SensitivityRow[];
   readonly thresholds: Threshold[];
+  readonly decisionSensitivity: DecisionSensitivity;
+  readonly capacity: NodeAssessment[];
+  readonly compression: CompressionReading;
+  readonly reconciliation: Reconciliation;
+  readonly requirements: RequirementsResult[];
+  readonly providerBriefs: ProviderBrief[];
+  readonly providerReliability: ProviderReliability[];
+  readonly verifiedMetrics: string[];
   readonly assay: AssayVerdict;
   readonly allocation: Allocation;
   readonly decision: Decision;
@@ -91,16 +108,18 @@ const OWNERS: Record<string, { owner: string; team: string }> = {
 const gbp = (x: number) => `£${Math.round(x).toLocaleString("en-GB")}`;
 
 /** Diagnose → interventions → VOI → allocate on a spec. Used by relevance re-runs, sensitivity and thresholds. */
-function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number) {
-  return (spec: PropertySpec, B: BenchMap, budget: number): DecisionEval & { d: Diagnosis; items: Intervention[]; voi: VoiResult[]; alloc: Allocation } => {
-    const prop = simulateProperty(spec, seed, now);
-    const d = diagnose(prop, B, now);
+function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>) {
+  return (spec: PropertySpec, B: BenchMap, budget: number): DecisionEval & { d: Diagnosis; items: Intervention[]; voi: VoiResult[]; alloc: Allocation; prop: SimulatedProperty } => {
+    const sim = simulateProperty(spec, seed, now);
+    const merged = mergeObservations(sim.observations, observationsFromSystems(ctx.systems, now));
+    const prop: SimulatedProperty = { ...sim, observations: merged.observations };
+    const d = diagnose(prop, B, now, capacityFor(spec));
     const funnel = { mobileShare: obsValue(prop, "sessions.mobile_share").value, convMobile: obsValue(prop, "conv.mobile").value, convDesktop: obsValue(prop, "conv.desktop").value, bookingValue: obsValue(prop, "booking_value_avg").value };
-    const items = interventions(d, funnel, cal, qualityFor);
+    const items = interventions(d, funnel, cal, qualityFor, { rooms: spec.rooms, occupancy: spec.occupancy, peakOccupancy: spec.peakOccupancy, weekendShare: spec.weekendShare, adrGbp: spec.adrGbp });
     const voi = items.map(valueOfInformation);
-    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory) });
+    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations) });
     const statuses: Record<string, string> = {}; for (const l of alloc.lines) statuses[l.interventionId] = l.status;
-    return { binding: d.binding, funded: alloc.lines.filter((l) => l.funded).map((l) => l.interventionId).sort(), blocked: alloc.lines.filter((l) => !l.funded).map((l) => l.interventionId).sort(), statuses, expectedValueGbp: planExpectedValue(items, alloc), d, items, voi, alloc };
+    return { binding: d.binding, funded: alloc.lines.filter((l) => l.funded).map((l) => l.interventionId).sort(), blocked: alloc.lines.filter((l) => !l.funded).map((l) => l.interventionId).sort(), statuses, expectedValueGbp: planExpectedValue(items, alloc), d, items, voi, alloc, prop };
   };
 }
 
@@ -127,9 +146,23 @@ export function runCycle(input: CycleInput): CycleResult {
   const ctx = input.context ?? emptyContext(now);
 
   bus.emit("CYCLE_STARTED", "OBSERVING", `cycle ${n}, seed ${input.seed}, budget ${gbp(input.budgetGbp)}`);
-  const property = simulateProperty(spec, input.seed, now);
-  const consistency = checkConsistency(property);
-  bus.emit("OBSERVATIONS_READY", "OBSERVING", `${property.observations.length} observations from ${spec.name} (SIMULATED PROPERTY DATA); consistency ${consistency.length === 0 ? "passed" : "FAILED: " + consistency.join("; ")}`, property.observations.map((o) => o.id));
+  const simulated = simulateProperty(spec, input.seed, now);
+  const verified = observationsFromSystems(ctx.systems, now);
+  const mergedObs = mergeObservations(simulated.observations, verified);
+  const property: SimulatedProperty = { ...simulated, observations: mergedObs.observations };
+  const consistency = checkConsistency(simulated);
+  bus.emit("OBSERVATIONS_READY", "OBSERVING", `${property.observations.length} observations from ${spec.name} (${mergedObs.replaced.length ? `${mergedObs.replaced.length} VERIFIED from connected systems: ${mergedObs.replaced.join(", ")}; the rest ` : ""}SIMULATED PROPERTY DATA); consistency ${consistency.length === 0 ? "passed" : "FAILED: " + consistency.join("; ")}`, property.observations.map((o) => o.id));
+  // Capacity network: explicit graph from the context, else derived from the property, operations and POS snapshots
+  const weatherPoor = (ctx.weather?.days ?? []).slice(0, 7).some((d) => classifyDay(d) === "poor");
+  const capacityFor = (sp: PropertySpec): NodeAssessment[] => {
+    const ops = ctx.operations; const spaPos = (ctx.systems.pos ?? []).find((x) => x.outlet === "spa"); const restPos = (ctx.systems.pos ?? []).find((x) => x.outlet === "restaurant");
+    const graph: CapacityGraph = ctx.capacity ?? defaultGraph({ propertyId: sp.id, rooms: sp.rooms, roomsOutOfOrder: sp.roomsOutOfOrder, peakOccupancy: sp.peakOccupancy, staffingCoverage: sp.staffingCoverage, nowIso: now, source: ctx.operations ? ctx.operations.source : "SRC-SIM-PMS",
+      spa: spaPos ? { slotsPerDay: spaPos.slotsAvailable, slotsSold: spaPos.slotsSold, therapistsPlanned: 1, therapistsAvailable: 1, treatmentRooms: 1, openingHours: 0 } : ops && ops.serviceSlotsPerDay !== null && ops.slotUtilisation !== null ? { slotsPerDay: ops.serviceSlotsPerDay, slotsSold: Math.round(ops.serviceSlotsPerDay * ops.slotUtilisation), therapistsPlanned: 1, therapistsAvailable: 1, treatmentRooms: 1, openingHours: ops.openingHoursPerWeek } : null,
+      restaurant: restPos ? { covers: restPos.slotsAvailable, coversSold: restPos.slotsSold, kitchenCapacity: restPos.slotsAvailable, serviceStaffPlanned: 1, serviceStaffAvailable: 1 } : null });
+    return assessCapacity(graph, { weatherPoor, vision: ctx.vision, nowIso: now, propertyType: sp.type });
+  };
+  const capacity = capacityFor(spec);
+  for (const n of capacity) bus.emit("CAPACITY_ASSESSED", "OBSERVING", n.explanation, [n.nodeId]);
   if (consistency.length) bus.emit("DATA_INCONSISTENT", "ALERT", consistency.join("; "));
 
   // Data quality of the property's sources → confidence factors on the constraints that rest on them
@@ -143,19 +176,20 @@ export function runCycle(input: CycleInput): CycleResult {
   const qualityFor = (cid: string) => { const c = diagnosisFor(cid); return c ? Math.min(1, ...c.evidence.map((e) => qualityForSource(srcOf(e)))) : 1; };
   let diagnosis0: Diagnosis | null = null;
   const diagnosisFor = (cid: string) => diagnosis0?.constraints.find((c) => c.id === cid);
-  diagnosis0 = diagnose(property, B, now);
+  diagnosis0 = diagnose(property, B, now, capacity);
   const diagnosis = diagnosis0;
   bus.emit("CONSTRAINTS_COMPUTED", "DIAGNOSING", `${diagnosis.constraints.length} constraints (${[...new Set(diagnosis.constraints.map((c) => c.kind))].join(", ")}); total addressable ${gbp(diagnosis.totalAddressableGbp)}; deduplicated ${gbp(diagnosis.deduplicatedGbp.low)}–${gbp(diagnosis.deduplicatedGbp.high)}`, diagnosis.constraints.map((c) => c.id));
   bus.emit("LIMITING_CONSTRAINT", "DIAGNOSING", diagnosis.bindingWhy, diagnosis.binding ? [diagnosis.binding] : []);
 
   // Calibration: property learning records, optionally partially pooled with the portfolio
-  const ids = ["I-001", "I-002", "I-003", "I-004", "I-005"];
+  const ids = ["I-001", "I-002", "I-003", "I-004", "I-005", "I-006"];
   const calibrationBefore: Record<string, { factor: number; cycles: number }> = {};
   for (const id of ids) {
     const pooled = pooledCalibration(id, memory, input.portfolio ?? [], input.enablePooling ?? false, P.shrinkageK);
     if (pooled.evidenceLevel !== "benchmark") calibrationBefore[id] = { factor: pooled.pooledFactor, cycles: pooled.propertyN + (pooled.evidenceLevel === "property" ? 0 : pooled.portfolioN) };
   }
-  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor);
+  const requirementsFor = (obs: readonly Observation[]): Record<string, RequirementsResult> => { const out: Record<string, RequirementsResult> = {}; for (const id of ids) out[id] = checkRequirements(id, obs, ctx.systems, qualityForSource); return out; };
+  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor);
   const base = evaluate(spec, B, input.budgetGbp);
   const items = base.items, voi = base.voi, allocation = base.alloc;
   const baseSig: DecisionSignature = { binding: base.binding, funded: base.funded, blocked: base.blocked };
@@ -177,6 +211,12 @@ export function runCycle(input: CycleInput): CycleResult {
     operationsSignals(ctx.operations, ctx.vision, now),
   ];
   const signals = parts.flatMap((p) => p.signals), assessments = parts.flatMap((p) => p.assessments);
+  const searchChange = signals.find((x) => x.metric === "search.index_change_8w")?.value ?? null;
+  const comp = compression(spec, { weather: ctx.weather, events: ctx.events, competitors: ctx.competitors, ota: ctx.ota, searchChange, historicalCompression: null, nowIso: now });
+  if (comp.assessment) assessments.push(comp.assessment); if (comp.signal) signals.push(comp.signal);
+  bus.emit(comp.reading.detected ? "FORWARD_EXPOSURE_DETECTED" : "COMPRESSION_TESTED", comp.reading.detected ? "ALERT" : "INVESTIGATING", `${comp.reading.inferred} Decision: ${comp.reading.decision}${comp.reading.notYet.length ? `; not yet: ${comp.reading.notYet.join(", ")}` : ""} (confidence ${comp.reading.confidenceLabel})`);
+  const reconciliation = reconcile(ctx.systems, diagnosis);
+  if (reconciliation.claims.length) bus.emit("SYSTEMS_RECONCILED", "COMPARING", `${reconciliation.statement}${reconciliation.conflicts.length ? " Conflicts: " + reconciliation.conflicts.join(" | ") : ""}`);
   const revenue = obsValue(property, "room_revenue").value;
   const fused = fuse(assessments, signals, revenue, baseSig, reevaluate);
   bus.emit("SEASONALITY_PROFILED", "INVESTIGATING", `${seasonality.statement} ${seasonality.causalNote}`);
@@ -190,9 +230,12 @@ export function runCycle(input: CycleInput): CycleResult {
 
   // Sensitivity and thresholds (which assumption drives the result; at what value a status changes)
   const evalOnly = (s: PropertySpec, b: BenchMap): DecisionEval => { const e = evaluate(s, b, input.budgetGbp); return { binding: e.binding, funded: e.funded, blocked: e.blocked, statuses: e.statuses, expectedValueGbp: e.expectedValueGbp }; };
-  const sens = sensitivity(spec, B, evalOnly);
+  const ranges = plausibleRanges(spec, B, property.series.property.slice(0, 104), ctx.competitors.filter((c) => c.rateGbp !== null).map((c) => c.rateGbp as number));
+  const sens = sensitivity(spec, B, ranges, evalOnly);
   const thresholds: Threshold[] = [];
-  for (const l of allocation.lines.filter((x) => !x.funded)) for (const v of ["convMobile", "peakOccupancy", "sessionsPerYear"]) thresholds.push(...ladder(spec, B, evalOnly, v, l.interventionId, v === "peakOccupancy" ? "down" : "up"));
+  for (const l of allocation.lines.filter((x) => !x.funded)) for (const v of ["convMobile", "peakOccupancy", "sessionsPerYear", "adrGbp", "otaShare"]) thresholds.push(...ladder(spec, B, ranges, evalOnly, v, l.interventionId, v === "peakOccupancy" ? "down" : "up"));
+  const focus = allocation.lines.find((l) => (l.interventionId === "I-004" || l.interventionId === "I-005") && !l.funded)?.interventionId ?? null;
+  const decSens = decisionSensitivity(sens, thresholds, focus ? `${allocation.lines.find((l) => l.interventionId === focus)!.status} ${focus} (paid acquisition)` : `fund ${allocation.lines.filter((l) => l.funded).map((l) => l.interventionId).join(", ") || "nothing"}`, focus);
   const flips = sens.filter((r) => r.flipsDecision);
   const bestInfo = [...voi].filter((v) => v.decision === "COLLECT_MORE_INFORMATION").sort((a, b) => b.evsiGbp - a.evsiGbp)[0];
   const mostSensitiveUnknown: MostSensitiveUnknown = bestInfo
@@ -200,7 +243,7 @@ export function runCycle(input: CycleInput): CycleResult {
     : flips[0]
       ? { unknown: flips[0].label, valueOfInformation: "MEDIUM", recommendedNextAction: `verify ${flips[0].label} with a direct measurement`, reason: `a ±20 % change in ${flips[0].label} flips the decision (${flips[0].flipNote})`, interventionId: null, evsiGbp: null }
       : { unknown: sens[0]?.label ?? "none", valueOfInformation: "LOW", recommendedNextAction: "no information purchase changes the decision; proceed and measure", reason: `no variable flips the decision within ±20 %; the largest value swing is ${sens[0]?.label ?? "n/a"} (${gbp(sens[0]?.evSwingGbp ?? 0)})`, interventionId: null, evsiGbp: null };
-  bus.emit("SENSITIVITY_COMPUTED", "COMPARING", `most decision-sensitive unknown: ${mostSensitiveUnknown.unknown} (VOI ${mostSensitiveUnknown.valueOfInformation}); ${thresholds.length} status thresholds found; drivers: ${sens.slice(0, 3).map((r) => `${r.label} (${gbp(r.evSwingGbp)} swing${r.flipsDecision ? ", flips" : ""})`).join(", ")}`);
+  bus.emit("SENSITIVITY_COMPUTED", "COMPARING", `${decSens.currentDecision} — most decision-sensitive variable: ${decSens.mostSensitiveVariable ?? "none within plausible ranges"}; plausible range ${decSens.plausibleRange ?? "—"}; threshold ${decSens.decisionThreshold ?? "none inside the range"}; what would change my mind: ${decSens.whatWouldChangeMyMind}`);
 
   bus.emit("ALLOCATION_STARTED", "DECIDING", `risk-adjusted allocation of ${gbp(input.budgetGbp)} (reserve ${P.reserveShare * 100} %)`);
   for (const l of allocation.lines) {
@@ -261,10 +304,17 @@ export function runCycle(input: CycleInput): CycleResult {
       history: recall(pmem, i.id, now).statement, evidence: i.evidence,
     };
   });
+  const requirements = ids.map((id) => checkRequirements(id, property.observations, ctx.systems, qualityForSource));
+  const actsOn: Record<string, string> = {}; const weeks: Record<string, number> = {}; for (const i of items) { actsOn[i.id] = i.actsOn; weeks[i.id] = i.timeToImpactWeeks; }
+  const unblock: Record<string, string> = {}; const tConv = thresholds.find((t) => t.variable === "convMobile" && (t.interventionId === "I-004" || t.interventionId === "I-005")); if (tConv) unblock["conversion"] = `mobile booking conversion ≥ ${(tConv.to * 100).toFixed(2)} %`;
+  const briefs = providerBriefs(records, actsOn, ctx.providers, plan, now, weeks, unblock);
+  const evidence: ProviderEvidence[] = pmem.measured.map((m) => ({ providerId: assignProvider(actsOn[m.interventionId] ?? "", ctx.providers).id, interventionId: m.interventionId, planId: m.planId, expectedGbp: m.expectedGbp, actualGbp: m.incrementalGbp, forecastError: m.expectedGbp ? (m.incrementalGbp - m.expectedGbp) / m.expectedGbp : 0, measurementStatus: m.status, at: m.at }));
+  const reliability = providerReliability(ctx.providers.length ? ctx.providers : [{ id: "PV-FOUNDER", name: "Founder / general manager", role: "founder", scope: "all", factors: [], systems: [] }], evidence);
+  for (const b of briefs.filter((x) => x.instruction === "PROCEED" || x.instruction === "PREPARE")) bus.emit("PROVIDER_BRIEFED", "DECIDING", `${b.providerName} (${b.role}): ${b.instruction} ${b.interventionId} — ${b.note}`, [b.interventionId]);
   const memoryAfter = remember(pmem, { runId: `cycle-${n}`, spec, diagnosis, decision, statuses, addresses, measurement, plan: plan ? { id: `${plan.id}@v${plan.version}`, interventionIds: plan.interventionIds, expectedPointGbp: plan.expectedPointGbp } : null, learning });
   bus.emit("MEMORY_UPDATED", "LEARNING", `property memory: ${memoryAfter.decisions.length} decision(s), ${memoryAfter.measured.length} measured intervention(s), ${memoryAfter.failedHypotheses.length} failed hypothesis(es)`);
   bus.emit("CYCLE_COMPLETE", "IDLE", `cycle ${n} complete`);
-  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, sensitivity: sens, thresholds, assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
+  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, plausibleRanges: ranges, sensitivity: sens, thresholds, decisionSensitivity: decSens, capacity, compression: comp.reading, reconciliation, requirements, providerBriefs: briefs, providerReliability: reliability, verifiedMetrics: mergedObs.replaced, assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
 }
 
 /** Field-by-field comparison of two runs, with an explanation of what changed the decision. */

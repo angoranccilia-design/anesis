@@ -12,8 +12,8 @@ import { expectedValue } from "./interventions.js";
 import { PARAMS, type Params } from "./benchmarks.js";
 
 /** Causal chain: the output of a factor is consumed by the next one. */
-export const CHAIN: readonly string[] = ["demand", "conversion", "capacity", "operational"];
-export const CONSUMED_BY: Readonly<Record<string, string>> = { demand: "conversion", conversion: "capacity", capacity: "operational" };
+export const CHAIN: readonly string[] = ["demand", "conversion", "capacity", "service_capacity", "operational"];
+export const CONSUMED_BY: Readonly<Record<string, string>> = { demand: "conversion", conversion: "capacity", capacity: "service_capacity", service_capacity: "operational", offpeak_demand: "conversion" };
 
 export function riskAdjustedValue(i: Intervention, all: readonly Intervention[], P: Params = PARAMS): number {
   const downside = (1 - i.confidence) * i.costGbp + i.confidence * Math.max(0, i.costGbp - i.effectIfWorksGbp.low);
@@ -21,7 +21,8 @@ export function riskAdjustedValue(i: Intervention, all: readonly Intervention[],
   return (expectedValue(i) - P.downsidePenalty * downside) * P.reversibility[i.reversibility] * dependency;
 }
 
-export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number }
+import type { RequirementsResult } from "./requirements.js";
+export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number; readonly requirements?: Readonly<Record<string, RequirementsResult>> }
 
 export function allocate(items: readonly Intervention[], d: Diagnosis, voi: readonly VoiResult[], budgetGbp: number, P: Params = PARAMS, opts: AllocateOptions = {}): Allocation {
   const reserve = budgetGbp * P.reserveShare, usable = budgetGbp - reserve;
@@ -35,13 +36,16 @@ export function allocate(items: readonly Intervention[], d: Diagnosis, voi: read
     const factor = byFactor(i.actsOn);
     // causal dependency walk
     let f = i.actsOn;
-    while (factor && CONSUMED_BY[f]) {
+    const offPeak = i.actsOn === "offpeak_demand";
+    const factorForWalk = factor ?? (offPeak ? byFactor("demand") : undefined);
+    while (factorForWalk && CONSUMED_BY[f]) {
+      if (offPeak && CONSUMED_BY[f] === "capacity") break; // off-peak demand does not consume peak capacity
       const next = CONSUMED_BY[f]!; const consumer = byFactor(next);
-      if (consumer && consumer.attainment + 0.1 < factor.attainment) {
+      if (consumer && consumer.attainment + 0.1 < factorForWalk.attainment) {
         const res = resolved.find((r) => r.constraintId === consumer.id);
         if (res) { blocked.length; /* no block */ }
         else {
-          blocked.push(`acts on ${factor.factor} (attainment ${(factor.attainment * 100).toFixed(0)} %) whose output is consumed by ${consumer.factor} (${consumer.kind}, attainment ${(consumer.attainment * 100).toFixed(0)} %${consumer.id === d.binding ? ", the binding constraint" : ""}); ${consumer.kind === "CAPACITY" || consumer.kind === "OPERATIONAL" ? "the added bookings cannot be served" : "the added " + factor.factor + " is converted at the current sub-benchmark rate"}`);
+          blocked.push(`acts on ${i.actsOn} (attainment ${(factorForWalk.attainment * 100).toFixed(0)} %) whose output is consumed by ${consumer.factor} (${consumer.kind}, attainment ${(consumer.attainment * 100).toFixed(0)} %${consumer.id === d.binding ? ", the binding constraint" : ""}); ${consumer.kind === "CAPACITY" || consumer.kind === "OPERATIONAL" ? "demand exists, but incremental acquisition would currently collide with an operational capacity constraint (" + consumer.name.replace("Service capacity — ", "") + ")" : "the added " + i.actsOn + " is converted at the current sub-benchmark rate"}`);
           condition ??= `${consumer.metric} ${consumer.kind === "CAPACITY" || consumer.kind === "OPERATIONAL" ? "relieved (headroom restored)" : `≥ ${consumer.benchmark} (benchmark)`} or ${consumer.id} measured resolved`;
           status ??= "BLOCKED";
         }
@@ -54,6 +58,8 @@ export function allocate(items: readonly Intervention[], d: Diagnosis, voi: read
       return !funded.includes(m) && !(c0 && c0.attainment >= 1) && !resolved.some((r) => dep?.addresses.includes(r.constraintId));
     });
     if (missing.length) { blocked.push(`must follow ${missing.join(", ")} (causal dependency: acts on bookings that ${missing.join(", ")} must first make possible)`); condition ??= `${missing.join(", ")} funded and measured`; status ??= "BLOCKED"; }
+    const req = opts.requirements?.[i.id];
+    if (req && req.verdict !== "SUFFICIENT") { blocked.push(req.note); condition ??= req.verdict === "INVESTIGATE" ? `${req.missingCritical.join(", ")} obtained (see the study named) and decision re-run` : `connect the system holding: ${req.missingCritical.join(", ")}`; status ??= req.verdict === "INVESTIGATE" ? "INVESTIGATE" : "BLOCKED"; }
     const v = voi.find((x) => x.interventionId === i.id);
     if (v && v.decision === "COLLECT_MORE_INFORMATION") { blocked.push(`value of information: ${v.reason}`); condition ??= `${i.informationOption?.name ?? "information"} completed and decision re-run`; status ??= "INVESTIGATE"; }
     if (v && v.decision === "DO_NOT_ACT") { blocked.push(`value of information: ${v.reason}`); condition ??= "assumptions change (see 'what would change this decision')"; status ??= "REJECTED"; }

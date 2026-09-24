@@ -102,3 +102,20 @@ PMS (`ANESIS_PMS_PROVIDER`, `ANESIS_PMS_API_KEY`, `ANESIS_PMS_PROPERTY_ID`) · b
 
 ### Remaining limitations
 See `LIMITATIONS.md`: process-memory persistence (DB seam ready); no live property data; external rules unvalidated; no provider adapters beyond the four open sources; camera not connected; server-side realtime voice planned; language layer off without a key; one simulated property, so portfolio learning is architecture only.
+
+## 7. Stress-test follow-up — definition of done
+
+| # | Demonstrated by | Test |
+|---|---|---|
+| 1 | several capacity types: rooms, housekeeping, treatment slots, therapists, treatment rooms, covers, kitchen, service staff, outdoor units, cleaning | `stress.test.ts` (capacity engine), `CAPACITY_ENGINE.md` |
+| 2 | an operational constraint other than rooms: spa therapists at 82 % → attainable 82 %, utilisation 118 %, binds | stress 1 + spa |
+| 3 | competitive demand compression: comparables +10–15 % ADR, 0 % available, event in 10 d, search +40 %, inventory retained → FORWARD EXPOSURE | stress 1 + competitors |
+| 4 | observation / inference / decision separated: `compression.observed`, `.inferred` ("an inference, not an observed outcome"), `.decision` = INVESTIGATE, `.notYet` | same |
+| 5 | sensitivity within plausible ranges with source and confidence per variable | `plausibleRanges`, stress 1 |
+| 6 | "what would change my mind" uses those ranges: conversion ≥ 1.21 % inside 0.36–1.63 % | `decisionSensitivity` |
+| 7 | external provider as executor: ABC Digital PROCEED on I-001 | `providerBriefs` |
+| 8 | Anesis keeps the commercial logic: success threshold and measurement are Anesis's, the Meta agency is told DO NOT START | same |
+| 9 | connectors ready without fabricated data: Tier-1 fields declared, states AUTHENTICATION_REQUIRED / NOT_CONNECTED / DATA_UNAVAILABLE, no value invented | `apps/web/lib/connectors`, `context.test.ts` |
+| 10 | missing data identified before deciding: attribution confidence and contribution margin missing for acquisition → INVESTIGATE; stale CRM → refresh | `requirements.ts`, stress 1 |
+| 11 | initial stress test still works | stress 1 replay |
+| 12 | second property, different structure: spa resort → capacity binds, acquisition collides with capacity, off-peak programme emerges; conversion and CRM are not constraints | stress 2 |

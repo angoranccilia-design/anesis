@@ -11,7 +11,7 @@ import type { Range, Status } from "../model.js";
 export type Freshness = "REAL_TIME" | "HOURLY" | "DAILY" | "WEEKLY" | "MONTHLY" | "HISTORICAL" | "STATIC";
 export const FRESHNESS_HOURS: Record<Freshness, number> = { REAL_TIME: 0.25, HOURLY: 2, DAILY: 36, WEEKLY: 24 * 8, MONTHLY: 24 * 40, HISTORICAL: Infinity, STATIC: Infinity };
 
-export type ConnectorStatus = "CONNECTED" | "NOT_CONNECTED" | "SOURCE_NOT_CONFIGURED" | "ERROR" | "SIMULATED" | "OPERATOR_ENTERED";
+export type ConnectorStatus = "CONNECTED" | "AUTHENTICATION_REQUIRED" | "NOT_CONNECTED" | "DATA_UNAVAILABLE" | "STALE" | "PARTIAL" | "INVALID" | "SOURCE_NOT_CONFIGURED" | "ERROR" | "SIMULATED" | "OPERATOR_ENTERED";
 export type Domain = "pms" | "booking_engine" | "web_analytics" | "google_ads" | "meta_ads" | "crm" | "rms" | "ota" | "weather" | "calendar" | "events" | "search" | "macro" | "maps" | "competitor" | "vision";
 
 export interface DataQuality {
@@ -37,6 +37,7 @@ export interface ConnectorContract {
   readonly provider: string;            // "Open-Meteo", "Booking.com Connectivity API", …
   readonly kind: "live" | "operator" | "simulation" | "contract";
   readonly requires: readonly string[]; // environment variable names; [] when none
+  readonly fields: readonly string[];   // minimal data the connector must deliver (Tier-1 contract)
   readonly freshness: Freshness;
   readonly status: ConnectorStatus;
   readonly statusNote: string;          // why it is in that state
@@ -124,6 +125,19 @@ export interface OperationsSnapshot {
   readonly noShowRate: number; readonly cancellationRate: number; readonly waitlistCount: number; readonly source: string;
 }
 
+// ---- Property systems (what real connectors deliver; normalised to Observations by systems.ts) ---------------
+export interface PmsSnapshot { readonly asOf: string; readonly periodDays: number; readonly rooms: number; readonly roomNightsSold: number; readonly roomRevenueGbp: number; readonly cancellations: number; readonly noShows: number; readonly otaRoomNights: number; readonly otaCommissionGbp: number; readonly peakOccupancy: number; readonly bookingWindowDays: number | null; readonly channels: readonly { readonly name: string; readonly roomNights: number; readonly revenueGbp: number }[]; readonly source: string }
+export interface BookingEngineSnapshot { readonly asOf: string; readonly periodDays: number; readonly searches: number; readonly availabilityChecks: number; readonly bookingStarts: number; readonly bookings: number; readonly mobileShare: number; readonly mobileConversion: number; readonly desktopConversion: number; readonly source: string }
+export interface AnalyticsSnapshot { readonly asOf: string; readonly periodDays: number; readonly sessions: number; readonly sessionsPrior: number; readonly mobileShare: number; readonly pageSpeedMobileMs: number | null; readonly source: string }
+export interface AdsSnapshot { readonly asOf: string; readonly periodDays: number; readonly channel: "meta" | "google"; readonly spendGbp: number; readonly impressions: number; readonly clicks: number; readonly attributedBookings: number; readonly attributedRevenueGbp: number; readonly attributionModel: "platform_last_click" | "platform_view_through" | "holdout_test" | "none"; readonly source: string }
+export interface RmsSnapshot { readonly asOf: string; readonly adrGbp: number; readonly adrPriorYearGbp: number; readonly forecastOccupancy30d: number; readonly source: string }
+export interface CrmSnapshot { readonly asOf: string; readonly pastGuests: number; readonly consentedShare: number; readonly repeatRate: number; readonly repeatRatePrior: number; readonly emailOpenRate: number | null; readonly source: string }
+export interface PosSnapshot { readonly asOf: string; readonly outlet: "spa" | "restaurant" | "other"; readonly periodDays: number; readonly revenueGbp: number; readonly slotsAvailable: number; readonly slotsSold: number; readonly averageTicketGbp: number; readonly waitlist: number; readonly source: string }
+export interface SystemSnapshots { readonly pms?: PmsSnapshot; readonly bookingEngine?: BookingEngineSnapshot; readonly analytics?: AnalyticsSnapshot; readonly ads?: readonly AdsSnapshot[]; readonly rms?: RmsSnapshot; readonly crm?: CrmSnapshot; readonly pos?: readonly PosSnapshot[] }
+
+/** An existing provider around the property (agency, developer, revenue manager). Anesis coordinates; it does not replace. */
+export interface Provider { readonly id: string; readonly name: string; readonly role: "meta_agency" | "search_agency" | "seo_agency" | "web_developer" | "revenue_manager" | "crm_agency" | "internal_team" | "founder"; readonly scope: string; readonly factors: readonly string[]; readonly systems: readonly string[] }
+
 /** Camera abstraction. No identity, no faces, no tracking fields exist on purpose (see COMPUTER_VISION_GOVERNANCE.md). */
 export interface CameraSource { readonly id: string; readonly zone: string; readonly purpose: "queue" | "occupancy" | "table_occupancy" | "parking" | "capacity_utilisation"; readonly configured: boolean; readonly streamUrlEnv: string; readonly retentionHours: number; readonly legalBasis: string }
 export interface VisionObservation { readonly cameraId: string; readonly zone: string; readonly metric: "queue_length" | "occupancy_estimate" | "tables_occupied" | "vehicles"; readonly value: number; readonly confidence: number; readonly sampledAt: string; readonly modelId: string; readonly frameRetained: false }
@@ -142,8 +156,11 @@ export interface ExternalContext {
   readonly operations: OperationsSnapshot | null;
   readonly cameras: readonly CameraSource[];
   readonly vision: readonly VisionObservation[];
+  readonly systems: SystemSnapshots;
+  readonly providers: readonly Provider[];
+  readonly capacity: import("./capacity.js").CapacityGraph | null;   // explicit capacity network when known; else derived
 }
 
 export const emptyContext = (fetchedAt: string, connectors: readonly ConnectorContract[] = []): ExternalContext => ({
-  fetchedAt, connectors, sourceQuality: {}, weather: null, holidays: [], events: [], search: [], macro: [], competitors: [], ota: null, operations: null, cameras: [], vision: [],
+  fetchedAt, connectors, sourceQuality: {}, weather: null, holidays: [], events: [], search: [], macro: [], competitors: [], ota: null, operations: null, cameras: [], vision: [], systems: {}, providers: [], capacity: null,
 });

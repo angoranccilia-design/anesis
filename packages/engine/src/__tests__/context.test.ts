@@ -141,7 +141,7 @@ describe("connector failure states", () => {
     expect(() => assertNoIdentityData({ cameraId: "x", value: 3 })).not.toThrow();
   });
   it("a NOT_CONNECTED connector contributes no signal and is listed as such", () => {
-    const c: ConnectorContract = { id: "CONN-SEARCH", domain: "search", name: "Search demand", provider: "Google Trends (no official API)", kind: "contract", requires: [], freshness: "WEEKLY", status: "NOT_CONNECTED", statusNote: "no official API", lastFetchedAt: null, legal: "—" };
+    const c: ConnectorContract = { id: "CONN-SEARCH", domain: "search", name: "Search demand", provider: "Google Trends (no official API)", kind: "contract", requires: [], fields: ["index"], freshness: "WEEKLY", status: "NOT_CONNECTED", statusNote: "no official API", lastFetchedAt: null, legal: "—" };
     const r = runCycle({ seed: 1, budgetGbp: 16_000, now: NOW, measure: false, context: emptyContext(NOW, [c]) });
     expect(r.signals.filter((s) => s.domain === "search")).toHaveLength(0);
     expect(r.context.connectors[0]!.status).toBe("NOT_CONNECTED");
