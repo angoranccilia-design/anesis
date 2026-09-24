@@ -17,3 +17,4 @@
 13. **Interventions are five fixed candidates** derived from the constraints; a property-type-specific catalogue is PLANNED.
 14. **Languages.** Ask Anesis detects the question's language; answer templates are complete in English and French; Spanish, German, Italian, Portuguese and Dutch are detected and answered in English with a notice. Engine record text (intervention names, block reasons, formulas) is English. Full translation requires the language layer (LLM) when enabled. Voice follows the selected language.
 15. **No claim of endorsement, certification or assurance** is made anywhere in the product; "Commercial Assay by Anesis" is brand language only.
+16. **Commercial model.** Partnership terms, funding model and providers are operator-entered; estimated intervention budgets are declared engine estimates; approved budgets, provider costs, actual spend and Anesis revenue are UNKNOWN until recorded by a human. No contract or billing system is connected.

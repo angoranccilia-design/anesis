@@ -25,6 +25,7 @@ import { observationsFromSystems, mergeObservations } from "./context/systems.js
 import { checkRequirements, type RequirementsResult } from "./requirements.js";
 import { providerBriefs, providerReliability, assignProvider, type ProviderBrief, type ProviderReliability, type ProviderEvidence } from "./providers.js";
 import { classifyDay } from "./context/weather.js";
+import { interventionBudget, decisionPackage, HEAD_FOR_FACTOR, HEAD_TITLE, NO_TERMS } from "./economics.js";
 import { emptyMemory, recall, remember, resolvedConstraints, type PropertyMemory } from "./memory.js";
 import { pooledCalibration } from "./portfolio.js";
 import { LEVEL_TIER } from "./governance.js";
@@ -101,10 +102,7 @@ export interface CycleResult {
   readonly events: readonly EngineEvent[];
 }
 
-const OWNERS: Record<string, { owner: string; team: string }> = {
-  conversion: { owner: "Head of Conversion (role)", team: "web / booking-engine" }, direct_capture: { owner: "Head of Distribution (role)", team: "revenue / distribution" },
-  retention: { owner: "Head of Guest Lifecycle (role)", team: "CRM" }, demand: { owner: "Head of Acquisition (role)", team: "paid media" },
-};
+const OWNERS: Record<string, { owner: string; team: string }> = Object.fromEntries(Object.entries(HEAD_FOR_FACTOR).map(([f, h]) => [f, { owner: HEAD_TITLE[h.head], team: h.capabilities.join(" / ") }]));
 const gbp = (x: number) => `£${Math.round(x).toLocaleString("en-GB")}`;
 
 /** Diagnose → interventions → VOI → allocate on a spec. Used by relevance re-runs, sensitivity and thresholds. */
@@ -247,7 +245,7 @@ export function runCycle(input: CycleInput): CycleResult {
 
   bus.emit("ALLOCATION_STARTED", "DECIDING", `risk-adjusted allocation of ${gbp(input.budgetGbp)} (reserve ${P.reserveShare * 100} %)`);
   for (const l of allocation.lines) {
-    if (l.funded) bus.emit("ACTION_FUNDED", "DECIDING", `${l.interventionId}: ${gbp(l.allocatedGbp)} (risk-adjusted value ${gbp(l.riskAdjustedValueGbp)})`, [l.interventionId]);
+    if (l.funded) bus.emit("ACTION_PROPOSED", "DECIDING", `${l.interventionId}: estimated intervention budget ${gbp(l.allocatedGbp)} PROPOSED — approval required; separate from the partnership; not an authorised spend (risk-adjusted value ${gbp(l.riskAdjustedValueGbp)})`, [l.interventionId]);
     else bus.emit("ACTION_BLOCKED", "BLOCKING", `${l.interventionId} ${l.status} — ${l.blockedBy.join(" | ")} — required condition: ${l.requiredCondition}`, [l.interventionId]);
   }
   for (const l of allocation.lines) { const r = recall(pmem, l.interventionId, now); if (r.timesConsidered) bus.emit("MEMORY_RECALLED", "COMPARING", r.statement, [l.interventionId]); }
@@ -292,7 +290,11 @@ export function runCycle(input: CycleInput): CycleResult {
     const depStatus: InterventionRecord["dependencyStatus"] = !i.mustFollow.length ? "NONE" : depResolved ? "RESOLVED_BY_MEASUREMENT" : i.mustFollow.every((m) => decision.selected.includes(m)) ? "SATISFIED" : "UNRESOLVED";
     const level: InterventionRecord["approvalLevel"] = i.costGbp >= 50_000 ? 4 : i.costGbp > 0 ? 3 : 1;
     const inPlan = plan?.interventionIds.includes(i.id) ?? false;
+    const terms = ctx.partnership ?? NO_TERMS;
+    const budget = interventionBudget(i, l.status, terms, level);
+    const pkg = decisionPackage(i, c0?.name ?? "", l.status, budget, terms, ctx.providers.filter((p) => p.factors.includes(i.actsOn)).map((p) => `${p.name} (${p.role})`), inPlan && plan ? `Anesis controlled measurement framework — pre-registered plan ${plan.id}@v${plan.version}` : "Anesis controlled measurement framework — registered on approval");
     return {
+      budget, package: pkg,
       id: i.id, name: i.name, objective: `move ${i.actsOn} toward benchmark`, problem: c0?.name ?? "", constraint: i.addresses, constraintKind: c0?.kind ?? null,
       owner: OWNERS[i.actsOn]?.owner ?? "Founder", team: OWNERS[i.actsOn]?.team ?? "—", dependency: i.mustFollow, dependencyStatus: depStatus,
       capitalGbp: i.costGbp, expectedImpactGbp: i.effectIfWorksGbp, expectedValueGbp: l.expectedValueGbp, risk: i.risk, reversibility: i.reversibility, confidence: i.confidence, confidenceBasis: i.confidenceBasis,

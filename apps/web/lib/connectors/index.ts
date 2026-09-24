@@ -1,5 +1,5 @@
 import "server-only";
-import type { ConnectorContract, ExternalContext, WeatherForecast, Holiday, MacroIndicator, EventRecord, CompetitorObservation, OtaSnapshot, OperationsSnapshot, CameraSource, Freshness, DataQuality, SystemSnapshots, Provider } from "@anesis/engine";
+import type { ConnectorContract, ExternalContext, WeatherForecast, Holiday, MacroIndicator, EventRecord, CompetitorObservation, OtaSnapshot, OperationsSnapshot, CameraSource, Freshness, DataQuality, SystemSnapshots, Provider, PartnershipTerms } from "@anesis/engine";
 import { cameraConnector, quality, COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
 
 /**
@@ -81,8 +81,8 @@ export function mapsConnector(spec: PropertySpec): ConnectorContract {
 }
 
 /** Operator-entered registers (events, competitor observations) live in process memory alongside runs. */
-export interface OperatorRegisters { events: EventRecord[]; competitors: CompetitorObservation[]; ota: OtaSnapshot | null; operations: OperationsSnapshot | null; cameras: CameraSource[]; sourceQuality: Record<string, DataQuality>; systems: SystemSnapshots; providers: Provider[] }
-export const emptyRegisters = (): OperatorRegisters => ({ events: [], competitors: [], ota: null, operations: null, cameras: [], sourceQuality: {}, systems: {}, providers: [] });
+export interface OperatorRegisters { events: EventRecord[]; competitors: CompetitorObservation[]; ota: OtaSnapshot | null; operations: OperationsSnapshot | null; cameras: CameraSource[]; sourceQuality: Record<string, DataQuality>; systems: SystemSnapshots; providers: Provider[]; partnership: PartnershipTerms | null }
+export const emptyRegisters = (): OperatorRegisters => ({ events: [], competitors: [], ota: null, operations: null, cameras: [], sourceQuality: {}, systems: {}, providers: [], partnership: null });
 
 export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: OperatorRegisters = emptyRegisters(), overrides: { weather?: WeatherForecast | null; offline?: boolean } = {}): Promise<ExternalContext> {
   const now = new Date().toISOString();
@@ -99,5 +99,5 @@ export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: O
   const weather = overrides.weather !== undefined ? overrides.weather : wx?.data ?? null;
   const sourceQuality: Record<string, DataQuality> = { ...reg.sourceQuality };
   if (wx?.contract.status === "CONNECTED") sourceQuality["CONN-WEATHER"] = quality(1, 0.8, 0, "DAILY", "forecast skill declines with lead time");
-  return { fetchedAt: now, connectors, sourceQuality, weather, holidays: hol?.data ?? [], events: reg.events, search: [], macro: fx?.data ?? [], competitors: reg.competitors, ota: reg.ota, operations: reg.operations, cameras: reg.cameras, vision: [], systems: reg.systems, providers: reg.providers, capacity: null };
+  return { fetchedAt: now, connectors, sourceQuality, weather, holidays: hol?.data ?? [], events: reg.events, search: [], macro: fx?.data ?? [], competitors: reg.competitors, ota: reg.ota, operations: reg.operations, cameras: reg.cameras, vision: [], systems: reg.systems, providers: reg.providers, capacity: null, partnership: reg.partnership };
 }

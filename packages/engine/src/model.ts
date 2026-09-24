@@ -99,7 +99,7 @@ export interface Intervention {
   readonly name: string;
   readonly actsOn: string;           // factor id
   readonly addresses: readonly string[]; // constraint ids
-  readonly costGbp: number;
+  readonly costGbp: number;          // ESTIMATED INTERVENTION BUDGET (layer 2): the economic budget the intervention needs — not a provider quote, not the partnership fee, not authorised spend
   readonly effectIfWorksGbp: Range;  // annual
   readonly confidence: Confidence;   // probability it works as intended (declared, then calibrated)
   readonly confidenceBasis: string;
@@ -238,6 +238,8 @@ export interface InterventionRecord {
   readonly forecastError: number | null; readonly learning: string | null;
   readonly history: string;            // memory recall statement
   readonly evidence: readonly string[];
+  readonly budget: import("./economics.js").InterventionBudget;       // layer 2: a decision of its own, never the partnership
+  readonly package: import("./economics.js").DecisionPackage;         // what the client receives
 }
 
 export type EngineState =

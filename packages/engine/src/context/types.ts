@@ -159,8 +159,9 @@ export interface ExternalContext {
   readonly systems: SystemSnapshots;
   readonly providers: readonly Provider[];
   readonly capacity: import("./capacity.js").CapacityGraph | null;   // explicit capacity network when known; else derived
+  readonly partnership: import("../economics.js").PartnershipTerms | null; // contract terms on record; null = not yet contracted
 }
 
 export const emptyContext = (fetchedAt: string, connectors: readonly ConnectorContract[] = []): ExternalContext => ({
-  fetchedAt, connectors, sourceQuality: {}, weather: null, holidays: [], events: [], search: [], macro: [], competitors: [], ota: null, operations: null, cameras: [], vision: [], systems: {}, providers: [], capacity: null,
+  fetchedAt, connectors, sourceQuality: {}, weather: null, holidays: [], events: [], search: [], macro: [], competitors: [], ota: null, operations: null, cameras: [], vision: [], systems: {}, providers: [], capacity: null, partnership: null,
 });

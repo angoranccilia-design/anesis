@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { registers, updateRegisters } from "@/lib/engine/store";
 import { authoriseIntent } from "@/lib/engine/governance";
-import { quality, assertNoIdentityData, type EventRecord, type CompetitorObservation, type OperationsSnapshot, type OtaSnapshot, type CameraSource, type SystemSnapshots, type Provider } from "@anesis/engine";
+import { quality, assertNoIdentityData, type EventRecord, type CompetitorObservation, type OperationsSnapshot, type OtaSnapshot, type CameraSource, type SystemSnapshots, type Provider, type PartnershipTerms } from "@anesis/engine";
 export const dynamic = "force-dynamic";
 /** Operator-entered registers: events, competitor observations, operations and OTA snapshots, camera sources, source data-quality declarations. Provenance = OPERATOR. */
 export function GET() { return NextResponse.json(registers()); }
 export async function POST(req: Request) {
   const auth = authoriseIntent("change_assumptions", null);
   if (auth.outcome.kind !== "allow") return NextResponse.json({ error: "not authorised" }, { status: 403 });
-  const b = (await req.json()) as { event?: Omit<EventRecord, "enteredBy" | "source">; competitor?: Omit<CompetitorObservation, "enteredBy" | "source">; operations?: Omit<OperationsSnapshot, "source">; ota?: Omit<OtaSnapshot, "source">; camera?: CameraSource; stale?: { source: string; ageHours: number; completeness?: number }; systems?: SystemSnapshots; provider?: Provider; clear?: boolean };
+  const b = (await req.json()) as { event?: Omit<EventRecord, "enteredBy" | "source">; competitor?: Omit<CompetitorObservation, "enteredBy" | "source">; operations?: Omit<OperationsSnapshot, "source">; ota?: Omit<OtaSnapshot, "source">; camera?: CameraSource; stale?: { source: string; ageHours: number; completeness?: number }; systems?: SystemSnapshots; provider?: Provider; partnership?: PartnershipTerms; clear?: boolean };
   const r = registers();
-  if (b.clear) return NextResponse.json(updateRegisters({ events: [], competitors: [], operations: null, ota: null, cameras: [], sourceQuality: {}, systems: {}, providers: [] }));
+  if (b.clear) return NextResponse.json(updateRegisters({ events: [], competitors: [], operations: null, ota: null, cameras: [], sourceQuality: {}, systems: {}, providers: [], partnership: null }));
   if (b.systems) updateRegisters({ systems: { ...r.systems, ...b.systems } }); // file import / manual entry of property-system snapshots: normalised to VERIFIED observations by the engine
   if (b.provider) updateRegisters({ providers: [...r.providers, b.provider] });
+  if (b.partnership) updateRegisters({ partnership: b.partnership }); // contract terms on record: funding model is stated, never assumed
   if (b.event) updateRegisters({ events: [...r.events, { ...b.event, enteredBy: "operator", source: "operator register" }] });
   if (b.competitor) updateRegisters({ competitors: [...r.competitors, { ...b.competitor, enteredBy: "operator", source: "operator register" }] });
   if (b.operations) updateRegisters({ operations: { ...b.operations, source: "operator register" } });

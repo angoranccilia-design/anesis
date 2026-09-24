@@ -13,6 +13,7 @@ export interface ProviderBrief {
   readonly blocked: readonly string[]; readonly requiredIntervention: string; readonly owner: string;
   readonly successThreshold: string; readonly measurement: string; readonly deadline: string | null; readonly whatWouldUnblock: string | null;
   readonly note: string;
+  readonly orchestration: string;      // who coordinates: always Anesis / the responsible Head, never the client
 }
 
 const ROLE_FOR_FACTOR: Record<string, Provider["role"][]> = { conversion: ["web_developer", "internal_team"], demand: ["meta_agency", "search_agency"], direct_capture: ["revenue_manager", "web_developer"], retention: ["crm_agency", "internal_team"] };
@@ -32,6 +33,7 @@ export function providerBriefs(records: readonly InterventionRecord[], actsOn: R
     const weeks = (weeksToImpact[r.id] ?? 8) + (plan?.windowWeeks ?? 52);
     const deadline = r.decisionStatus === "FUNDED" ? new Date(Date.parse(nowIso) + weeks * 7 * 86400e3).toISOString().slice(0, 10) : null;
     return { providerId: p.id, providerName: p.name, role: p.role, interventionId: r.id, priority: binding ? `${binding.constraint[0]} — ${binding.problem}` : "none funded", status: r.decisionStatus, instruction, blocked: r.blockedBy, requiredIntervention: r.name, owner: r.owner, successThreshold: unblock[actsOn[r.id] ?? ""] ? `${unblock[actsOn[r.id] ?? ""]} (the level at which the dependent acquisition decision changes) — and ${r.successThreshold}` : r.successThreshold, measurement: r.measurementPlanId ? `pre-registered plan ${r.measurementPlanId}: synthetic-control counterfactual, placebo-tested; the provider's own attribution is not the measure` : "none until funded", deadline, whatWouldUnblock: r.whatWouldUnblock,
+      orchestration: "Anesis / responsible Head orchestrates and coordinates execution resources; the client approves, constrains or refuses and is not the project manager",
       note: instruction === "PROCEED" ? `${p.name} proceeds within the registered plan; success is judged on the counterfactual, not on the provider's report.` : instruction === "PREPARE" ? `${p.name} prepares the information purchase (${r.whatWouldUnblock ?? "test"}); no capital until the decision is re-run.` : instruction === "HOLD" ? `${p.name} holds; budget, not merit, defers this.` : `${p.name} does not start this: ${r.blockedBy[0] ?? "rejected"}.` };
   });
 }

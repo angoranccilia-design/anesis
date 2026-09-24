@@ -29,3 +29,7 @@ Autonomous spend limit: **£0** (declared in `governance.ts`). The system commit
 ## What the system never does
 
 Execute an intervention; place spend; sign; send; publish. It recommends, blocks, registers, measures and remembers. Intervention is a consequence of the decision, not the product.
+
+## Budgets
+
+An intervention's estimated budget is a recommendation with status PROPOSED. It becomes APPROVED only by a recorded human decision at the required level, then AUTHORISED for execution; the engine cannot approve its own recommendation (`economics.ts`, `transitionBudget`). The partnership fee is a separate line and is never a pool the engine may spend from. See `COMMERCIAL_MODEL.md`.
