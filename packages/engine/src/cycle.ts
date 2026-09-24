@@ -252,7 +252,7 @@ export function runCycle(input: CycleInput): CycleResult {
   const assay = assayVerdict(items, spec.ownerPlan, planExpectedValue(items, allocation), input.budgetGbp, P);
   bus.emit("ASSAY_VERDICT", "DECIDING", `${assay.verdict}: ${assay.reason}`);
   const conditions: ChangeCondition[] = thresholds.map((t) => ({ metric: t.variable, operator: t.direction === "up" ? ">=" : "<=", threshold: Number(t.to.toPrecision(4)), why: `${t.interventionId} moves from ${t.fromStatus} to ${t.toStatus} when ${t.label} ${t.direction === "up" ? "reaches" : "falls to"} ${t.to.toPrecision(3)} (found by re-running the decision)`, interventionId: t.interventionId, fromStatus: t.fromStatus, toStatus: t.toStatus, basis: "threshold_search" }));
-  const decision = buildDecision(`D-${String(n).padStart(3, "0")}`, `What should be done with the next ${gbp(input.budgetGbp)}?`, diagnosis, items, voi, allocation, now, conditions);
+  const decision = buildDecision(`D-${String(n).padStart(3, "0")}`, `What should be done with the next ${gbp(input.budgetGbp)} of intervention capital?`, diagnosis, items, voi, allocation, now, conditions);
   bus.emit("DECISION_LOGGED", "DECIDING", `${decision.id}: selected ${decision.selected.join(", ") || "nothing"}; governance level ${decision.governance.level} (${decision.governance.reason})`, [decision.id]);
 
   const funded = items.filter((i) => decision.selected.includes(i.id));
