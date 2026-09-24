@@ -47,7 +47,7 @@ describe("allocation and decision", () => {
     expect(base.decision.rejected.map((r) => r.id)).toEqual(expect.arrayContaining(["I-004", "I-002"]));
     for (const r of base.decision.rejected) expect(r.reasons.length).toBeGreaterThan(0);
     expect(base.decision.wouldChangeIf.some((c) => c.metric === "conv.mobile")).toBe(true);
-    expect(base.decision.governance.level).toBeLessThanOrEqual(2);
+    expect(base.decision.governance.level).toBe(3); // funded spend requires human approval
   });
   it("declines the Assay for a well-run property whose owner already has the right plan", () => {
     const well = runCycle({ seed: 1, budgetGbp: 16_000, now: "2026-01-01T00:00:00Z", measure: false,

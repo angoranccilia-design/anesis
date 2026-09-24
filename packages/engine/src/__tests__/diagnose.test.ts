@@ -19,7 +19,7 @@ describe("diagnosis", () => {
   });
   it("identifies conversion as the limiting constraint for the reference property and explains why", () => {
     expect(d.binding).toBe("C-001");
-    expect(d.bindingWhy).toMatch(/lowest in the new-guest chain/);
+    expect(d.bindingWhy).toMatch(/lowest in the value chain/);
   });
   it("every constraint carries formula, evidence, assumptions, confidence and status", () => {
     for (const c of d.constraints) {

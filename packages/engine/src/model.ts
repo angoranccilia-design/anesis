@@ -44,8 +44,12 @@ export interface Metric extends Observation {
 
 export interface Range { readonly low: number; readonly high: number; }
 
+export type ConstraintKind = "DEMAND" | "CONVERSION" | "CAPACITY" | "OPERATIONAL" | "ECONOMIC" | "RETENTION";
+export type InterventionStatus = "FUNDED" | "BLOCKED" | "INVESTIGATE" | "REJECTED" | "DEFERRED";
+
 export interface Constraint {
   readonly id: string;               // "C-001"
+  readonly kind: ConstraintKind;
   readonly factor: string;           // "conversion"
   readonly name: string;
   readonly metric: string;
@@ -134,8 +138,10 @@ export interface AllocationLine {
   readonly riskAdjustedValueGbp: number;
   readonly expectedValueGbp: number;
   readonly funded: boolean;
+  readonly status: InterventionStatus;
   readonly blockedBy: readonly string[]; // reasons
   readonly requiredCondition: string | null;
+  readonly qualityFactor: number;        // data-quality multiplier applied to confidence (1 = full quality)
 }
 
 export interface Allocation {
@@ -146,7 +152,7 @@ export interface Allocation {
   readonly formula: string;
 }
 
-export interface ChangeCondition { readonly metric: string; readonly operator: ">" | "<" | ">=" | "<="; readonly threshold: number; readonly why: string; }
+export interface ChangeCondition { readonly metric: string; readonly operator: ">" | "<" | ">=" | "<="; readonly threshold: number; readonly why: string; readonly interventionId: string | null; readonly fromStatus: string | null; readonly toStatus: string | null; readonly basis: "threshold_search" | "break_even" | "benchmark" | "condition"; }
 
 export interface Decision {
   readonly id: string;               // "D-001"
@@ -215,6 +221,23 @@ export interface LearningRecord {
   readonly measurementStatus: MeasurementResult["status"];
   readonly calibrationApplied: boolean;
   readonly calibrationNote: string;
+}
+
+/** Intervention control record (challenge §16): everything a human needs to own, approve, run and judge an intervention. */
+export interface InterventionRecord {
+  readonly id: string; readonly name: string; readonly objective: string; readonly problem: string; readonly constraint: readonly string[]; readonly constraintKind: ConstraintKind | null;
+  readonly owner: string; readonly team: string;
+  readonly dependency: readonly string[]; readonly dependencyStatus: "NONE" | "SATISFIED" | "UNRESOLVED" | "RESOLVED_BY_MEASUREMENT";
+  readonly capitalGbp: number; readonly expectedImpactGbp: Range; readonly expectedValueGbp: number;
+  readonly risk: "Low" | "Medium" | "High"; readonly reversibility: "High" | "Medium" | "Low"; readonly confidence: number; readonly confidenceBasis: string;
+  readonly measurementPlanId: string | null; readonly successThreshold: string;
+  readonly decisionStatus: InterventionStatus; readonly blockedBy: readonly string[]; readonly whatWouldUnblock: string | null;
+  readonly approvalLevel: 0 | 1 | 2 | 3 | 4; readonly approvalTier: string;
+  readonly startDate: string | null; readonly endDate: string | null;
+  readonly outcome: { readonly status: string; readonly incrementalGbp: number; readonly planStatus: string } | null;
+  readonly forecastError: number | null; readonly learning: string | null;
+  readonly history: string;            // memory recall statement
+  readonly evidence: readonly string[];
 }
 
 export type EngineState =

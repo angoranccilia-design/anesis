@@ -30,6 +30,11 @@ export interface PropertySpec {
   readonly metaSpendGbp: number;
   readonly googleSpendGbp: number;
   readonly ownerPlan: string | null;     // intervention id the owner would fund anyway
+  readonly location: { readonly name: string; readonly lat: number; readonly lon: number; readonly country: string };
+  readonly peakOccupancy: number;        // occupancy on peak nights (capacity)
+  readonly staffingCoverage: number;     // staffed hours ÷ planned hours (operational)
+  readonly weekendShare: number;         // share of room nights on Fri/Sat
+  readonly roomsOutOfOrder: number;
 }
 
 export const COUNTRY_HOUSE_34: PropertySpec = {
@@ -38,6 +43,8 @@ export const COUNTRY_HOUSE_34: PropertySpec = {
   sessionsPerYear: 118_000, mobileShare: 0.63, convDesktop: 0.021, convMobile: 0.0068,
   pastGuests: 9_400, repeatRate: 0.09, reviewScore: 4.3, lowSeasonWeeks: 18, lowSeasonOcc: 0.39,
   metaSpendGbp: 14_400, googleSpendGbp: 9_600, ownerPlan: "I-004",
+  location: { name: "Cotswolds (simulated location)", lat: 51.83, lon: -1.85, country: "GB" },
+  peakOccupancy: 0.86, staffingCoverage: 0.95, weekendShare: 0.58, roomsOutOfOrder: 1,
 };
 
 export const SOURCES: readonly Source[] = [
@@ -159,6 +166,10 @@ export function simulateProperty(spec: PropertySpec = COUNTRY_HOUSE_34, seed = 1
   add("low_season_weeks", s.lowSeasonWeeks, "weeks", "SRC-SIM-PMS");
   add("low_season_occupancy", s.lowSeasonOcc, "ratio", "SRC-SIM-PMS");
   add("capacity.rooms_available_nights", s.rooms * 365, "nights/year", "SRC-DERIVED", { transformation: "rooms × 365", status: "MODELLED", evidence: ["OBS-001"] });
+  add("ops.peak_occupancy", s.peakOccupancy, "ratio", "SRC-SIM-PMS", { assumptions: ["peak nights = Fri/Sat in high season"] });
+  add("ops.staffing_coverage", s.staffingCoverage, "ratio", "SRC-SIM-PMS", { assumptions: ["staffed hours ÷ planned hours, last 4 weeks"] });
+  add("ops.rooms_out_of_order", s.roomsOutOfOrder, "rooms", "SRC-SIM-PMS");
+  add("weekend_share", s.weekendShare, "ratio", "SRC-SIM-PMS");
 
   const series = weeklySeries(r, roomRevenue / 52, 0.07, WEEKS_PRE + WEEKS_POST);
   return { spec, observations: obs, series, generatedAt: now, seed };
@@ -184,6 +195,7 @@ export function checkConsistency(p: SimulatedProperty): string[] {
   if (v("funnel.abandonment") < 0 || v("funnel.abandonment") > 1) out.push("abandonment out of [0,1]");
   if (v("bookings.direct") > v("bookings.total")) out.push("direct bookings exceed total bookings");
   if (v("occupancy") > 1 || v("low_season_occupancy") > v("occupancy")) out.push("occupancy inconsistent");
+  if (v("ops.peak_occupancy") < v("occupancy") || v("ops.peak_occupancy") > 1) out.push("peak occupancy must lie between annual occupancy and 1");
   const pre = p.series.property.slice(0, WEEKS_PRE); const mean = pre.reduce((a, b) => a + b, 0) / pre.length;
   if (!close(mean, v("room_revenue") / 52, 0.15)) out.push("weekly series mean far from room_revenue/52");
   for (const o of p.observations) for (const e of o.evidence) if (!p.observations.some((x) => x.id === e)) out.push(`${o.id} cites missing evidence ${e}`);

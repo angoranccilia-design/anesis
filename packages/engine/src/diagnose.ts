@@ -7,6 +7,7 @@
 import type { Constraint, Diagnosis, Range } from "./model.js";
 import { obsValue, type SimulatedProperty } from "./property.js";
 import { bench, type BenchMap } from "./benchmarks.js";
+import { CAPACITY_BIND_OCC, STAFFING_BIND } from "./context/operations.js";
 
 const pos = (x: number): number => Math.max(0, x);
 const mid = (r: Range): number => (r.low + r.high) / 2;
@@ -27,7 +28,7 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   const blended = mobileShare.value * convMobile.value + (1 - mobileShare.value) * convDesktop.value;
   const blendedBench = mobileShare.value * bench(B, "conv.mobile.p50") + (1 - mobileShare.value) * bench(B, "conv.desktop.p50");
   const cConv: Constraint = {
-    id: "C-001", factor: "conversion", name: "Mobile booking conversion below benchmark", metric: "conv.mobile",
+    id: "C-001", kind: "CONVERSION", factor: "conversion", name: "Mobile booking conversion below benchmark", metric: "conv.mobile",
     observed: convMobile.value, benchmark: bench(B, "conv.mobile.p50"), attainment: Math.min(1, blended / blendedBench),
     gapGbp: convGap, confidence: 0.6, status: "MODELLED",
     formula: "sessions.mobile × (benchmark − conv.mobile) × booking_value_avg  [low: p50, high: p75]",
@@ -38,7 +39,7 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   // C-002 direct capture: OTA share above target → avoidable commission on the shiftable part.
   const excessRevenue = pos(otaShare.value - bench(B, "ota_share.target")) * revenue.value;
   const cDirect: Constraint = {
-    id: "C-002", factor: "direct_capture", name: "OTA dependency above target: avoidable commission", metric: "ota_share",
+    id: "C-002", kind: "ECONOMIC", factor: "direct_capture", name: "OTA dependency above target: avoidable commission", metric: "ota_share",
     observed: otaShare.value, benchmark: bench(B, "ota_share.target"),
     attainment: Math.min(1, (1 - otaShare.value) / (1 - bench(B, "ota_share.target"))),
     gapGbp: { low: excessRevenue * bench(B, "ota.shiftable.low") * commission.value, high: excessRevenue * bench(B, "ota.shiftable.high") * commission.value },
@@ -51,7 +52,7 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   // C-003 retention: repeat rate below benchmark on the reachable guest base.
   const reach = bench(B, "crm.reachable_share");
   const cRet: Constraint = {
-    id: "C-003", factor: "retention", name: "Repeat rate below benchmark: unreactivated guest base", metric: "crm.repeat_rate",
+    id: "C-003", kind: "RETENTION", factor: "retention", name: "Repeat rate below benchmark: unreactivated guest base", metric: "crm.repeat_rate",
     observed: repeat.value, benchmark: bench(B, "crm.repeat_rate.p50"), attainment: Math.min(1, repeat.value / bench(B, "crm.repeat_rate.p50")),
     gapGbp: {
       low: pos(pastGuests.value * (bench(B, "crm.repeat_rate.p50") - repeat.value) * bookingValue.value * reach),
@@ -66,7 +67,7 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   // C-004 demand: website sessions vs. sessions-per-room benchmark (no £ gap: demand without conversion has no value).
   const demandBench = rooms.value * bench(B, "sessions_per_room.p50");
   const cDemand: Constraint = {
-    id: "C-004", factor: "demand", name: "Website demand relative to room count", metric: "sessions.total",
+    id: "C-004", kind: "DEMAND", factor: "demand", name: "Website demand relative to room count", metric: "sessions.total",
     observed: sessions.value, benchmark: demandBench, attainment: Math.min(1, sessions.value / demandBench),
     gapGbp: { low: 0, high: 0 }, confidence: 0.5, status: "MODELLED",
     formula: "sessions.total ÷ (rooms × sessions_per_room.p50); no £ gap is attributed to demand while conversion binds",
@@ -74,7 +75,24 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
     evidence: [sessions.id, rooms.id], dependsOn: [],
   };
 
-  const constraints = [cConv, cDirect, cRet, cDemand];
+  // C-005 capacity: headroom on peak nights. Attainment 1 while peak occupancy leaves headroom; falls towards 0 as peak occupancy approaches 1.
+  const peak = v("ops.peak_occupancy"), staffing = v("ops.staffing_coverage"), ooo = v("ops.rooms_out_of_order");
+  const capAttain = Math.min(1, (1 - peak.value) / (1 - CAPACITY_BIND_OCC));
+  const cCap: Constraint = {
+    id: "C-005", kind: "CAPACITY", factor: "capacity", name: "Room capacity on peak nights", metric: "ops.peak_occupancy",
+    observed: peak.value, benchmark: CAPACITY_BIND_OCC, attainment: capAttain, gapGbp: { low: 0, high: 0 }, confidence: 0.7, status: "MODELLED",
+    formula: `attainment = (1 − peak_occupancy) ÷ (1 − ${CAPACITY_BIND_OCC}), capped at 1; no £ gap: capacity limits what demand and conversion can deliver rather than losing revenue itself`,
+    assumptions: [`capacity binds at peak occupancy ≥ ${CAPACITY_BIND_OCC} (declared)`, `${ooo.value} room(s) out of order reduce sellable capacity`],
+    evidence: [peak.id, ooo.id, rooms.id], dependsOn: [],
+  };
+  // C-006 operational: staffing coverage against plan.
+  const cOps: Constraint = {
+    id: "C-006", kind: "OPERATIONAL", factor: "operational", name: "Staffing coverage against plan", metric: "ops.staffing_coverage",
+    observed: staffing.value, benchmark: STAFFING_BIND, attainment: Math.min(1, staffing.value / STAFFING_BIND), gapGbp: { low: 0, high: 0 }, confidence: 0.6, status: "MODELLED",
+    formula: `attainment = staffing_coverage ÷ ${STAFFING_BIND}, capped at 1; no £ gap attributed directly`,
+    assumptions: [`operations bind below ${STAFFING_BIND} coverage (declared)`], evidence: [staffing.id], dependsOn: [],
+  };
+  const constraints = [cConv, cDirect, cRet, cDemand, cCap, cOps];
   const totalAddressable = constraints.reduce((a, c) => a + mid(c.gapGbp), 0);
 
   // Deduplication rule (explicit): part of C-001's missing bookings are not lost stays but stays that
@@ -88,11 +106,11 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   };
 
   // Limiting constraint: the new-guest chain demand → conversion → direct capture. Lowest attainment binds.
-  const chain = [cDemand, cConv, cDirect];
+  const chain = [cDemand, cConv, cCap, cOps, cDirect];
   const binding = chain.reduce((a, c) => (c.attainment < a.attainment ? c : a));
-  const bindingWhy = `${binding.name}: attainment ${(binding.attainment * 100).toFixed(0)} % is the lowest in the new-guest chain (` +
+  const bindingWhy = `${binding.name} (${binding.kind}): attainment ${(binding.attainment * 100).toFixed(0)} % is the lowest in the value chain (` +
     chain.map((c) => `${c.factor} ${(c.attainment * 100).toFixed(0)} %`).join(", ") +
-    `). Investing upstream of the binding factor (more demand) is multiplied by the factor's current conversion; investing downstream cannot act on bookings that never happen.`;
+    `). ${binding.kind === "CAPACITY" || binding.kind === "OPERATIONAL" ? "Demand and conversion actions add bookings the property cannot serve until this is relieved." : "Investing upstream of the binding factor is multiplied by its current attainment; investing downstream cannot act on bookings that never happen."}`;
 
   return {
     actualGbp: revenue.value,
