@@ -120,7 +120,7 @@ export function diagnose(p: SimulatedProperty, B: BenchMap, at = new Date().toIS
   const svc = constraints.filter((c) => c.factor === "service_capacity");
   const chain = [cDemand, cConv, cCap, ...svc, cOps, cDirect];
   // Demand shape: peak nights saturated while annual occupancy is low → the property is capacity-bound only at peak; off-peak inventory is the opportunity.
-  const offPeakShape = peak.value >= 0.85 && occupancyValue <= 0.7;
+  const offPeakShape = peak.value >= 0.9 && occupancyValue <= 0.7;
   const binding = chain.reduce((a, c) => (c.attainment < a.attainment ? c : a));
   const bindingWhy = `${binding.name} (${binding.kind}): attainment ${(binding.attainment * 100).toFixed(0)} % is the lowest in the value chain (` +
     chain.map((c) => `${c.factor} ${(c.attainment * 100).toFixed(0)} %`).join(", ") +
