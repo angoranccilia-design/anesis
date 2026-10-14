@@ -19,6 +19,7 @@
     "@anesis/db": "workspace:*",
     "@anesis/engine": "workspace:*",
     "@anesis/events": "workspace:*",
+    "@anesis/execution": "workspace:*",
     "@anesis/planning": "workspace:*",
     "@anesis/policy": "workspace:*",
     "@anesis/readmodel": "workspace:*",

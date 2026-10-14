@@ -1,6 +1,7 @@
 /** SYNTHETIC fixtures only: the simulated 34-room property and a synthetic PMS snapshot. Nothing here is a real property. */
 import { describe, it, expect } from "vitest";
-import { runCycle, emptyContext, sha256Hex, COUNTRY_HOUSE_34, type CycleResult } from "@anesis/engine";
+import { runCycle, emptyContext, sha256Hex, observedChange, COUNTRY_HOUSE_34, type CycleResult } from "@anesis/engine";
+const WEEKLY = Array.from({ length: 80 }, (_, i) => ({ weekStart: new Date(Date.parse("2025-01-06T00:00:00Z") + i * 7 * 86_400_000).toISOString().slice(0, 10), roomNights: 100, revenueGbp: 20_000 + (i >= 69 ? 1_500 : 0) }));   // SYNTHETIC: flat, +£1,500/week from week 69 (2026-05-04)
 import { prepareInterventions, transition, originIntact, assessOutcome, closureDossier, deliverablesFor, budgetFromContract, type InterventionContract } from "../index.js";
 
 const NOW = "2026-10-14T09:00:00Z";
@@ -53,8 +54,9 @@ describe("decision-to-execution — contracts from a real cycle", () => {
     expect(() => transition(c0, { to: "IN_EXECUTION", actor: human })).toThrow(/not allowed/);
     const s = transition(c0, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
     const a = transition(s, { to: "AUTHORISED", actor: human, budget }); const e = transition(a.contract, { to: "IN_EXECUTION", actor: human, budget: a.budget! });
-    expect(() => transition(e.contract, { to: "EXECUTED", actor: human })).toThrow(/requires execution evidence/);
-    const done = transition(e.contract, { to: "EXECUTED", actor: human, evidence: ["deployment record 2026-11-02"], budget: e.budget! });
+    expect(() => transition(e.contract, { to: "EXECUTED", actor: human })).toThrow(/requires at least one proof/);
+    expect(() => transition(e.contract, { to: "EXECUTED", actor: human, proofs: [{ kind: "deployment", reference: "   ", note: "" }] })).toThrow(/requires at least one proof/);
+    const done = transition(e.contract, { to: "EXECUTED", actor: human, proofs: [{ kind: "deployment", reference: "deploy-2026-11-02", note: "booking journey release" }], budget: e.budget! });
     const closed = transition(done.contract, { to: "CLOSED", actor: human, budget: done.budget! });
     expect(() => transition(closed.contract, { to: "IN_EXECUTION", actor: human })).toThrow(/not allowed/);
     expect(closed.contract.version).toBe(6); expect(closed.contract.history).toHaveLength(6); expect(originIntact(closed.contract, sha256Hex)).toBe(true);
@@ -143,11 +145,35 @@ describe("C3 — budget governance on the lifecycle", () => {
     const { c } = funded();
     const a = transition(c, { to: "AUTHORISED", actor: human, approvedAmountGbp: 7_500 });
     const e = transition(a.contract, { to: "IN_EXECUTION", actor: human });
-    const x = transition(e.contract, { to: "EXECUTED", actor: human, evidence: ["deployment record"] });
-    const m = transition(x.contract, { to: "MEASURED", actor: human, evidence: ["measurement MP-001"] });
+    const x = transition(e.contract, { to: "EXECUTED", actor: human, proofs: [{ kind: "ticket", reference: "DEV-412", note: "" }], actualSpendGbp: 6_900 });
+    const m = transition(x.contract, { to: "MEASURED", actor: human, observed: observedChange({ weekly: WEEKLY, executedAt: "2026-05-04", windowWeeks: 4 }, "2026-06-10T00:00:00Z") });
     const z = transition(m.contract, { to: "CLOSED", actor: human });
     expect([a, e, x, m, z].map((s) => s.contract.budgetStatus)).toEqual(["AUTHORISED", "IN_EXECUTION", "IN_EXECUTION", "IN_EXECUTION", "CLOSED"]);
     expect([a, e, x, m, z].every((s) => s.contract.approvedCost.amountGbp === 7_500 && s.contract.approvedCost.status === "OBSERVED")).toBe(true);
     expect(originIntact(z.contract, sha256Hex)).toBe(true); expect(z.contract.version).toBe(7);
+  });
+});
+
+/** F — proof, cost and observed result on the contract. */
+describe("F — execution proof, actual cost, observed result", () => {
+  const authorised = () => { const r = withPms(); const c0 = find(prepareInterventions(r, "RUN-001", NOW), "I-001"); const s = transition(c0, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract; const a = transition(s, { to: "AUTHORISED", actor: human, approvedAmountGbp: 7_500 }); return transition(a.contract, { to: "IN_EXECUTION", actor: human }).contract; };
+  it("EXECUTED records structured proofs with who and when, and the actual spend as OBSERVED when reported, UNKNOWN (never zero) when not", () => {
+    const e = authorised();
+    const x = transition(e, { to: "EXECUTED", actor: human, proofs: [{ kind: "invoice", reference: "INV-2026-118", note: "developer" }, { kind: "deployment", reference: "https://example.test/deploys/77", note: "" }] });
+    expect(x.contract.execution.proofs).toHaveLength(2); expect(x.contract.execution.proofs[0]).toMatchObject({ kind: "invoice", reference: "INV-2026-118", by: "Cecilia (founder)", recordedAt: human.at });
+    expect(x.contract.execution.actualSpend).toMatchObject({ status: "UNKNOWN", amountGbp: null }); expect(x.contract.execution.executedAt).toBe(human.at);
+    expect(x.contract.history.at(-1)!.evidence).toEqual(["invoice:INV-2026-118", "deployment:https://example.test/deploys/77"]);
+    const y = transition(e, { to: "EXECUTED", actor: human, proofs: [{ kind: "ticket", reference: "T-1", note: "" }], actualSpendGbp: 6_200 });
+    expect(y.contract.execution.actualSpend).toMatchObject({ status: "OBSERVED", amountGbp: 6_200 }); expect(originIntact(y.contract, sha256Hex)).toBe(true);
+    expect(() => transition(e, { to: "EXECUTED", actor: human, proofs: [{ kind: "ticket", reference: "T-1", note: "" }], actualSpendGbp: -5 })).toThrow(/finite, non-negative/);
+  });
+  it("MEASURED needs an observed-change record and never a claim of incrementality; the closure dossier shows cost, proofs and the result", () => {
+    const x = transition(authorised(), { to: "EXECUTED", actor: human, proofs: [{ kind: "ticket", reference: "T-2", note: "" }], actualSpendGbp: 7_000 }).contract;
+    expect(() => transition(x, { to: "MEASURED", actor: human })).toThrow(/requires an observed-change record/);
+    const obs = observedChange({ weekly: WEEKLY, executedAt: "2026-05-04", windowWeeks: 4 }, "2026-06-10T00:00:00Z");
+    expect(() => transition(x, { to: "MEASURED", actor: human, observed: { ...obs, incrementality: "ESTABLISHED" as never } })).toThrow(/cannot claim incrementality/);
+    const m = transition(x, { to: "MEASURED", actor: human, observed: obs }); expect(m.contract.execution.measured?.observedChange).toBeCloseTo(1_500, 0);
+    const z = transition(m.contract, { to: "CLOSED", actor: human }); const d = closureDossier(z.contract).body.join("\n");
+    expect(d).toMatch(/Approved cost: £7,500 \(OBSERVED\); actual spend: £7,000 \(OBSERVED\)/); expect(d).toMatch(/Proofs: ticket T-2/); expect(d).toMatch(/change 1500 \(seasonally adjusted\); incrementality NOT_ESTABLISHED/);
   });
 });

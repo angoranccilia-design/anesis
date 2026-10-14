@@ -75,6 +75,9 @@ importers:
       '@anesis/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@anesis/execution':
+        specifier: workspace:*
+        version: link:../../packages/execution
       '@anesis/planning':
         specifier: workspace:*
         version: link:../../packages/planning

@@ -9,15 +9,22 @@
  * round the checks. An UNKNOWN cost is never read as zero: authorisation needs an approved amount that a human stated
  * or that a known estimate supplies.
  */
-import { transitionBudget, unknown, type InterventionBudget } from "@anesis/engine";
-import { frozenView, canonical, type InterventionContract, type ExecutionState, type HistoryEvent } from "./contract.js";
+import { transitionBudget, unknown, type InterventionBudget, type ObservedChange, type MoneyLine } from "@anesis/engine";
+import { frozenView, canonical, type InterventionContract, type ExecutionState, type HistoryEvent, type ExecutionProof } from "./contract.js";
 
 const ALLOWED: Record<ExecutionState, ExecutionState[]> = {
   PREPARED: ["SUBMITTED", "WITHDRAWN"], SUBMITTED: ["AUTHORISED", "REJECTED", "WITHDRAWN"], AUTHORISED: ["IN_EXECUTION", "WITHDRAWN"],
   IN_EXECUTION: ["EXECUTED", "WITHDRAWN"], EXECUTED: ["MEASURED", "CLOSED"], MEASURED: ["CLOSED"], CLOSED: [], REJECTED: [], WITHDRAWN: [],
 };
 export interface Actor { readonly by: string; readonly human: boolean; readonly at: string }
-export interface TransitionInput { readonly to: ExecutionState; readonly actor: Actor; readonly note?: string; readonly evidence?: readonly string[]; readonly approvedAmountGbp?: number; readonly budget?: InterventionBudget }
+export interface TransitionInput {
+  readonly to: ExecutionState; readonly actor: Actor; readonly note?: string;
+  readonly evidence?: readonly string[];                                   // free-text references kept in the history
+  readonly proofs?: readonly Pick<ExecutionProof, "kind" | "reference" | "note">[];   // EXECUTED: at least one proof with a checkable reference
+  readonly actualSpendGbp?: number | null;                                 // EXECUTED: the cost actually incurred, when reported; null or absent = not reported (UNKNOWN, never zero)
+  readonly observed?: ObservedChange;                                     // MEASURED: the observed change computed on the property's own history
+  readonly approvedAmountGbp?: number; readonly budget?: InterventionBudget;
+}
 
 /** The engine's budget record as the contract carries it. Lines the contract does not keep (actual spend, provider cost, revenue) are UNKNOWN. */
 export function budgetFromContract(c: InterventionContract): InterventionBudget {
@@ -56,12 +63,24 @@ export function transition(c: InterventionContract, t: TransitionInput): { contr
     if (budget.approved.status !== "OBSERVED" || budget.approved.amountGbp === null) throw new Error(`${c.id}: the budget is marked AUTHORISED but its approved cost is ${budget.approved.status}; execution needs a known approved amount`);
     budget = transitionBudget(budget, "IN_EXECUTION", { human: t.actor.human });
   }
-  if (t.to === "EXECUTED" && !(t.evidence && t.evidence.length)) throw new Error(`${c.id}: EXECUTED requires execution evidence; a report without proof is not an execution`);
-  if (t.to === "MEASURED" && !(t.evidence && t.evidence.length)) throw new Error(`${c.id}: MEASURED requires a measurement record`);
+  let execution = c.execution;
+  if (t.to === "EXECUTED") {
+    const proofs = (t.proofs ?? []).filter((p) => p.reference.trim().length > 0);
+    if (!proofs.length) throw new Error(`${c.id}: EXECUTED requires at least one proof with a checkable reference (ticket, deployment, invoice, statement…); a report without proof is not an execution`);
+    if (t.actualSpendGbp !== undefined && t.actualSpendGbp !== null && !(Number.isFinite(t.actualSpendGbp) && t.actualSpendGbp >= 0)) throw new Error(`${c.id}: the actual spend must be a finite, non-negative number of pounds, or left unreported`);
+    const actualSpend: MoneyLine = t.actualSpendGbp === undefined || t.actualSpendGbp === null ? unknown("actual_spend", "not reported at execution; UNKNOWN is not zero") : { kind: "actual_spend", amountGbp: t.actualSpendGbp, status: "OBSERVED", assumptions: [], source: `reported by ${t.actor.by} at execution` };
+    execution = { ...execution, proofs: [...execution.proofs, ...proofs.map((p) => ({ ...p, recordedAt: t.actor.at, by: t.actor.by }))], actualSpend, executedAt: t.actor.at };
+  }
+  if (t.to === "MEASURED") {
+    if (!t.observed) throw new Error(`${c.id}: MEASURED requires an observed-change record computed on the property's own history`);
+    if (t.observed.incrementality !== "NOT_ESTABLISHED") throw new Error(`${c.id}: an observed change cannot claim incrementality`);
+    execution = { ...execution, measured: t.observed };
+  }
   if (t.to === "CLOSED" && budget.status === "IN_EXECUTION") budget = transitionBudget(budget, "CLOSED", { human: t.actor.human });
   if ((t.to === "REJECTED" || t.to === "WITHDRAWN") && (budget.status === "PROPOSED" || budget.status === "APPROVED")) budget = transitionBudget(budget, "REJECTED", { human: t.actor.human });
-  const ev: HistoryEvent = { seq: c.history.length + 1, at: t.actor.at, by: t.actor.by, human: t.actor.human, from: c.state, to: t.to, note: t.note ?? "", evidence: t.evidence ?? [] };
-  return { contract: { ...c, state: t.to, version: c.version + 1, history: [...c.history, ev], approvedCost: budget.approved, budgetStatus: budget.status }, budget };
+  const evidence = [...(t.evidence ?? []), ...(t.to === "EXECUTED" ? (t.proofs ?? []).map((p) => `${p.kind}:${p.reference}`) : []), ...(t.to === "MEASURED" && t.observed ? [`observed change ${t.observed.observedChange === null ? "unknown" : Math.round(t.observed.observedChange) + " GBP/week"} over ${t.observed.postWeeks}/${t.observed.windowWeeks} weeks, NOT_ESTABLISHED`] : [])];
+  const ev: HistoryEvent = { seq: c.history.length + 1, at: t.actor.at, by: t.actor.by, human: t.actor.human, from: c.state, to: t.to, note: t.note ?? "", evidence };
+  return { contract: { ...c, state: t.to, version: c.version + 1, history: [...c.history, ev], approvedCost: budget.approved, budgetStatus: budget.status, execution }, budget };
 }
 
 /** The origin must never drift: the hash of the decision-time fields must still equal originSha256. */

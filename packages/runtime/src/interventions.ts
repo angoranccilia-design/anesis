@@ -1,5 +1,6 @@
 import { prepareInterventions, transition, originIntact, type InterventionContract, type TransitionInput } from "@anesis/execution";
-import { sha256Hex, type CycleResult, type OpenIntervention } from "@anesis/engine";
+import { sha256Hex, observedChange, type CycleResult, type OpenIntervention } from "@anesis/engine";
+import { latestImport } from "./imports.js";
 import type { SqlClient } from "./sql.js";
 import { trace } from "./trace.js";
 
@@ -61,7 +62,18 @@ export async function listInterventions(db: SqlClient, propertyId: string): Prom
 export async function transitionIntervention(db: SqlClient, id: string, t: TransitionInput): Promise<InterventionContract> {
   const c = await loadIntervention(db, id); if (!c) throw new Error(`${id}: not found`);
   const { contract } = transition(c, t);
-  await db.query(`update interventions set state = $2, version = $3, contract = $4::jsonb, updated_at = now() where id = $1 and version = $5`, [id, contract.state, contract.version, JSON.stringify(contract), c.version]);
+  const upd = await db.query<{ id: string }>(`update interventions set state = $2, version = $3, contract = $4::jsonb, updated_at = now() where id = $1 and version = $5 returning id`, [id, contract.state, contract.version, JSON.stringify(contract), c.version]);
+  if (!upd.rows.length) throw new Error(`${id}: concurrent update — the contract moved to another version since it was read; reload and retry`);   // C5: a lost update is an error, never silence
   await trace(db, { runId: c.decisionPackageRef.runId, propertyId: c.propertyId, kind: "job", type: "INTERVENTION_TRANSITION", state: contract.state, detail: `${id}: ${c.state} → ${contract.state} by ${t.actor.by}${t.actor.human ? " (human)" : ""}${t.evidence?.length ? " evidence: " + t.evidence.join(", ") : ""}`, at: t.actor.at });
   return contract;
+}
+
+/** MEASURED from the property's own history: the latest import's weekly series, the contract's execution date, the contract's observation window. Never a simulated outcome. */
+export async function measureIntervention(db: SqlClient, id: string, actor: { by: string; human: boolean; at: string }, windowWeeks?: number): Promise<InterventionContract> {
+  const c = await loadIntervention(db, id); if (!c) throw new Error(`${id}: not found`);
+  if (!c.execution.executedAt) throw new Error(`${id}: not executed yet; nothing to measure`);
+  const imp = await latestImport(db, c.propertyId); if (!imp || !imp.weekly.length) throw new Error(`${id}: no PMS import with a weekly history for ${c.propertyId}; import an export covering the post-execution weeks first`);
+  const weeks = windowWeeks ?? c.observationWindowWeeks ?? 8;
+  const observed = observedChange({ weekly: imp.weekly, executedAt: c.execution.executedAt, windowWeeks: weeks }, actor.at);
+  return transitionIntervention(db, id, { to: "MEASURED", actor, observed, note: `measured on import ${imp.provenance.sha256.slice(0, 12)} (${imp.weekly.length} weeks)` });
 }

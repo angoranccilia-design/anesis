@@ -19,8 +19,7 @@ const nextConfig = {
     "@anesis/agent-runtime",
     "@anesis/engine",
     "@anesis/connectors",
-    "@anesis/runtime",
-  ],
+    "@anesis/runtime", "@anesis/execution"],
   // PGlite (embedded Postgres) and pg load native/WASM assets at runtime: never bundle them.
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
   webpack: (config) => {

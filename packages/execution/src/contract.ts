@@ -3,7 +3,12 @@
  * cannot establish is null or UNKNOWN; nothing is filled with zero or a convenient guess. The contract is frozen at
  * preparation (its hash is kept); everything that happens afterwards is appended to its history, never edited in.
  */
-import type { MoneyLine, BudgetStatus, InterventionStatus, FundingSource } from "@anesis/engine";
+import type { MoneyLine, BudgetStatus, InterventionStatus, FundingSource, ObservedChange } from "@anesis/engine";
+
+/** A proof that something happened: a reference a human can go and check (ticket id, deployment url, invoice number, statement). Free text alone is not a proof. */
+export interface ExecutionProof { readonly kind: "ticket" | "deployment" | "screenshot" | "invoice" | "statement" | "report" | "other"; readonly reference: string; readonly note: string; readonly recordedAt: string; readonly by: string }
+/** What execution produced, appended after the fact; never part of the origin hash. */
+export interface ExecutionRecord { readonly proofs: readonly ExecutionProof[]; readonly actualSpend: MoneyLine; readonly executedAt: string | null; readonly measured: ObservedChange | null }
 
 export type EvidenceClass = "VERIFIED" | "ESTIMATED" | "HYPOTHESIS" | "UNKNOWN";
 export interface EvidenceItem { readonly id: string; readonly metric: string; readonly value: number | null; readonly unit: string | null; readonly source: string; readonly cls: EvidenceClass; readonly note: string }
@@ -57,11 +62,12 @@ export interface InterventionContract {
   readonly deliverables: readonly Deliverable[];
   readonly dataRequest: { readonly missing: readonly string[]; readonly why: string; readonly decisionItWouldInform: string; readonly impossibleWithout: readonly string[] } | null;
   readonly simulated: boolean;                            // true while any cited source is simulated
+  readonly execution: ExecutionRecord;
 }
 
 /** The decision-time fields: what the origin hash covers. State, version, history, approvals, budget status and deliverables live outside it. */
-export function frozenView(c: Omit<InterventionContract, "originSha256" | "deliverables" | "history" | "state" | "version" | "approvedCost" | "budgetStatus"> & Partial<InterventionContract>): Record<string, unknown> {
-  const { originSha256: _o, deliverables: _d, history: _h, state: _s, version: _v, approvedCost: _a, budgetStatus: _b, ...frozen } = c as InterventionContract;
+export function frozenView(c: Omit<InterventionContract, "originSha256" | "deliverables" | "history" | "state" | "version" | "approvedCost" | "budgetStatus" | "execution"> & Partial<InterventionContract>): Record<string, unknown> {
+  const { originSha256: _o, deliverables: _d, history: _h, state: _s, version: _v, approvedCost: _a, budgetStatus: _b, execution: _e, ...frozen } = c as InterventionContract;
   return frozen;
 }
 

@@ -13,7 +13,7 @@ describe("B — verified_only", () => {
     const r = runCycle({ seed: 1, budgetGbp: 16_000, now: T, evidencePolicy: "verified_only", context: ctxWith(undefined) });
     expect(r.diagnosis.evidencePolicy).toBe("verified_only"); expect(r.diagnosis.binding).toBeNull(); expect(r.diagnosis.notAssessable.length).toBe(r.diagnosis.constraints.length);
     expect(r.diagnosis.actualGbp).toBe(0); expect(r.diagnosis.attainableGbp).toBe(0); expect(r.diagnosis.bindingWhy).toMatch(/no constraint is assessable on verified data/);
-    expect(r.allocation.lines.every((l) => l.status === "BLOCKED" && /INSUFFICIENT EVIDENCE/.test(l.blockedBy[0] ?? ""))).toBe(true);
+    expect(r.allocation.lines.every((l) => l.status === "BLOCKED" && /NOT ASSESSABLE/.test(l.blockedBy[0] ?? ""))).toBe(true);
     expect(r.decision.selected).toEqual([]); expect(r.plan).toBeNull(); expect(r.measurement).toBeNull(); expect(r.seriesSource).toBe("simulated");
     expect(r.events.some((e) => e.type === "EVIDENCE_WITHHELD")).toBe(true);
     expect(r.interventions.every((i) => i.effectIfWorksGbp.high === 0)).toBe(true);   // no fictitious effect is shown

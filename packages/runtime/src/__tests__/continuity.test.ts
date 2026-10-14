@@ -1,7 +1,8 @@
 /** C6 on the runtime: open contracts reach the next cycle; no duplicate proposal; resume after failure is atomic. SYNTHETIC property only. */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { openDatabase, migrate, PgModelStore, runOnce, scheduleCycle, listJobs, tracesFor, listInterventions, loadIntervention, transitionIntervention, openInterventions, type SqlClient } from "../index.js";
-import { COUNTRY_HOUSE_34 } from "@anesis/engine";
+import { COUNTRY_HOUSE_34, observedChange } from "@anesis/engine";
+const WEEKLY = Array.from({ length: 80 }, (_, i) => ({ weekStart: new Date(Date.parse("2025-04-07T00:00:00Z") + i * 7 * 86_400_000).toISOString().slice(0, 10), roomNights: 100, revenueGbp: 20_000 }));   // SYNTHETIC flat history
 
 let db: SqlClient;
 const P = COUNTRY_HOUSE_34.id;
@@ -40,12 +41,12 @@ describe("C6 — continuity of interventions through the runtime", () => {
     expect(kept + superseded).toBe(pendingBefore.length); expect(kept).toBeGreaterThan(0);
   });
   it("awaiting measurement: once executed, the next cycle still holds it and asks for the measurement record; once closed, it is proposed again", async () => {
-    await transitionIntervention(db, "INT-RUN-001-I-001", { to: "EXECUTED", actor: human("2026-10-25T10:00:00.000Z"), evidence: ["deployment record 2026-10-25"] });
+    await transitionIntervention(db, "INT-RUN-001-I-001", { to: "EXECUTED", actor: human("2026-10-25T10:00:00.000Z"), proofs: [{ kind: "deployment", reference: "deploy-2026-10-25", note: "" }], actualSpendGbp: 7_100 });
     expect((await runOnce(db, { offline: true, now: () => T3 })).processed[0]?.outcome).toBe("done");
     expect(await byIntervention("I-001")).toHaveLength(1);
     const tr3 = await tracesFor(db, "RUN-003"); expect(tr3.some((t) => t.type === "INTERVENTION_IN_PROGRESS" && /awaiting its measurement record/.test(String(t.detail)))).toBe(true);
     expect((await new PgModelStore(db).load(P))!.memory.executions[0]).toMatchObject({ state: "EXECUTED" });
-    await transitionIntervention(db, "INT-RUN-001-I-001", { to: "MEASURED", actor: human("2026-11-01T10:00:00.000Z"), evidence: ["measurement MP-001"] });
+    await transitionIntervention(db, "INT-RUN-001-I-001", { to: "MEASURED", actor: human("2026-11-01T10:00:00.000Z"), observed: observedChange({ weekly: WEEKLY, executedAt: "2026-10-25", windowWeeks: 1 }, "2026-11-01T10:00:00.000Z") });
     await transitionIntervention(db, "INT-RUN-001-I-001", { to: "CLOSED", actor: human("2026-11-02T10:00:00.000Z") });
     expect((await openInterventions(db, P)).committed).toHaveLength(0);
     expect((await runOnce(db, { offline: true, now: () => T4 })).processed[0]?.outcome).toBe("done");

@@ -3,7 +3,7 @@
  * records (diagnosis, observations, requirements, decision, plan, budget, package); nothing is computed here that the
  * engine did not already compute, and nothing absent is invented. Deterministic: same cycle → same contracts and hashes.
  */
-import { sha256Hex, type CycleResult, type InterventionRecord, type Observation } from "@anesis/engine";
+import { sha256Hex, unknown as unknownLine, type CycleResult, type InterventionRecord, type Observation } from "@anesis/engine";
 import { frozenView, canonical, type InterventionContract, type EvidenceItem, type EvidenceClass, type MeasurementProtocol } from "./contract.js";
 import { deliverablesFor } from "./deliverables.js";
 
@@ -49,8 +49,9 @@ export function prepareInterventions(r: CycleResult, runId: string, preparedAt: 
     const options = r.records.filter((o) => o.id !== rec.id).map((o) => ({ id: o.id, name: o.name, status: o.decisionStatus, reasons: r.decision.rejected.find((x) => x.id === o.id)?.reasons ?? o.blockedBy }));
     const invalidating = r.decision.wouldChangeIf.filter((w) => w.interventionId === rec.id || w.interventionId === null).map((w) => `${w.metric} ${w.operator} ${w.threshold}: ${w.why}`);
     const protocol = protocolFor(r, rec, sources, unknown);
-    const dataRequest = rec.decisionStatus === "INVESTIGATE" || req?.verdict === "INSUFFICIENT_EVIDENCE" || (req && req.verdict !== "SUFFICIENT" && rec.decisionStatus !== "FUNDED") ? { missing: unknown, why: `the engine marked ${rec.id} ${rec.decisionStatus}${req ? ` (${req.verdict})` : ""}: ${rec.whatWouldUnblock ?? req?.note ?? "evidence insufficient"}`, decisionItWouldInform: `whether to fund ${rec.name}`, impossibleWithout: [`an expected value for ${rec.id} that can be defended`, "a success threshold that can be measured"] } : null;
-    const base: Omit<InterventionContract, "originSha256" | "deliverables"> = {
+    const policyBlocked = rec.decisionStatus === "BLOCKED" && rec.blockedBy.some((b) => b.startsWith("NOT ASSESSABLE"));   // evidence policy: the constraint is not assessable on verified data
+    const dataRequest = policyBlocked ? { missing: rec.blockedBy.filter((b) => b.startsWith("NOT ASSESSABLE")).map((b) => b.replace(/^NOT ASSESSABLE: /, "")), why: `the engine withheld ${rec.id}: its constraint is not assessable on verified data`, decisionItWouldInform: `whether ${rec.name} addresses a real gap`, impossibleWithout: ["verified observations of the constraint's metrics", "a documented benchmark for each of them"] } : rec.decisionStatus === "INVESTIGATE" || req?.verdict === "INSUFFICIENT_EVIDENCE" || (req && req.verdict !== "SUFFICIENT" && rec.decisionStatus !== "FUNDED") ? { missing: unknown, why: `the engine marked ${rec.id} ${rec.decisionStatus}${req ? ` (${req.verdict})` : ""}: ${rec.whatWouldUnblock ?? req?.note ?? "evidence insufficient"}`, decisionItWouldInform: `whether to fund ${rec.name}`, impossibleWithout: [`an expected value for ${rec.id} that can be defended`, "a success threshold that can be measured"] } : null;
+    const base: Omit<InterventionContract, "originSha256" | "deliverables" | "execution"> = {
       id: `INT-${runId}-${rec.id}`, propertyId,
       decisionPackageRef: { runId, decisionId: r.decision.id, interventionId: rec.id, preparedAt },
       constraint: { id: c?.id ?? null, name: c?.name ?? rec.package.commercialConstraint, kind: c?.kind ?? rec.constraintKind, isBinding: binding },
@@ -72,7 +73,7 @@ export function prepareInterventions(r: CycleResult, runId: string, preparedAt: 
       dataRequest, simulated: sources.some((s) => s.cls === "HYPOTHESIS"),
     };
     const originSha256 = sha256Hex(canonical(frozenView(base)));
-    const contract: InterventionContract = { ...base, originSha256, deliverables: [] };
+    const contract: InterventionContract = { ...base, originSha256, deliverables: [], execution: { proofs: [], actualSpend: unknownLine("actual_spend", "execution has not started"), executedAt: null, measured: null } };
     return { ...contract, deliverables: deliverablesFor(contract) };
   });
 }
