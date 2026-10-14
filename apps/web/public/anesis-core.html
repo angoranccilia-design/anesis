@@ -1084,62 +1084,60 @@ const NODES=[{id:"perception",label:"Perception"},{id:"intelligence",label:"Inte
 const MAP={CYCLE_STARTED:"perception",OBSERVATIONS_READY:"perception",CONTEXT_LOADED:"perception",CONTEXT_FETCHING:"perception",CAPACITY_ASSESSED:"intelligence",DIAGNOSIS_STARTED:"intelligence",CONSTRAINTS_COMPUTED:"intelligence",LIMITING_CONSTRAINT:"intelligence",COMPRESSION_TESTED:"intelligence",SEASONALITY_PROFILED:"intelligence",ATTRIBUTION_TESTED:"intelligence",SIGNALS_TESTED:"intelligence",SYSTEMS_RECONCILED:"intelligence",FORWARD_EXPOSURE_DETECTED:"intelligence",EXPOSURE_STARTED:"simulation",EXPOSURE_MODELLED:"simulation",SENSITIVITY_COMPUTED:"simulation",OUTCOME_SIMULATED:"simulation",INTERVENTIONS_GENERATED:"decision",VALUE_OF_INFORMATION:"decision",ALLOCATION_STARTED:"decision",ASSAY_VERDICT:"decision",DECISION_LOGGED:"decision",MEMORY_RECALLED:"decision",ACTION_PROPOSED:"execution",PROVIDER_BRIEFED:"execution",ACTION_BLOCKED:"governance",PLAN_REGISTERED:"verification",MEASUREMENT_COMPLETE:"verification",FORECAST_ERROR_RECORDED:"learning",LEARNING_RECORDED:"learning",MEMORY_UPDATED:"learning",CYCLE_COMPLETE:"learning"};
 // ---------- scene ----------
 const canvas=$("gl"); const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false}); renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1)); renderer.setClearColor(0x050b08,1);
-const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x050b08,0.022); renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.9;
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x050b08,0.012); renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.9;
 const camera=new THREE.PerspectiveCamera(42,1,0.1,200); camera.position.set(0,5.2,20);
 const GOLD=0xc9a45c, GOLD2=0xe2c784, CREAM=0xf3ecdc, FOREST=0x1f3d2f;
 function glowTex(inner,outer){ const c=document.createElement("canvas"); c.width=c.height=256; const g=c.getContext("2d"); const r=g.createRadialGradient(128,128,0,128,128,128); r.addColorStop(0,inner); r.addColorStop(0.35,outer); r.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=r; g.fillRect(0,0,256,256); const t=new THREE.CanvasTexture(c); return t; }
 function labelTex(text,sub){ const c=document.createElement("canvas"); c.width=512; c.height=160; const g=c.getContext("2d"); g.textAlign="center"; g.fillStyle="#f3ecdc"; g.font='600 54px "Cormorant Garamond",Georgia,serif'; g.shadowColor="rgba(201,164,92,.9)"; g.shadowBlur=18; g.fillText(text,256,78); g.shadowBlur=0; g.fillStyle="#cfc6b2"; g.font="500 24px Inter,Arial,sans-serif"; g.fillText(sub,256,122); return new THREE.CanvasTexture(c); }
 const sprite=(tex,scale,color)=>{ const m=new THREE.SpriteMaterial({map:tex,color:color||0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}); const s=new THREE.Sprite(m); s.scale.set(scale,scale,1); return s; };
-// ground: a dark reflective disc and a faint ring, nothing else
-const floor=new THREE.Mesh(new THREE.CircleGeometry(60,96),new THREE.MeshStandardMaterial({color:0x07110c,metalness:0.8,roughness:0.25})); floor.rotation.x=-Math.PI/2; floor.position.y=-3.21; scene.add(floor);
-const traces=[];
-// the core
-const core=new THREE.Group(); core.scale.setScalar(1.55); scene.add(core);
-const nucleus=new THREE.Mesh(new THREE.SphereGeometry(0.75,48,48),new THREE.MeshBasicMaterial({color:0xe9dfc4})); core.add(nucleus);
-const lattice=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,2),new THREE.MeshBasicMaterial({color:GOLD2,wireframe:true,transparent:true,opacity:0.55})); core.add(lattice);
-const lattice2=new THREE.Mesh(new THREE.IcosahedronGeometry(2.6,1),new THREE.MeshBasicMaterial({color:GOLD,wireframe:true,transparent:true,opacity:0.3})); core.add(lattice2);
-const spokes=new THREE.Group(); for(let i=0;i<36;i++){ const a=i*Math.PI/18; const sp=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,2.4),new THREE.MeshBasicMaterial({color:i%2?0xcfc6b2:GOLD,transparent:true,opacity:0.7})); sp.position.set(Math.cos(a)*1.4,Math.sin(a)*1.4,0); sp.lookAt(0,0,0); spokes.add(sp); const sp2=sp.clone(); sp2.position.set(0,Math.cos(a)*1.4,Math.sin(a)*1.4); sp2.lookAt(0,0,0); spokes.add(sp2);} core.add(spokes);
-const innerRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.03,8,96),new THREE.MeshBasicMaterial({color:0xcfc6b2})); core.add(innerRing); const innerRing2=innerRing.clone(); innerRing2.rotation.x=Math.PI/2; core.add(innerRing2);
-const shell=new THREE.Mesh(new THREE.SphereGeometry(3.2,64,64),new THREE.MeshPhysicalMaterial({color:0xcfc6b2,metalness:0.1,roughness:0.08,transparent:true,opacity:0.14,clearcoat:1,side:THREE.DoubleSide,depthWrite:false})); core.add(shell);
-const glassRim=new THREE.Mesh(new THREE.SphereGeometry(3.26,48,48),new THREE.MeshBasicMaterial({color:0xcfc6b2,wireframe:true,transparent:true,opacity:0.06})); core.add(glassRim);
-const rings=[]; for(let k=0;k<3;k++){ const ring=new THREE.Mesh(new THREE.TorusGeometry(3.6+k*0.5,0.022,8,160),new THREE.MeshBasicMaterial({color:k===1?0xcfc6b2:GOLD})); ring.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,0); core.add(ring); rings.push(ring); }
-const hex=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({length:6},(_,i)=>new THREE.Vector3(Math.cos(i*Math.PI/3)*5.2,Math.sin(i*Math.PI/3)*5.2,0))),new THREE.LineBasicMaterial({color:GOLD2,transparent:true,opacity:0.8})); core.add(hex);
-const hex2=hex.clone(); hex2.scale.set(1.12,1.12,1); hex2.material=new THREE.LineBasicMaterial({color:GOLD,transparent:true,opacity:0.35}); 
-const coreGlow=sprite(glowTex("rgba(243,236,220,.35)","rgba(201,164,92,.12)"),6); core.add(coreGlow);
-const coreHalo=sprite(glowTex("rgba(201,164,92,.18)","rgba(201,164,92,.06)"),22); core.add(coreHalo);
-// pedestal
-const ped=new THREE.Mesh(new THREE.CylinderGeometry(6.2,7.4,1.2,96),new THREE.MeshStandardMaterial({color:0x0e1f18,metalness:0.7,roughness:0.3})); ped.position.y=-2.65; scene.add(ped);
-const pedRing=new THREE.Mesh(new THREE.TorusGeometry(6.8,0.04,8,160),new THREE.MeshBasicMaterial({color:GOLD})); pedRing.rotation.x=Math.PI/2; pedRing.position.y=-2.08; scene.add(pedRing);
-// capabilities: eight instrument segments on the pedestal ring, lit by the engine; no orbs, no orbits
-const nodeObjs=[]; const SEG_R=6.9;
-NODES.forEach((n,i)=>{ const a0=-Math.PI/2+i*(Math.PI*2/8)+0.06, a1=a0+Math.PI*2/8-0.12; const g=new THREE.Group();
-  const seg=new THREE.Mesh(new THREE.RingGeometry(SEG_R-0.5,SEG_R+0.5,24,1,a0,a1-a0),new THREE.MeshBasicMaterial({color:0x6b5a33,transparent:true,opacity:0.5,side:THREE.DoubleSide})); seg.rotation.x=-Math.PI/2; seg.position.y=-2.03; g.add(seg);
-  const am=(a0+a1)/2; const lab=sprite(labelTex(n.label,""),3.0); lab.position.set(Math.cos(am)*(SEG_R+1.9),-1.75,Math.sin(am)*(SEG_R+1.9)); lab.material.blending=THREE.NormalBlending; lab.material.depthTest=false; lab.renderOrder=10; lab.material.opacity=0.85; g.add(lab);
-  const gl=sprite(glowTex("rgba(226,199,132,.5)","rgba(201,164,92,.15)"),2.0); gl.position.set(Math.cos(am)*SEG_R,-1.9,Math.sin(am)*SEG_R); g.add(gl);
-  g.position.set(0,0,0); scene.add(g); nodeObjs.push({g,seg,gl,lab,glow:0,pos:new THREE.Vector3(Math.cos(am)*SEG_R,-1.9,Math.sin(am)*SEG_R)}); });
-// mechanical frame: four brackets clamping the sphere, and cables into the pedestal
-const bracketMat=new THREE.MeshStandardMaterial({color:0x2a3a32,metalness:0.85,roughness:0.35});
-for(let i=0;i<4;i++){ const br=new THREE.Mesh(new THREE.TorusGeometry(5.15,0.16,10,60,Math.PI/5),bracketMat); br.rotation.z=i*Math.PI/2-Math.PI/10; core.add(br); const clamp=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.9),bracketMat); const ang=i*Math.PI/2; clamp.position.set(Math.cos(ang)*5.15,Math.sin(ang)*5.15,0); clamp.lookAt(0,0,0); core.add(clamp); const led=new THREE.Mesh(new THREE.SphereGeometry(0.09,12,12),new THREE.MeshBasicMaterial({color:0xd98b7a})); led.position.set(Math.cos(ang)*5.5,Math.sin(ang)*5.5,0.3); core.add(led); }
-const cableMat=new THREE.MeshStandardMaterial({color:0x101a15,metalness:0.3,roughness:0.8});
-for(let i=0;i<6;i++){ const a=i*Math.PI/3+0.3; const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(Math.cos(a)*6.5,-2.6,Math.sin(a)*6.5),new THREE.Vector3(Math.cos(a)*9,-3.0,Math.sin(a)*9),new THREE.Vector3(Math.cos(a)*16,-3.15,Math.sin(a)*16)]); scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.12,8,false),cableMat)); }
+// ---- the core: a large luminous sphere, centred ----
+function energyTex(){ const c=document.createElement("canvas"); c.width=1024; c.height=512; const g=c.getContext("2d"); g.fillStyle="#6b5324"; g.fillRect(0,0,1024,512);
+  for(let i=0;i<900;i++){ const x=Math.random()*1024,y=Math.random()*512,r=20+Math.random()*90; const gr=g.createRadialGradient(x,y,0,x,y,r); const hot=Math.random()<0.35; gr.addColorStop(0,hot?"rgba(255,246,220,.55)":"rgba(226,199,132,.35)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); }
+  g.strokeStyle="rgba(255,240,200,.35)"; g.lineWidth=1.2; for(let i=0;i<140;i++){ g.beginPath(); let x=Math.random()*1024,y=Math.random()*512; g.moveTo(x,y); for(let k=0;k<6;k++){ x+=(Math.random()-0.5)*120; y+=(Math.random()-0.5)*60; g.lineTo(x,y);} g.stroke(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+const core=new THREE.Group(); scene.add(core);
+const CORE_R=3.7;
+const plasma=new THREE.Mesh(new THREE.SphereGeometry(CORE_R,96,96),new THREE.MeshBasicMaterial({map:energyTex(),color:0xffe9b8,transparent:true,opacity:0.9})); const plasmaOuter=new THREE.Mesh(new THREE.SphereGeometry(CORE_R*1.015,96,96),new THREE.MeshBasicMaterial({map:energyTex(),color:0xe2c784,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false})); core.add(plasmaOuter); core.add(plasma);
+const nucleus=new THREE.Mesh(new THREE.SphereGeometry(CORE_R*0.55,64,64),new THREE.MeshBasicMaterial({color:0xfff3d6})); core.add(nucleus);
+const veil=new THREE.Mesh(new THREE.SphereGeometry(CORE_R*1.03,96,96),new THREE.MeshPhysicalMaterial({color:0xf3ecdc,transparent:true,opacity:0.10,roughness:0.05,metalness:0,clearcoat:1,side:THREE.FrontSide,depthWrite:false})); core.add(veil);
+const lattice=new THREE.Mesh(new THREE.IcosahedronGeometry(CORE_R*0.78,2),new THREE.MeshBasicMaterial({color:0xe2c784,wireframe:true,transparent:true,opacity:0.22})); core.add(lattice);
+const coreGlow=sprite(glowTex("rgba(255,246,220,.55)","rgba(226,199,132,.25)"),CORE_R*4.2); const innerGlow=sprite(glowTex("rgba(255,248,230,.9)","rgba(226,199,132,.3)"),CORE_R*1.9); innerGlow.position.z=0; core.add(innerGlow); core.add(coreGlow);
+const coreHalo=sprite(glowTex("rgba(201,164,92,.16)","rgba(201,164,92,.05)"),CORE_R*9); core.add(coreHalo);
+// ---- the lozenge of light around it ----
+const LZ=CORE_R*1.62; const lozPts=[new THREE.Vector3(0,LZ,0),new THREE.Vector3(LZ,0,0),new THREE.Vector3(0,-LZ,0),new THREE.Vector3(-LZ,0,0)];
+const lozenge=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lozPts),new THREE.LineBasicMaterial({color:0xfff0c8,transparent:true,opacity:0.95})); core.add(lozenge);
+const lozenge2=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lozPts.map(p=>p.clone().multiplyScalar(1.08))),new THREE.LineBasicMaterial({color:GOLD,transparent:true,opacity:0.5})); core.add(lozenge2);
+const lozTube=new THREE.Group(); for(let i=0;i<4;i++){ const p0=lozPts[i], p1=lozPts[(i+1)%4]; const len=p0.distanceTo(p1); const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,len,8),new THREE.MeshBasicMaterial({color:0xfff0c8})); m.position.copy(p0).lerp(p1,0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p1.clone().sub(p0).normalize()); lozTube.add(m); const corner=sprite(glowTex("rgba(255,246,220,.9)","rgba(226,199,132,.35)"),1.6); corner.position.copy(p0); lozTube.add(corner); } core.add(lozTube);
+// ---- circuit traces converging on the lozenge, left and right; the eight capabilities sit at their ends ----
+const nodeObjs=[]; const traces=[]; const traceMat=new THREE.LineBasicMaterial({color:GOLD,transparent:true,opacity:0.6});
+NODES.forEach((n,i)=>{ const side=i<4?-1:1; const k=i%4; const y=(k-1.5)*3.3; const start=new THREE.Vector3(side*(LZ-Math.abs(y)*0.0),y,0); // on the lozenge edge
+  const edgeX=side*(LZ-Math.abs(y)); start.x=edgeX; const pts=[start.clone()]; let x=edgeX+side*0.9; pts.push(new THREE.Vector3(x,y,0)); const jog=(k%2?1:-1)*0.9; x+=side*(1.6+k*0.5); pts.push(new THREE.Vector3(x,y,0)); pts.push(new THREE.Vector3(x,y+jog,0)); x+=side*(2.4+(3-k)*0.5); pts.push(new THREE.Vector3(x,y+jog,0)); const end=pts[pts.length-1];
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),traceMat.clone()); scene.add(line); traces.push(line);
+  const pad=new THREE.Mesh(new THREE.RingGeometry(0.22,0.34,24),new THREE.MeshBasicMaterial({color:GOLD2,side:THREE.DoubleSide})); pad.position.copy(end); scene.add(pad);
+  const gl=sprite(glowTex("rgba(226,199,132,.6)","rgba(201,164,92,.18)"),1.6); gl.position.copy(end); scene.add(gl);
+  const lab=sprite(labelTex(n.label,""),3.2); lab.position.set(end.x+side*2.0,end.y+0.02,0); lab.material.blending=THREE.NormalBlending; lab.material.depthTest=false; lab.renderOrder=10; lab.material.opacity=0.85; scene.add(lab);
+  const dot=sprite(glowTex("rgba(255,246,220,1)","rgba(226,199,132,.4)"),0.5); scene.add(dot);
+  nodeObjs.push({pts,line,pad,gl,lab,dot,glow:0,t:Math.random(),pos:end.clone(),side}); });
+// a faint floor reflection plane far below, and dust
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,40),new THREE.MeshStandardMaterial({color:0x07110c,metalness:0.9,roughness:0.3})); floor.rotation.x=-Math.PI/2; floor.position.y=-CORE_R*2.4; scene.add(floor);
 const pulses=[];
 // lights
-scene.add(new THREE.AmbientLight(0x4a6a58,0.6)); const pl=new THREE.PointLight(0xe2c784,2.2,40,2); pl.position.set(0,0.5,0); scene.add(pl); const rim=new THREE.DirectionalLight(0x9fd3a8,0.35); rim.position.set(-10,12,-8); scene.add(rim);
+scene.add(new THREE.AmbientLight(0x4a6a58,0.6)); const pl=new THREE.PointLight(0xe2c784,2.2,60,2); pl.position.set(0,0,0); scene.add(pl); const rim=new THREE.DirectionalLight(0x9fd3a8,0.35); rim.position.set(-10,12,-8); scene.add(rim);
 // particles
-const pGeo=new THREE.BufferGeometry(); const pN=900; const pos=new Float32Array(pN*3); for(let i=0;i<pN;i++){ const rr=6+Math.random()*16, aa=Math.random()*Math.PI*2; pos[i*3]=Math.cos(aa)*rr; pos[i*3+1]=Math.random()*9-3; pos[i*3+2]=Math.sin(aa)*rr; } pGeo.setAttribute("position",new THREE.BufferAttribute(pos,3)); const particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:GOLD2,size:0.06,transparent:true,opacity:0.7})); scene.add(particles);
-const composer=new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene,camera)); const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.55,0.5,0.8); composer.addPass(bloom);
-function resize(){ const w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.resolution.set(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); camera.position.z = w<700? 26 : 19; camera.position.y = w<700? 3.2 : 3.6; } window.addEventListener("resize",resize); resize();
+const pGeo=new THREE.BufferGeometry(); const pN=900; const pos=new Float32Array(pN*3); for(let i=0;i<pN;i++){ pos[i*3]=(Math.random()-0.5)*50; pos[i*3+1]=(Math.random()-0.5)*26; pos[i*3+2]=(Math.random()-0.5)*20-4; } pGeo.setAttribute("position",new THREE.BufferAttribute(pos,3)); const particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:GOLD2,size:0.06,transparent:true,opacity:0.7})); scene.add(particles);
+const composer=new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene,camera)); const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.75,0.6,0.7); composer.addPass(bloom);
+function resize(){ const w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.resolution.set(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); camera.position.z = w<700? 40 : 27; camera.position.y = w<700? 0.4 : 0.6; } window.addEventListener("resize",resize); resize();
 let heat=0, t=0, last=performance.now();
 function frame(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
-  lattice.rotation.y+=dt*0.25; lattice.rotation.x+=dt*0.08; spokes.rotation.z+=dt*0.6; spokes.rotation.x+=dt*0.15; innerRing.rotation.y+=dt*0.5; innerRing2.rotation.z-=dt*0.35; lattice2.rotation.y-=dt*0.18; rings.forEach((r,k)=>{ r.rotation.x+=dt*(0.25+k*0.1); r.rotation.y+=dt*(0.17-k*0.05); }); core.position.y=0.3+Math.sin(t*0.7)*0.15;
-  nucleus.scale.setScalar(1+0.06*Math.sin(t*3)+0.35*heat); coreGlow.scale.setScalar(7+4*heat+Math.sin(t*2)*0.3); bloom.strength=0.55+0.5*heat; pl.intensity=2.2+4*heat; heat=Math.max(0,heat-dt*0.5);
-  traces.forEach((o,i)=>{ if(o.isSprite&&o.userData.pts){ o.userData.t=(o.userData.t+dt*0.25)%1; const p=o.userData.pts; const k=o.userData.t*(p.length-1); const i0=Math.floor(k), i1=Math.min(p.length-1,i0+1); o.position.lerpVectors(p[i1],p[i0],k-i0); } });
-  nodeObjs.forEach(n=>{ n.glow=Math.max(0,n.glow-dt*0.8); n.seg.material.color.setHex(n.glow>0.05?0xe2c784:0x6b5a33); n.seg.material.opacity=0.5+0.5*n.glow; n.gl.scale.setScalar(2+4*n.glow); n.lab.material.opacity=0.75+0.25*n.glow; });
+  plasma.rotation.y+=dt*0.05; plasma.rotation.x=Math.sin(t*0.1)*0.1; lattice.rotation.y-=dt*0.12; lattice.rotation.z+=dt*0.05; lozTube.children.forEach((c,i)=>{ if(c.isSprite) c.material.opacity=0.6+0.4*Math.sin(t*2+i); }); core.position.y=Math.sin(t*0.5)*0.12;
+  nucleus.scale.setScalar(1+0.05*Math.sin(t*2.2)+0.3*heat); plasmaOuter.rotation.y-=dt*0.08; plasmaOuter.material.opacity=0.3+0.4*heat; innerGlow.material.opacity=0.85+0.15*Math.sin(t*2.5); innerGlow.scale.setScalar(CORE_R*(1.9+0.6*heat)); coreGlow.scale.setScalar(CORE_R*(4.2+2.5*heat)); bloom.strength=0.75+0.6*heat; pl.intensity=2.2+4*heat; heat=Math.max(0,heat-dt*0.5);
+  
+  nodeObjs.forEach(n=>{ n.glow=Math.max(0,n.glow-dt*0.8); n.line.material.opacity=0.45+0.55*n.glow; n.gl.scale.setScalar(1.6+3*n.glow); n.lab.material.opacity=0.75+0.25*n.glow; n.t=(n.t+dt*(0.18+0.6*n.glow))%1; const p=n.pts; const k=(1-n.t)*(p.length-1); const i0=Math.max(0,Math.min(p.length-1,Math.floor(k))), i1=Math.min(p.length-1,i0+1); if(p[i0]&&p[i1]) n.dot.position.lerpVectors(p[i0],p[i1],k-i0); n.dot.material.opacity=0.5+0.5*n.glow; });
   for(let i=pulses.length-1;i>=0;i--){ const p=pulses[i]; p.t+=dt*1.5; p.s.position.lerpVectors(p.from,core.position,Math.min(1,p.t)); p.s.material.opacity=1-p.t; if(p.t>=1){ scene.remove(p.s); pulses.splice(i,1); heat=Math.min(1,heat+0.3);} }
-  const cx=Math.sin(t*0.06)*2.2; camera.position.x=cx; camera.lookAt(0,-0.2,0);
+  const cx=Math.sin(t*0.05)*1.2; camera.position.x=cx; camera.lookAt(0,0,0);
   composer.render(); requestAnimationFrame(frame); }
 requestAnimationFrame(frame);
-function light(nodeId){ const n=nodeObjs[NODES.findIndex(x=>x.id===nodeId)]; if(!n) return; n.glow=1; const s=sprite(glowTex("rgba(243,236,220,1)","rgba(226,199,132,.6)"),1.2); s.position.copy(n.pos); scene.add(s); pulses.push({s,from:n.pos.clone(),t:0}); }
+function light(nodeId){ const n=nodeObjs[NODES.findIndex(x=>x.id===nodeId)]; if(!n) return; n.glow=1; const s=sprite(glowTex("rgba(255,246,220,1)","rgba(226,199,132,.6)"),1.0); s.position.copy(n.pos); scene.add(s); pulses.push({s,from:n.pos.clone(),t:0}); }
 // ---------- voice ----------
 const MALE={"en":["Daniel","Google UK English Male","Microsoft George","Microsoft Ryan","Arthur","Oliver","Alex","Fred","Microsoft David","Microsoft Mark","Rishi"],"fr":["Thomas","Google français","Microsoft Paul","Microsoft Henri","Nicolas","Jacques"]};
 let voiceOn=true, voice=null;
