@@ -3,7 +3,7 @@
 # next to the app, build Next. Vercel's Install Command is a no-op so that every step runs here, in one shell.
 set -euo pipefail
 node -v; pnpm -v
-pnpm install --frozen-lockfile
+NODE_ENV=development pnpm install --frozen-lockfile  # Vercel builds with NODE_ENV=production, which would make pnpm drop the devDependencies the build needs
 pnpm --filter @anesis/runtime build
 rm -rf .runtime && mkdir -p .runtime && cp ../../packages/runtime/dist/index.mjs .runtime/index.mjs
 next build
