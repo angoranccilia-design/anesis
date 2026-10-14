@@ -6,4 +6,4 @@ node -v; pnpm -v
 NODE_ENV=development pnpm install --frozen-lockfile  # Vercel builds with NODE_ENV=production, which would make pnpm drop the devDependencies the build needs
 pnpm --filter @anesis/runtime build
 rm -rf .runtime && mkdir -p .runtime && cp ../../packages/runtime/dist/index.mjs .runtime/index.mjs
-next build
+pnpm exec next build
