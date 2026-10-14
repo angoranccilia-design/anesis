@@ -10,6 +10,7 @@
  *   work                                      run the worker loop (ANESIS_OFFLINE=1 for no live connectors)
  *   once                                      process due jobs once and exit
  *   status                                    jobs, properties, models, last traces
+ *   connectors [--property <id>]              call every live connector now and print the real statuses
  *   import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]
  * Backend: DATABASE_URL (Postgres) or ANESIS_PGLITE_DIR (embedded); neither = in-memory, which is only useful for `once`.
  */
@@ -22,6 +23,8 @@ import { importFile } from "./imports.js";
 import { upsertProperty, listProperties, grantProperty } from "./properties.js";
 import { saveRegisters } from "./registers.js";
 import { COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
+import { verifyConnectors } from "@anesis/connectors";
+import { loadProperty } from "./properties.js";
 
 const cmd = process.argv[2] ?? "status";
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -53,6 +56,10 @@ try {
     const fx: Record<string, number> = {}; for (const kv of (arg("--fx") ?? "").split(",").filter(Boolean)) { const [c, v] = kv.split("="); if (c && v) fx[c.toUpperCase()] = Number(v); }
     const r = await importFile(db, file, { propertyId: id, rooms: arg("--rooms") ? Number(arg("--rooms")) : null, dateOrder: arg("--date-order") as never, fxToGbp: fx, collectedAt: arg("--collected-at") ?? null });
     console.log(JSON.stringify({ property: id, file: r.provenance.filename, sha256: r.provenance.sha256.slice(0, 12), rows: r.counts, period: r.period, window: r.sufficiency.window, recency: r.recency.statement, fields: r.fields, metrics: r.metrics, verdict: r.sufficiency.verdict, cannot: r.sufficiency.cannotCompute, next: r.sufficiency.nextData }, null, 2));
+  }
+  else if (cmd === "connectors") {
+    const id = arg("--property") ?? process.env.ANESIS_PROPERTY_ID ?? COUNTRY_HOUSE_34.id; const spec = (await loadProperty(db, id)) ?? COUNTRY_HOUSE_34;
+    for (const r of await verifyConnectors(spec)) console.log(`${r.id.padEnd(18)} ${r.status.padEnd(18)} ${String(r.ms).padStart(5)} ms  ${r.note}`);
   }
   else if (cmd === "status") {
     console.log("properties:", (await listProperties(db)).map((p) => `${p.id} ${p.name}${p.simulated ? " (SIMULATED)" : ""}`).join("\n  ") || "none declared");

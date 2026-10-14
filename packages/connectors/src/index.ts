@@ -11,10 +11,19 @@ async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Prom
   const hit = cache.get(key); if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
   const value = await fn(); cache.set(key, { at: Date.now(), value }); return value;
 }
+let fetchImpl: typeof fetch = (input, init) => fetch(input, init);
+/** Test seam: inject a failing or canned fetch. Production never calls this. */
+export function setConnectorFetch(f: typeof fetch | null): void { fetchImpl = f ?? ((input, init) => fetch(input, init)); cache.clear(); }
+export function clearConnectorCache(): void { cache.clear(); }
 const get = async (url: string, timeoutMs = 8000): Promise<unknown> => {
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json" } });
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+};
+const getText = async (url: string, timeoutMs = 8000): Promise<string> => {
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "text/csv, text/plain" } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
 };
 const contract = (c: Omit<ConnectorContract, "status" | "statusNote" | "lastFetchedAt" | "fields"> & Partial<Pick<ConnectorContract, "status" | "statusNote" | "lastFetchedAt" | "fields">>): ConnectorContract => {
   const missing = c.requires.filter((k) => !process.env[k]);
@@ -70,13 +79,51 @@ export const CONTRACT_ONLY: ConnectorContract[] = [
   contract({ id: "CONN-OTA", fields: ["channel", "bookings", "revenue", "commission", "cancellation", "availability", "ranking/visibility where legitimately accessible"], domain: "ota", name: "OTA channel data", provider: "Booking.com / Expedia / Airbnb via channel manager", kind: "contract", requires: ["ANESIS_CHANNEL_MANAGER_API_KEY"], freshness: "WEEKLY", legal: "property's own extranet data through its channel manager; no scraping" }),
   contract({ id: "CONN-EVENTS", fields: ["name", "dates", "venue", "distance", "expected attendance", "category"], domain: "events", name: "Future events", provider: "PredictHQ / Ticketmaster Discovery (API) or operator register", kind: "contract", requires: ["ANESIS_EVENTS_PROVIDER", "ANESIS_EVENTS_API_KEY"], freshness: "WEEKLY", legal: "provider terms; operator-entered events are accepted with their evidence note", statusNote: "no provider key; operator-entered events are used when present" }),
   contract({ id: "CONN-SEARCH", fields: ["term", "weekly index", "geography", "branded vs non-branded"], domain: "search", name: "Search demand", provider: "Google Trends (no official API); Google Search Console for branded queries", kind: "contract", requires: ["ANESIS_GSC_SITE_URL", "GOOGLE_APPLICATION_CREDENTIALS"], freshness: "WEEKLY", legal: "Trends has no official API and its terms prohibit scraping; Search Console needs the property's consent" }),
-  contract({ id: "CONN-INFLATION", fields: ["CPIH index", "month"], domain: "macro", name: "UK inflation (CPIH)", provider: "ONS API (beta)", kind: "live", requires: [], freshness: "MONTHLY", legal: "open government data", statusNote: "endpoint returned HTTP 500 on the observations query on 24 September 2026; contract kept, no value invented" }),
-  contract({ id: "CONN-BANK-RATE", fields: ["bank rate", "effective date"], domain: "macro", name: "Bank of England base rate", provider: "Bank of England database", kind: "live", requires: [], freshness: "MONTHLY", legal: "open data", statusNote: "CSV endpoint returns an HTML consent page from this environment; contract kept, no value invented" }),
   contract({ id: "CONN-COMPETITOR", fields: ["competitor", "date", "rate", "availability", "review score", "review velocity"], domain: "competitor", name: "Competitor rates and visibility", provider: "Lighthouse / OTA Insight (rate shopping, contract) or operator-entered observations", kind: "contract", requires: ["ANESIS_RATESHOP_PROVIDER", "ANESIS_RATESHOP_API_KEY"], freshness: "DAILY", legal: "no scraping of OTA or competitor sites; licensed rate-shopping data or manual observations only", statusNote: "no rate-shopping licence; operator-entered observations are used when present" }),
 ];
 
+/** Geographic data: the coordinates declared in the property record. No geocoding service is called, so the status says OPERATOR_ENTERED, never CONNECTED. */
 export function mapsConnector(spec: PropertySpec): ConnectorContract {
-  return contract({ id: "CONN-MAPS", fields: ["name", "latitude", "longitude", "country"], domain: "maps", name: "Geographic data", provider: "Open-Meteo geocoding (open data)", kind: "live", requires: [], freshness: "STATIC", legal: "open data", status: "CONNECTED", statusNote: `property located at ${spec.location.name} (${spec.location.lat}, ${spec.location.lon}); geocoding endpoint reachable`, lastFetchedAt: new Date().toISOString() });
+  return contract({ id: "CONN-MAPS", fields: ["name", "latitude", "longitude", "country"], domain: "maps", name: "Geographic data", provider: "property record (declared by the operator)", kind: "operator", requires: [], freshness: "STATIC", legal: "operator-declared", status: "OPERATOR_ENTERED", statusNote: `coordinates declared in the property record: ${spec.location.name} (${spec.location.lat}, ${spec.location.lon}); no geocoding call is made`, lastFetchedAt: null });
+}
+
+/** UK inflation: ONS CPIH index (dataset cpih01, monthly). The latest observation by date, never the last in the response, which is unsorted. */
+const MONTHS: Record<string, string> = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
+export async function fetchInflation(): Promise<{ contract: ConnectorContract; data: MacroIndicator[] }> {
+  const base = contract({ id: "CONN-INFLATION", fields: ["CPIH index", "month"], domain: "macro", name: "UK inflation (CPIH)", provider: "ONS API (beta), dataset cpih01", kind: "live", requires: [], freshness: "MONTHLY", legal: "open government data (OGL)" });
+  try {
+    // The edition names its latest version: a fixed version number would freeze the series (version 1 ends in August 2020).
+    const edition = await cached("ons-cpih-edition", 24 * 3600e3, () => get("https://api.beta.ons.gov.uk/v1/datasets/cpih01/editions/time-series", 15000)) as { links: { latest_version: { href: string; id: string } } };
+    const url = `${edition.links.latest_version.href}/observations?time=*&geography=K02000001&aggregate=CP00`;   // CP00 = overall index in the current code list
+    const j = await cached(url, 24 * 3600e3, () => get(url, 15000)) as { observations: { observation: string; dimensions: { Time: { id: string } } }[] };
+    const parsed = j.observations.map((o) => { const m = /^([A-Z][a-z]{2})-(\d{2})$/.exec(o.dimensions.Time.id); const v = Number(o.observation); return m && MONTHS[m[1]!] && Number.isFinite(v) ? { iso: `${Number(m[2]) >= 80 ? "19" : "20"}${m[2]}-${MONTHS[m[1]!]}-01`, value: v } : null; }).filter((x): x is { iso: string; value: number } => x !== null).sort((a, b) => a.iso.localeCompare(b.iso));
+    const last = parsed.at(-1); if (!last) throw new Error("no readable observation");
+    const at = new Date().toISOString();
+    return { contract: { ...base, status: "CONNECTED", statusNote: `CPIH index ${last.value} for ${last.iso.slice(0, 7)} (version ${edition.links.latest_version.id}, ${parsed.length} monthly observations)`, lastFetchedAt: at }, data: [{ id: "macro.cpih", name: "UK CPIH index (2015 = 100)", value: last.value, unit: "index", geography: "UK", asOf: `${last.iso}T00:00:00Z`, frequency: "MONTHLY", source: "CONN-INFLATION", status: "VERIFIED" }] };
+  } catch (e) { return { contract: { ...base, status: "DATA_UNAVAILABLE", statusNote: `fetch failed: ${e instanceof Error ? e.message : String(e)}; no value is fabricated` }, data: [] }; }
+}
+
+/** Bank of England base rate: series IUDBEDR from the Bank's database, as CSV. The last dated row is the rate in force. */
+export async function fetchBankRate(): Promise<{ contract: ConnectorContract; data: MacroIndicator[] }> {
+  const base = contract({ id: "CONN-BANK-RATE", fields: ["bank rate", "effective date"], domain: "macro", name: "Bank of England base rate", provider: "Bank of England database (IUDBEDR)", kind: "live", requires: [], freshness: "MONTHLY", legal: "open data" });
+  try {
+    const y = new Date().getUTCFullYear() - 1;
+    const url = `https://www.bankofengland.co.uk/boeapps/database/_iadb-fromshowcolumns.asp?csv.x=yes&Datefrom=01/Jan/${y}&Dateto=now&SeriesCodes=IUDBEDR&CSVF=TN&UsingCodes=Y`;
+    const text = await cached(url, 24 * 3600e3, () => getText(url, 15000));
+    if (/<html/i.test(text)) throw new Error("HTML page returned instead of CSV");
+    const rows = text.trim().split(/\r?\n/).slice(1).map((l) => l.split(",")).filter((c) => c.length >= 2 && Number.isFinite(Number(c[1])));
+    const last = rows.at(-1); if (!last) throw new Error("no readable row");
+    const d = new Date(`${last[0]} UTC`); if (Number.isNaN(d.getTime())) throw new Error(`unreadable date ${last[0]}`);
+    const at = new Date().toISOString();
+    return { contract: { ...base, status: "CONNECTED", statusNote: `bank rate ${last[1]} % as of ${d.toISOString().slice(0, 10)}`, lastFetchedAt: at }, data: [{ id: "macro.bank_rate", name: "Bank of England base rate", value: Number(last[1]), unit: "%", geography: "UK", asOf: d.toISOString(), frequency: "MONTHLY", source: "CONN-BANK-RATE", status: "VERIFIED" }] };
+  } catch (e) { return { contract: { ...base, status: "DATA_UNAVAILABLE", statusNote: `fetch failed: ${e instanceof Error ? e.message : String(e)}; no value is fabricated` }, data: [] }; }
+}
+
+/** Calls every live connector now and reports what it got: the only way a status becomes CONNECTED is a successful call in this very run. */
+export async function verifyConnectors(spec: PropertySpec = COUNTRY_HOUSE_34): Promise<{ id: string; status: ConnectorContract["status"]; note: string; ms: number }[]> {
+  clearConnectorCache();
+  const timed = async <T extends { contract: ConnectorContract }>(fn: () => Promise<T>) => { const t0 = Date.now(); const r = await fn(); return { id: r.contract.id, status: r.contract.status, note: r.contract.statusNote, ms: Date.now() - t0 }; };
+  return Promise.all([timed(() => fetchWeather(spec)), timed(() => fetchHolidays(spec.location.country)), timed(() => fetchFx()), timed(() => fetchInflation()), timed(() => fetchBankRate())]);
 }
 
 /** Operator-entered registers (events, competitor observations) live in process memory alongside runs. */
@@ -87,12 +134,14 @@ export const emptyRegisters = (): OperatorRegisters => ({ events: [], competitor
 
 export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: OperatorRegisters = emptyRegisters(), overrides: { weather?: WeatherForecast | null; offline?: boolean } = {}): Promise<ExternalContext> {
   const now = new Date().toISOString();
-  const [wx, hol, fx] = overrides.offline ? [null, null, null] : await Promise.all([fetchWeather(spec), fetchHolidays(spec.location.country), fetchFx()]);
+  const [wx, hol, fx, cpi, br] = overrides.offline ? [null, null, null, null, null] : await Promise.all([fetchWeather(spec), fetchHolidays(spec.location.country), fetchFx(), fetchInflation(), fetchBankRate()]);
   const offlineNote = (id: string, domain: ConnectorContract["domain"], name: string, provider: string, fresh: Freshness): ConnectorContract => contract({ id, domain, name, provider, kind: "live", requires: [], fields: [], freshness: fresh, legal: "open data", status: "NOT_CONNECTED", statusNote: "offline mode requested: live fetch skipped" });
   const connectors: ConnectorContract[] = [
     wx?.contract ?? offlineNote("CONN-WEATHER", "weather", "Weather forecast", "Open-Meteo", "DAILY"),
     hol?.contract ?? offlineNote("CONN-CALENDAR", "calendar", "Public holidays", "gov.uk", "STATIC"),
     fx?.contract ?? offlineNote("CONN-FX", "macro", "Exchange rates (GBP)", "Frankfurter", "DAILY"),
+    cpi?.contract ?? offlineNote("CONN-INFLATION", "macro", "UK inflation (CPIH)", "ONS API (beta)", "MONTHLY"),
+    br?.contract ?? offlineNote("CONN-BANK-RATE", "macro", "Bank of England base rate", "Bank of England database", "MONTHLY"),
     mapsConnector(spec),
     ...CONTRACT_ONLY.map((c) => (c.id === "CONN-PMS" && reg.systems.pms ? { ...c, status: "CONNECTED" as const, statusNote: `file import: ${reg.systems.pms.source}`, lastFetchedAt: reg.systems.pms.asOf } : c.id === "CONN-EVENTS" && reg.events.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.events.length} operator-entered event(s)` } : c.id === "CONN-COMPETITOR" && reg.competitors.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.competitors.length} operator-entered observation(s)` } : c)),
     cameraConnector(reg.cameras, process.env, now),
@@ -100,5 +149,5 @@ export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: O
   const weather = overrides.weather !== undefined ? overrides.weather : wx?.data ?? null;
   const sourceQuality: Record<string, DataQuality> = { ...reg.sourceQuality };
   if (wx?.contract.status === "CONNECTED") sourceQuality["CONN-WEATHER"] = quality(1, 0.8, 0, "DAILY", "forecast skill declines with lead time");
-  return { fetchedAt: now, connectors, sourceQuality, weather, holidays: hol?.data ?? [], events: reg.events, search: [], macro: fx?.data ?? [], competitors: reg.competitors, ota: reg.ota, operations: reg.operations, cameras: reg.cameras, vision: [], systems: reg.systems, providers: reg.providers, capacity: null, partnership: reg.partnership };
+  return { fetchedAt: now, connectors, sourceQuality, weather, holidays: hol?.data ?? [], events: reg.events, search: [], macro: [...(fx?.data ?? []), ...(cpi?.data ?? []), ...(br?.data ?? [])], competitors: reg.competitors, ota: reg.ota, operations: reg.operations, cameras: reg.cameras, vision: [], systems: reg.systems, providers: reg.providers, capacity: null, partnership: reg.partnership };
 }
