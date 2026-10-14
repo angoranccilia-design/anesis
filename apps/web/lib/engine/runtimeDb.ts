@@ -20,8 +20,8 @@ export function getRuntime(): Promise<RuntimeHandle> {
   return (g.__anesisRuntime ??= (async () => {
     const local = join(process.cwd(), ".runtime", "index.mjs"); // copied by `prebuild`, so a deployed app carries its runtime
     const bundle = process.env.ANESIS_RUNTIME_BUNDLE ?? (existsSync(local) ? local : join(process.cwd(), "..", "..", "packages", "runtime", "dist", "index.mjs"));
-    // Referenced here so the build traces PGlite (WASM assets) and pg into the deployed functions; the bundle imports them by name.
-    await Promise.all([import("@electric-sql/pglite"), import("pg")]);
+    // Referenced here so the build traces PGlite (WASM assets), pg and xlsx into the deployed functions; the bundle imports them by name.
+    await Promise.all([import("@electric-sql/pglite"), import("pg"), import("xlsx")]);
     const rt = (await import(/* webpackIgnore: true */ pathToFileURL(bundle).href)) as Runtime;
     const db = await rt.openDatabase(); await rt.migrate(db);
     if (demoMode()) { const { ensureDemoSeed } = await import("../console/seed"); await ensureDemoSeed(rt, db); }
