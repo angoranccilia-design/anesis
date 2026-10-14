@@ -17,6 +17,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r test
+      - run: pnpm --filter @anesis/runtime build
+      - run: pnpm --filter @anesis/web build
+        env: { ANESIS_OFFLINE: "1" }
 
   # Réserve 1 — rejeu de l'isolation sur un VRAI Postgres à travers PgBouncer en mode TRANSACTION.
   # Migrations en connexion directe propriétaire (5432) ; requêtes applicatives à travers le pooler

@@ -11,6 +11,9 @@
  *   once                                      process due jobs once and exit
  *   status                                    jobs, properties, models, last traces
  *   connectors [--property <id>]              call every live connector now and print the real statuses
+ *   health                                    the health record as JSON (exit 1 when not ok); `work` also serves GET /health on ANESIS_HEALTH_PORT
+ *   backup <dir> | restore <dir>              business tables as JSON files (restore never overwrites an existing row)
+ *   status [--json]
  *   import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]
  * Backend: DATABASE_URL (Postgres) or ANESIS_PGLITE_DIR (embedded); neither = in-memory, which is only useful for `once`.
  */
@@ -24,6 +27,9 @@ import { upsertProperty, listProperties, grantProperty } from "./properties.js";
 import { saveRegisters } from "./registers.js";
 import { COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
 import { verifyConnectors } from "@anesis/connectors";
+import { health, startHealthServer } from "./health.js";
+import { backup, restore } from "./backup.js";
+import { log } from "./log.js";
 import { loadProperty } from "./properties.js";
 
 const cmd = process.argv[2] ?? "status";
@@ -49,7 +55,10 @@ try {
   else if (cmd === "grant") { const op = process.argv[3], id = process.argv[4]; if (!op || !id) { console.error("usage: anesis-runtime grant <operator-id> <property>"); process.exit(2); } await grantProperty(db, op, id); console.log(`${op} may access ${id}`); }
   else if (cmd === "schedule") { const id = propertyArg(); const r = await scheduleCycle(db, id, new Date().toISOString(), deps.cadenceDays); console.log(r.created ? `scheduled ${r.key}` : `already scheduled: ${r.key}`); }
   else if (cmd === "once") { const r = await runOnce(db, deps); console.log(JSON.stringify(r)); }
-  else if (cmd === "work") { console.log(`worker on ${db.backend}; offline=${deps.offline}`); await startWorker(db, deps); }
+  else if (cmd === "work") { const port = Number(process.env.ANESIS_HEALTH_PORT ?? 0); const srv = port ? startHealthServer(db, port) : null; log("info", "worker started", { backend: db.backend, offline: deps.offline, cadenceDays: deps.cadenceDays, healthPort: port || null }); await startWorker(db, deps); srv?.close(); }
+  else if (cmd === "health") { const h = await health(db); console.log(JSON.stringify(h, null, 2)); if (!h.ok) process.exitCode = 1; }
+  else if (cmd === "backup") { const dir = process.argv[3]; if (!dir) { console.error("usage: anesis-runtime backup <dir>"); process.exit(2); } console.log(JSON.stringify(await backup(db, dir))); }
+  else if (cmd === "restore") { const dir = process.argv[3]; if (!dir) { console.error("usage: anesis-runtime restore <dir>"); process.exit(2); } console.log(JSON.stringify(await restore(db, dir))); }
   else if (cmd === "import") {
     const file = process.argv[3]; if (!file) { console.error("usage: anesis-runtime import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]"); process.exit(2); }
     const id = propertyArg();
@@ -61,6 +70,7 @@ try {
     const id = arg("--property") ?? process.env.ANESIS_PROPERTY_ID ?? COUNTRY_HOUSE_34.id; const spec = (await loadProperty(db, id)) ?? COUNTRY_HOUSE_34;
     for (const r of await verifyConnectors(spec)) console.log(`${r.id.padEnd(18)} ${r.status.padEnd(18)} ${String(r.ms).padStart(5)} ms  ${r.note}`);
   }
+  else if (cmd === "status" && has("--json")) { console.log(JSON.stringify({ properties: await listProperties(db), jobs: await listJobs(db, 20), health: await health(db) }, null, 2)); }
   else if (cmd === "status") {
     console.log("properties:", (await listProperties(db)).map((p) => `${p.id} ${p.name}${p.simulated ? " (SIMULATED)" : ""}`).join("\n  ") || "none declared");
     console.log("jobs:", (await listJobs(db, 10)).map((j) => `${j.id} ${j.kind} ${j.state} ${j.key} attempts ${j.attempts}${j.lastError ? " error: " + j.lastError : ""}`).join("\n  ") || "none");

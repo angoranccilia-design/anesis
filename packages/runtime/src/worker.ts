@@ -8,6 +8,8 @@ import { latestImport } from "./imports.js";
 import { persistPrepared, openInterventions } from "./interventions.js";
 import { loadProperty } from "./properties.js";
 import { loadRegisters } from "./registers.js";
+import { workerState } from "./health.js";
+import { log } from "./log.js";
 
 export interface WorkerDeps {
   readonly spec?: PropertySpec;                 // test override; otherwise the property comes from the job payload and the registry
@@ -125,5 +127,10 @@ export async function runOnce(db: SqlClient, deps: WorkerDeps = {}): Promise<{ r
 /** The long-running process: poll, process, sleep. Stops on SIGINT/SIGTERM after the current job. */
 export async function startWorker(db: SqlClient, deps: WorkerDeps = {}, pollMs = 15_000): Promise<void> {
   let stop = false; const onStop = () => { stop = true; }; process.on("SIGINT", onStop); process.on("SIGTERM", onStop);
-  while (!stop) { const r = await runOnce(db, deps); if (!r.processed.length) await new Promise((res) => setTimeout(res, pollMs)); }
+  while (!stop) {
+    workerState.lastPollAt = new Date().toISOString();
+    try { const r = await runOnce(db, deps); for (const p of r.processed) log(p.outcome === "done" ? "info" : "warn", "job processed", { jobId: p.id, kind: p.kind, outcome: p.outcome }); if (r.recovered) log("warn", "jobs recovered after lock expiry", { recovered: r.recovered }); if (!r.processed.length) await new Promise((res) => setTimeout(res, pollMs)); }
+    catch (e) { log("error", "worker loop error", { error: e instanceof Error ? e.message : String(e) }); await new Promise((res) => setTimeout(res, pollMs)); }
+  }
+  log("info", "worker stopped");
 }

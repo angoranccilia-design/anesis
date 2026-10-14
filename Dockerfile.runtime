@@ -1,0 +1,24 @@
+# Anesis autonomous runtime — the worker that runs decision cycles on a schedule, against Postgres.
+# Build:  docker build -f Dockerfile.runtime -t anesis-runtime .
+# Run:    docker run --env-file .env anesis-runtime work        (see .env.example; DATABASE_URL required)
+FROM node:22-alpine AS build
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/campaign/package.json ./apps/campaign/package.json
+COPY apps/web/package.json ./apps/web/package.json
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @anesis/runtime build
+
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/packages/runtime/dist ./dist
+COPY --from=build /app/node_modules/.pnpm/node_modules ./node_modules
+COPY --from=build /app/packages/runtime/node_modules ./packages/runtime/node_modules
+EXPOSE 8787
+HEALTHCHECK --interval=60s --timeout=10s --retries=3 CMD wget -qO- http://127.0.0.1:8787/health || exit 1
+ENV ANESIS_HEALTH_PORT=8787
+ENTRYPOINT ["node", "dist/cli.mjs"]
+CMD ["work"]

@@ -1,0 +1,24 @@
+# Reproducible deployment of the runtime with its own Postgres. The console (apps/web) points at the same DATABASE_URL.
+services:
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_USER: anesis, POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}, POSTGRES_DB: anesis }
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U anesis"], interval: 10s, timeout: 5s, retries: 10 }
+  runtime:
+    build: { context: ., dockerfile: Dockerfile.runtime }
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgres://anesis:${POSTGRES_PASSWORD}@postgres:5432/anesis
+      ANESIS_HEALTH_PORT: "8787"
+      ANESIS_CADENCE_DAYS: "7"
+    ports: ["8787:8787"]
+    restart: unless-stopped
+  backup:
+    build: { context: ., dockerfile: Dockerfile.runtime }
+    depends_on: { postgres: { condition: service_healthy } }
+    environment: { DATABASE_URL: "postgres://anesis:${POSTGRES_PASSWORD}@postgres:5432/anesis" }
+    volumes: ["./backups:/backups"]
+    entrypoint: ["sh", "-c", "while true; do node dist/cli.mjs backup /backups/$(date -u +%F) && sleep 86400; done"]
+    restart: unless-stopped
+volumes: { pgdata: {} }

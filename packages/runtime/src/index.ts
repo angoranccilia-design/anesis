@@ -9,3 +9,6 @@ export * from "./interventions.js";
 export * from "./properties.js";
 export * from "./registers.js";
 export * from "./results.js";
+export * from "./health.js";
+export * from "./backup.js";
+export * from "./log.js";
