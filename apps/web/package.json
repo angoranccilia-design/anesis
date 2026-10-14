@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prebuild": "pnpm --filter @anesis/runtime build"
   },
   "dependencies": {
     "@anesis/agent-runtime": "workspace:*",

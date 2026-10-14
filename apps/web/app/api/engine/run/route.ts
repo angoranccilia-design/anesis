@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as RunRequest & { stream?: boolean; repeatOf?: string };
   const auth = authoriseIntent("run_cycle", { seed: body.seed, budgetGbp: body.budgetGbp });
   if (auth.outcome.kind !== "allow") return NextResponse.json({ error: "not authorised", outcome: auth.outcome }, { status: 403 });
-  const prev = body.repeatOf ? getRun(body.repeatOf) : undefined;
+  const prev = body.repeatOf ? await getRun(body.repeatOf) : undefined;
   const reqRun: RunRequest = prev ? { ...body, seed: prev.input.seed, budgetGbp: prev.input.budgetGbp, spec: prev.input.spec, benchmarks: prev.input.benchmarks, contextSnapshot: prev.context, label: `again: ${prev.label}` } : body;
   if (body.stream === false) { const run = await executeRun(reqRun); return NextResponse.json({ runId: run.id, durationMs: run.durationMs }); }
   const enc = new TextEncoder();

@@ -1,6 +1,6 @@
 import type { SqlClient } from "./sql.js";
 
-/** Four tables. Everything the runtime knows lives here; nothing in process memory survives a restart, and nothing needs to. */
+/** Everything the runtime knows lives in these tables; nothing in process memory survives a restart, and nothing needs to. */
 export const SCHEMA_SQL = `
 create table if not exists property_models (
   property_id text primary key,
@@ -72,6 +72,33 @@ create table if not exists interventions (
   updated_at timestamptz not null default now()
 );
 create index if not exists interventions_prop on interventions (property_id, prepared_at desc);
+create table if not exists properties (
+  property_id text primary key,
+  spec jsonb not null,                   -- PropertySpec as declared by the operator (name, type, rooms, location): figures come from imports
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table if not exists operator_registers (
+  property_id text primary key,
+  registers jsonb not null,              -- OperatorRegisters: events, competitors, systems, providers, partnership, benchmarks with sources
+  updated_at timestamptz not null default now()
+);
+create table if not exists operator_properties (
+  operator_id text not null,             -- operators.id from the application database (founders are not listed: they see all)
+  property_id text not null,
+  granted_at timestamptz not null default now(),
+  primary key (operator_id, property_id)
+);
+create table if not exists cycle_results (
+  run_id text not null,
+  property_id text not null,
+  job_id bigint,
+  label text,
+  duration_ms int,
+  at timestamptz not null,
+  result jsonb not null,                 -- the full CycleResult: observations, evidence chains, diagnosis, decision, records, context
+  primary key (property_id, run_id)
+);
 `;
 
 export async function migrate(db: SqlClient): Promise<void> { for (const stmt of SCHEMA_SQL.split(";").map((s) => s.trim()).filter(Boolean)) await db.query(stmt); }

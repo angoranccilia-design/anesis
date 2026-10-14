@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       answer: { intent: "fund", language: lang, headline, facts: [fr ? `Raison : ${gov.command.reason}.` : `Reason: ${gov.command.reason}.`, gov.command.amountGbp !== null ? (fr ? `Montant détecté : £${gov.command.amountGbp.toLocaleString("en-GB")}.` : `Amount detected: £${gov.command.amountGbp.toLocaleString("en-GB")}.`) : "", fr ? "La voix et le texte passent par la même politique ; cette application n'exécute jamais une intervention." : "Voice and text go through the same policy; this application never executes an intervention."].filter(Boolean), refs: [], sufficient: true } });
   }
   const intent = classify(q);
-  let run = runId ? getRun(runId) : latestRun();
+  let run = runId ? await getRun(runId) : await latestRun();
   let a = answer(q, run?.result, lang, previous);
   if (a.action?.type === "reset") return NextResponse.json({ intent, tier: gov.command.tier, level: gov.command.level, executed: false, language: lang, locale, answer: { ...a, headline: fr ? "La réinitialisation ne se fait pas par une phrase : utilisez la commande de réinitialisation, qui demande une confirmation explicite." : "A reset is not done by sentence: use the reset control, which asks for an explicit confirmation.", facts: [] } });
   if (a.action?.type === "run") {

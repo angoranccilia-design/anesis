@@ -5,11 +5,11 @@ import { guardApi } from "@/lib/guard";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guardApi(); if (!g.ok) return g.response;
-  return params.then(({ id }) => {
-    const run = id === "latest" ? listRuns().at(-1) : getRun(id);
+  return params.then(async ({ id }) => {
+    const run = id === "latest" ? (await listRuns()).at(-1) : await getRun(id);
     if (!run) return NextResponse.json({ error: "no such run" }, { status: 404 });
     const against = new URL(req.url).searchParams.get("compare");
-    const other = against ? getRun(against) : undefined;
+    const other = against ? await getRun(against) : undefined;
     return NextResponse.json({ ...run, diff: other ? compareRuns(other.result, run.result) : undefined, explanation: other ? explainChange(other.result, run.result) : undefined });
   });
 }

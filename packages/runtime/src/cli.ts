@@ -1,39 +1,64 @@
 #!/usr/bin/env node
 /**
  * anesis-runtime <command>
- *   migrate                 create the tables
- *   schedule [--now]        schedule the next cycle for the property (default: now)
- *   work                    run the worker loop (ANESIS_OFFLINE=1 for no live connectors)
- *   once                    process due jobs once and exit
- *   status                  jobs, models, last traces
- *   import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]   read a PMS export, store the result, feed the next cycle
+ *   migrate                                   create the tables
+ *   property <id> --file spec.json | --demo    declare a property (identity, type, location, rooms); --demo registers the simulated one
+ *   properties                                list declared properties
+ *   register <property> --file registers.json merge operator registers (events, competitors, systems, partnership, benchmarks with sources)
+ *   grant <operator-id> <property>            let an operator read and act on a property (founders need no grant)
+ *   schedule [--now] --property <id>          schedule the next cycle for the property
+ *   work                                      run the worker loop (ANESIS_OFFLINE=1 for no live connectors)
+ *   once                                      process due jobs once and exit
+ *   status                                    jobs, properties, models, last traces
+ *   import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]
  * Backend: DATABASE_URL (Postgres) or ANESIS_PGLITE_DIR (embedded); neither = in-memory, which is only useful for `once`.
  */
+import { readFileSync } from "node:fs";
 import { openDatabase } from "./sql.js";
 import { migrate } from "./schema.js";
 import { runOnce, scheduleCycle, startWorker } from "./worker.js";
 import { listJobs } from "./queue.js";
 import { importFile } from "./imports.js";
-import { COUNTRY_HOUSE_34 } from "@anesis/engine";
+import { upsertProperty, listProperties, grantProperty } from "./properties.js";
+import { saveRegisters } from "./registers.js";
+import { COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
 
 const cmd = process.argv[2] ?? "status";
+const arg = (k: string) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
+const has = (k: string) => process.argv.includes(k);
 const db = await openDatabase();
 await migrate(db);
 const deps = { offline: process.env.ANESIS_OFFLINE === "1", cadenceDays: Number(process.env.ANESIS_CADENCE_DAYS ?? 7) };
-if (cmd === "migrate") console.log(`schema ready on ${db.backend}`);
-else if (cmd === "schedule") { const r = await scheduleCycle(db, COUNTRY_HOUSE_34.id, new Date().toISOString(), deps.cadenceDays); console.log(r.created ? `scheduled ${r.key}` : `already scheduled: ${r.key}`); }
-else if (cmd === "once") { const r = await runOnce(db, deps); console.log(JSON.stringify(r)); }
-else if (cmd === "work") { console.log(`worker on ${db.backend}; offline=${deps.offline}`); await startWorker(db, deps); }
-else if (cmd === "import") {
-  const file = process.argv[3]; if (!file) { console.error("usage: anesis-runtime import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]"); process.exit(2); }
-  const arg = (k: string) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
-  const fx: Record<string, number> = {}; for (const kv of (arg("--fx") ?? "").split(",").filter(Boolean)) { const [c, v] = kv.split("="); if (c && v) fx[c.toUpperCase()] = Number(v); }
-  const r = await importFile(db, file, { propertyId: COUNTRY_HOUSE_34.id, rooms: arg("--rooms") ? Number(arg("--rooms")) : null, dateOrder: arg("--date-order") as never, fxToGbp: fx, collectedAt: arg("--collected-at") ?? null });
-  console.log(JSON.stringify({ file: r.provenance.filename, sha256: r.provenance.sha256.slice(0, 12), rows: r.counts, period: r.period, fields: r.fields, metrics: r.metrics, verdict: r.sufficiency.verdict, cannot: r.sufficiency.cannotCompute, next: r.sufficiency.nextData, issues: r.issues.map((i) => `${i.kind}×${i.count}: ${i.examples[0]}`) }, null, 2));
-}
-else if (cmd === "status") {
-  console.log("jobs:", (await listJobs(db, 10)).map((j) => `${j.id} ${j.kind} ${j.state} ${j.key} attempts ${j.attempts}${j.lastError ? " error: " + j.lastError : ""}`).join("\n  ") || "none");
-  console.log("models:", (await db.query<{ property_id: string; cycles: number; updated_at: string }>("select property_id, cycles, updated_at from property_models")).rows.map((r) => `${r.property_id} ${r.cycles} cycles, updated ${r.updated_at}`).join("; ") || "none");
-  console.log("last traces:", (await db.query<{ type: string; state: string; at: string }>("select type, state, at from runtime_traces order by id desc limit 8")).rows.map((r) => `${r.at} ${r.type} ${r.state ?? ""}`).join("\n  ") || "none");
-}
-await db.close();
+const propertyArg = (): string => { const p = arg("--property") ?? process.env.ANESIS_PROPERTY_ID; if (!p) { console.error("--property <id> (or ANESIS_PROPERTY_ID) is required"); process.exit(2); } return p; };
+try {
+  if (cmd === "migrate") console.log(`schema ready on ${db.backend}`);
+  else if (cmd === "property") {
+    const id = process.argv[3]; if (!id) { console.error("usage: anesis-runtime property <id> --file spec.json | --demo"); process.exit(2); }
+    const spec: PropertySpec = has("--demo") ? COUNTRY_HOUSE_34 : { ...(JSON.parse(readFileSync(arg("--file") ?? "", "utf8")) as PropertySpec), id };
+    await upsertProperty(db, spec); console.log(`property ${spec.id} declared: ${spec.name}${has("--demo") ? " (SIMULATED)" : ""}`);
+  }
+  else if (cmd === "properties") console.log((await listProperties(db)).map((p) => `${p.id} ${p.name}${p.simulated ? " (SIMULATED)" : ""}`).join("\n") || "none declared");
+  else if (cmd === "register") {
+    const id = process.argv[3]; const file = arg("--file"); if (!id || !file) { console.error("usage: anesis-runtime register <property> --file registers.json"); process.exit(2); }
+    const r = await saveRegisters(db, id, JSON.parse(readFileSync(file, "utf8")));
+    console.log(`registers for ${id}: ${r.events.length} event(s), ${r.competitors.length} competitor observation(s), systems ${Object.keys(r.systems).join(",") || "none"}, benchmarks ${Object.keys(r.benchmarks).length}, partnership ${r.partnership ? "on record" : "none"}`);
+  }
+  else if (cmd === "grant") { const op = process.argv[3], id = process.argv[4]; if (!op || !id) { console.error("usage: anesis-runtime grant <operator-id> <property>"); process.exit(2); } await grantProperty(db, op, id); console.log(`${op} may access ${id}`); }
+  else if (cmd === "schedule") { const id = propertyArg(); const r = await scheduleCycle(db, id, new Date().toISOString(), deps.cadenceDays); console.log(r.created ? `scheduled ${r.key}` : `already scheduled: ${r.key}`); }
+  else if (cmd === "once") { const r = await runOnce(db, deps); console.log(JSON.stringify(r)); }
+  else if (cmd === "work") { console.log(`worker on ${db.backend}; offline=${deps.offline}`); await startWorker(db, deps); }
+  else if (cmd === "import") {
+    const file = process.argv[3]; if (!file) { console.error("usage: anesis-runtime import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]"); process.exit(2); }
+    const id = propertyArg();
+    const fx: Record<string, number> = {}; for (const kv of (arg("--fx") ?? "").split(",").filter(Boolean)) { const [c, v] = kv.split("="); if (c && v) fx[c.toUpperCase()] = Number(v); }
+    const r = await importFile(db, file, { propertyId: id, rooms: arg("--rooms") ? Number(arg("--rooms")) : null, dateOrder: arg("--date-order") as never, fxToGbp: fx, collectedAt: arg("--collected-at") ?? null });
+    console.log(JSON.stringify({ property: id, file: r.provenance.filename, sha256: r.provenance.sha256.slice(0, 12), rows: r.counts, period: r.period, window: r.sufficiency.window, recency: r.recency.statement, fields: r.fields, metrics: r.metrics, verdict: r.sufficiency.verdict, cannot: r.sufficiency.cannotCompute, next: r.sufficiency.nextData }, null, 2));
+  }
+  else if (cmd === "status") {
+    console.log("properties:", (await listProperties(db)).map((p) => `${p.id} ${p.name}${p.simulated ? " (SIMULATED)" : ""}`).join("\n  ") || "none declared");
+    console.log("jobs:", (await listJobs(db, 10)).map((j) => `${j.id} ${j.kind} ${j.state} ${j.key} attempts ${j.attempts}${j.lastError ? " error: " + j.lastError : ""}`).join("\n  ") || "none");
+    console.log("models:", (await db.query<{ property_id: string; cycles: number; updated_at: string }>("select property_id, cycles, updated_at from property_models")).rows.map((r) => `${r.property_id} ${r.cycles} cycles, updated ${r.updated_at}`).join("\n  ") || "none");
+    console.log("last traces:", (await db.query<{ type: string; state: string; at: string }>("select type, state, at from runtime_traces order by id desc limit 8")).rows.map((r) => `${r.at} ${r.type} ${r.state ?? ""}`).join("\n  ") || "none");
+  }
+  else { console.error(`unknown command ${cmd}`); process.exit(2); }
+} finally { await db.close(); }

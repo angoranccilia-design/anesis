@@ -5,7 +5,7 @@ export const metadata = { title: "The Core — Anesis Commercial Intelligence Sy
 export const dynamic = "force-dynamic";
 
 /** The engine console. Server-rendered with the latest real run (if any); nothing is pre-filled otherwise. */
-export default function EnginePage() {
-  const run = latestRun();
+export default async function EnginePage() {
+  const run = await latestRun();
   return <EngineConsole initial={run ? JSON.parse(JSON.stringify(run)) : null} />;
 }

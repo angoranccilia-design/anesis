@@ -1,15 +1,17 @@
 import { runCycle, EngineBus, COUNTRY_HOUSE_34, newModel, appendCycle, cycleInputFromModel, modelSummary, type PropertySpec, type ExternalContext } from "@anesis/engine";
-import { buildContext, emptyRegisters, type OperatorRegisters } from "@anesis/connectors";
+import { buildContext, type OperatorRegisters } from "@anesis/connectors";
 import type { SqlClient } from "./sql.js";
 import { PgModelStore } from "./store.js";
 import { claim, complete, enqueue, fail, recoverExpired, type Job } from "./queue.js";
 import { trace } from "./trace.js";
 import { latestImport } from "./imports.js";
 import { persistPrepared, openInterventions } from "./interventions.js";
+import { loadProperty } from "./properties.js";
+import { loadRegisters } from "./registers.js";
 
 export interface WorkerDeps {
-  readonly spec?: PropertySpec;                 // the property this runtime serves (one for now; the model store holds many)
-  readonly registers?: OperatorRegisters;       // operator-entered data (events, competitors, systems, providers, partnership)
+  readonly spec?: PropertySpec;                 // test override; otherwise the property comes from the job payload and the registry
+  readonly registers?: OperatorRegisters;       // test override; otherwise the persisted registers of the property
   readonly offline?: boolean;                   // no live connector calls (tests, air-gapped runs)
   readonly cadenceDays?: number;                // days between scheduled cycles
   readonly budgetGbp?: number;
@@ -40,15 +42,23 @@ async function latestSnapshot(db: SqlClient, propertyId: string, maxAgeMs: numbe
   return (typeof row.context === "string" ? JSON.parse(row.context) : row.context) as ExternalContext;
 }
 
-/** Operator registers plus the latest PMS file import for the property, if one exists: that is how a real export reaches the engine. */
+/** The property a job is about: the registry row, or the built-in simulated property for its own id; anything else is refused. */
+async function specFor(db: SqlClient, job: Job, deps: WorkerDeps): Promise<PropertySpec> {
+  if (deps.spec) return deps.spec;
+  const id = String(job.payload.propertyId ?? COUNTRY_HOUSE_34.id);
+  const spec = await loadProperty(db, id); if (!spec) throw new Error(`unknown property ${id}: declare it first (anesis-runtime property)`);
+  return spec;
+}
+
+/** Persisted operator registers plus the latest PMS file import for the property, if one exists: that is how a real export reaches the engine. */
 async function registersFor(db: SqlClient, propertyId: string, deps: WorkerDeps): Promise<OperatorRegisters> {
-  const base = deps.registers ?? emptyRegisters();
+  const base = deps.registers ?? (await loadRegisters(db, propertyId));
   const imp = await latestImport(db, propertyId); if (!imp || !imp.snapshot) return base;
   return { ...base, systems: { ...base.systems, pms: imp.snapshot }, sourceQuality: { ...base.sourceQuality, "CONN-PMS": imp.quality } };
 }
 
 async function collect(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Promise<ExternalContext> {
-  const spec = deps.spec ?? COUNTRY_HOUSE_34; const t0 = Date.now();
+  const spec = await specFor(db, job, deps); const t0 = Date.now();
   const ctx = await buildContext(spec, await registersFor(db, spec.id, deps), { offline: deps.offline });
   const connected = ctx.connectors.filter((c) => c.status === "CONNECTED").map((c) => c.id);
   await db.query(`insert into context_snapshots (property_id, fetched_at, connected, context) values ($1, $2, $3, $4::jsonb)`, [spec.id, ctx.fetchedAt, connected, JSON.stringify(ctx)]);
@@ -58,7 +68,7 @@ async function collect(db: SqlClient, job: Job, deps: WorkerDeps, now: string): 
 }
 
 async function cycle(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Promise<void> {
-  const spec = deps.spec ?? COUNTRY_HOUSE_34; const store = new PgModelStore(db); const t0 = Date.now();
+  const spec = await specFor(db, job, deps); const store = new PgModelStore(db); const t0 = Date.now();
   const model = (await store.load(spec.id)) ?? newModel(spec, now);
   // Resume after failure (C6): a retried job whose cycle was already committed does not run the engine again.
   const already = model.cycles.find((c) => c.jobKey === job.key);
@@ -73,7 +83,7 @@ async function cycle(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Pr
   const bus = new EngineBus(); const rows: Promise<void>[] = [];
   bus.subscribe((e) => { rows.push(trace(db, { jobId: job.id, runId, propertyId: spec.id, kind: "engine", type: e.type, state: e.state, detail: e.detail, at: e.at })); });
   const input = cycleInputFromModel(model);
-  const result = runCycle({ seed: model.cycles.length + 1, budgetGbp: deps.budgetGbp ?? 16_000, now, memory: input.memory, propertyMemory: input.propertyMemory, cycleNumber: input.cycleNumber, context, bus, openInterventions: open.committed, measure: false });   // no simulated outcome in the runtime: a measurement is a MEASURED transition on a contract, with its record (C6)
+  const result = runCycle({ seed: model.cycles.length + 1, budgetGbp: deps.budgetGbp ?? 16_000, now, spec, memory: input.memory, propertyMemory: input.propertyMemory, cycleNumber: input.cycleNumber, context, bus, openInterventions: open.committed, measure: false });   // no simulated outcome in the runtime: a measurement is a MEASURED transition on a contract, with its record (C6)
   await Promise.all(rows);
   const next = appendCycle(model, result, { id: runId, at: now, jobKey: job.key });
   const cadence = Number(job.payload.cadenceDays ?? deps.cadenceDays ?? 7);
@@ -82,6 +92,7 @@ async function cycle(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Pr
   await db.transaction(async (tx) => {
     await new PgModelStore(tx).save(next);
     await trace(tx, { jobId: job.id, runId, propertyId: spec.id, kind: "model", type: "MODEL_PERSISTED", state: "done", detail: `${modelSummary(next, now)}${open.committed.length ? `; ${open.committed.length} in progress: ${open.committed.map((o) => `${o.interventionId} ${o.state}`).join(", ")}` : ""}`, at: now, durationMs: Date.now() - t0 });
+    await tx.query(`insert into cycle_results (run_id, property_id, job_id, label, duration_ms, at, result) values ($1,$2,$3,$4,$5,$6,$7::jsonb) on conflict (property_id, run_id) do nothing`, [runId, spec.id, job.id, `scheduled cycle ${job.key}`, Date.now() - t0, now, JSON.stringify(result)]);
     await persistPrepared(tx, result, runId, now, job.id, open.pending);
     const s = await scheduleCycle(tx, spec.id, nextAt, cadence);
     await trace(tx, { jobId: job.id, runId, propertyId: spec.id, kind: "job", type: "NEXT_CYCLE_SCHEDULED", state: s.created ? "created" : "already scheduled", detail: `${s.key} at ${nextAt}`, at: now });

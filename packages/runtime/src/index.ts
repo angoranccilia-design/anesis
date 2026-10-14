@@ -6,3 +6,6 @@ export * from "./trace.js";
 export * from "./worker.js";
 export * from "./imports.js";
 export * from "./interventions.js";
+export * from "./properties.js";
+export * from "./registers.js";
+export * from "./results.js";

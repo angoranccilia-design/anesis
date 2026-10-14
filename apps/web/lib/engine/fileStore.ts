@@ -1,7 +1,7 @@
 import "server-only";
 import { mkdir, readFile, writeFile, rename, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { getRuntime, runtimeConfigured } from "./runtimeDb";
 import { parseModel, serializeModel, type ModelStore, type PropertyModel } from "@anesis/engine";
 
 /**
@@ -37,21 +37,13 @@ export class FileModelStore implements ModelStore {
  * console and the autonomous runtime read and write the same property model. Otherwise, the file store.
  */
 export const defaultStore = (): ModelStore => {
-  if (process.env.DATABASE_URL || process.env.ANESIS_PGLITE_DIR) return new LazyPgStore();
+  if (runtimeConfigured()) return new LazyPgStore();
   return new FileModelStore(process.env.ANESIS_DATA_DIR ?? join(process.cwd(), ".anesis-data"));
 };
 
 class LazyPgStore implements ModelStore {
   private inner: Promise<ModelStore> | null = null;
-  private open(): Promise<ModelStore> {
-    // The runtime is loaded natively (outside the web bundler) from its built ESM bundle, because PGlite and pg
-    // load WASM and native assets that a bundler breaks. Build it with `pnpm --filter @anesis/runtime build`.
-    return (this.inner ??= (async () => {
-      const bundle = process.env.ANESIS_RUNTIME_BUNDLE ?? join(process.cwd(), "..", "..", "packages", "runtime", "dist", "index.mjs");
-      const rt = (await import(/* webpackIgnore: true */ pathToFileURL(bundle).href)) as typeof import("@anesis/runtime");
-      const db = await rt.openDatabase(); await rt.migrate(db); return new rt.PgModelStore(db);
-    })());
-  }
+  private open(): Promise<ModelStore> { return (this.inner ??= getRuntime().then(({ rt, db }) => new rt.PgModelStore(db))); }
   load(id: string) { return this.open().then((s) => s.load(id)); }
   save(m: PropertyModel) { return this.open().then((s) => s.save(m)); }
   list() { return this.open().then((s) => s.list()); }

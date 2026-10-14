@@ -80,8 +80,10 @@ export function mapsConnector(spec: PropertySpec): ConnectorContract {
 }
 
 /** Operator-entered registers (events, competitor observations) live in process memory alongside runs. */
-export interface OperatorRegisters { events: EventRecord[]; competitors: CompetitorObservation[]; ota: OtaSnapshot | null; operations: OperationsSnapshot | null; cameras: CameraSource[]; sourceQuality: Record<string, DataQuality>; systems: SystemSnapshots; providers: Provider[]; partnership: PartnershipTerms | null }
-export const emptyRegisters = (): OperatorRegisters => ({ events: [], competitors: [], ota: null, operations: null, cameras: [], sourceQuality: {}, systems: {}, providers: [], partnership: null });
+/** A benchmark the operator declares with its provenance. Without a source a benchmark is not a benchmark, and the engine treats the constraint as not assessable. */
+export interface DeclaredBenchmark { readonly value: number; readonly source: string; readonly asOf: string }
+export interface OperatorRegisters { events: EventRecord[]; competitors: CompetitorObservation[]; ota: OtaSnapshot | null; operations: OperationsSnapshot | null; cameras: CameraSource[]; sourceQuality: Record<string, DataQuality>; systems: SystemSnapshots; providers: Provider[]; partnership: PartnershipTerms | null; benchmarks: Record<string, DeclaredBenchmark> }
+export const emptyRegisters = (): OperatorRegisters => ({ events: [], competitors: [], ota: null, operations: null, cameras: [], sourceQuality: {}, systems: {}, providers: [], partnership: null, benchmarks: {} });
 
 export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: OperatorRegisters = emptyRegisters(), overrides: { weather?: WeatherForecast | null; offline?: boolean } = {}): Promise<ExternalContext> {
   const now = new Date().toISOString();

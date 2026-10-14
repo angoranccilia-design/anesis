@@ -10,6 +10,9 @@ export async function importFile(db: SqlClient, path: string, opts: Omit<ImportO
   const result = importPmsExport({ filename: basename(path), content: bytes, ...opts });
   await db.query(`insert into pms_imports (property_id, filename, sha256, imported_at, period_from, period_to, verdict, result) values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb)`,
     [opts.propertyId, result.provenance.filename, result.provenance.sha256, result.provenance.importedAt, result.period.from, result.period.to, result.sufficiency.verdict, JSON.stringify(result)]);
+  // A new import makes every context snapshot of the property obsolete: the next cycle must collect again (C10).
+  const inv = await db.query<{ id: number }>(`delete from context_snapshots where property_id = $1 returning id`, [opts.propertyId]);
+  if (inv.rows.length) await trace(db, { propertyId: opts.propertyId, kind: "job", type: "SNAPSHOTS_INVALIDATED", state: "done", detail: `${inv.rows.length} context snapshot(s) discarded after import ${result.provenance.sha256.slice(0, 12)}`, at: result.provenance.importedAt });
   await trace(db, { propertyId: opts.propertyId, kind: "connector", type: "CONN-PMS", state: result.snapshot ? "CONNECTED" : "PARTIAL", detail: `file import ${result.provenance.filename} sha256 ${result.provenance.sha256.slice(0, 12)}: ${result.sufficiency.verdict}; ${result.counts.kept} kept of ${result.counts.rows} rows; issues: ${result.issues.map((i) => `${i.kind}×${i.count}`).join(", ") || "none"}`, at: result.provenance.importedAt });
   return result;
 }

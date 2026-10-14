@@ -8,7 +8,7 @@ const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guardApi(); if (!g.ok) return g.response;
   const { id } = await params;
-  const run = id === "latest" ? listRuns().at(-1) : getRun(id);
+  const run = id === "latest" ? (await listRuns()).at(-1) : await getRun(id);
   if (!run) return new Response("no such run", { status: 404 });
   const r = run.result, d = r.diagnosis, m = r.measurement;
   const row = (k: string, v: string) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;

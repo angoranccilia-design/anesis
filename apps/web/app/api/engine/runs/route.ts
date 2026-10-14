@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const g = await guardApi(); if (!g.ok) return g.response;
   return NextResponse.json({
-    runs: listRuns().map((r) => ({ id: r.id, createdAt: r.createdAt, label: r.label, input: r.input, durationMs: r.durationMs,
+    runs: (await listRuns()).map((r) => ({ id: r.id, createdAt: r.createdAt, label: r.label, input: r.input, durationMs: r.durationMs,
       summary: { binding: r.result.diagnosis.binding, selected: r.result.decision.selected, assay: r.result.assay.verdict, measurement: r.result.measurement?.status ?? null, expectedValueGbp: r.result.decision.expectedValueGbp } })),
     memory: memory(),
   });
