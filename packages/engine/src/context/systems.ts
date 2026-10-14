@@ -15,12 +15,16 @@ export function observationsFromSystems(sys: SystemSnapshots, nowIso: string): O
     const rooms = add("rooms", p.rooms, "rooms", "CONN-PMS", "raw", p.asOf);
     const rn = add("room_nights", p.roomNightsSold * yr, "nights/year", "CONN-PMS", "room nights sold × 365 ÷ period days", p.asOf, [], [rooms]);
     add("occupancy", p.roomNightsSold / (p.rooms * p.periodDays), "ratio", "CONN-PMS", "room nights ÷ (rooms × period days)", p.asOf, [], [rooms, rn]);
-    add("adr", p.roomRevenueGbp / Math.max(1, p.roomNightsSold), "GBP/night", "CONN-PMS", "room revenue ÷ occupied room nights", p.asOf);
-    const rev = add("room_revenue", p.roomRevenueGbp * yr, "GBP/year", "CONN-PMS", "room revenue × 365 ÷ period days", p.asOf);
-    add("ota_share", p.otaRoomNights / Math.max(1, p.roomNightsSold), "ratio", "CONN-PMS", "OTA room nights ÷ room nights", p.asOf);
-    add("ota_commission_rate", p.otaCommissionGbp / Math.max(1, p.otaRoomNights * (p.roomRevenueGbp / Math.max(1, p.roomNightsSold))), "ratio", "CONN-PMS", "commission paid ÷ OTA room revenue", p.asOf, [], [rev]);
-    add("cancellation_rate", p.cancellations / Math.max(1, p.roomNightsSold + p.cancellations), "ratio", "CONN-PMS", "cancellations ÷ (sold + cancelled)", p.asOf);
-    add("ops.peak_occupancy", p.peakOccupancy, "ratio", "CONN-PMS", "raw", p.asOf);
+    // Absent fields are null and produce no observation: the simulated or declared value stays, flagged as such, and the
+    // data-requirements check reports what is missing. Nothing below treats "unknown" as zero.
+    if (p.roomRevenueGbp !== null) {
+      add("adr", p.roomRevenueGbp / Math.max(1, p.roomNightsSold), "GBP/night", "CONN-PMS", "room revenue ÷ occupied room nights", p.asOf);
+      const rev = add("room_revenue", p.roomRevenueGbp * yr, "GBP/year", "CONN-PMS", "room revenue × 365 ÷ period days", p.asOf);
+      if (p.otaCommissionGbp !== null && p.otaRoomNights !== null) add("ota_commission_rate", p.otaCommissionGbp / Math.max(1, p.otaRoomNights * (p.roomRevenueGbp / Math.max(1, p.roomNightsSold))), "ratio", "CONN-PMS", "commission paid ÷ OTA room revenue", p.asOf, [], [rev]);
+    }
+    if (p.otaRoomNights !== null) add("ota_share", p.otaRoomNights / Math.max(1, p.roomNightsSold), "ratio", "CONN-PMS", "OTA room nights ÷ room nights", p.asOf);
+    if (p.cancellations !== null) add("cancellation_rate", p.cancellations / Math.max(1, p.roomNightsSold + p.cancellations), "ratio", "CONN-PMS", "cancellations ÷ (sold + cancelled)", p.asOf);
+    if (p.peakOccupancy !== null) add("ops.peak_occupancy", p.peakOccupancy, "ratio", "CONN-PMS", "raw", p.asOf);
   }
   const b = sys.bookingEngine;
   if (b) { add("conv.mobile", b.mobileConversion, "ratio", "CONN-BOOKING-ENGINE", "mobile bookings ÷ mobile sessions", b.asOf); add("conv.desktop", b.desktopConversion, "ratio", "CONN-BOOKING-ENGINE", "desktop bookings ÷ desktop sessions", b.asOf); add("funnel.abandonment", 1 - b.bookings / Math.max(1, b.bookingStarts), "ratio", "CONN-BOOKING-ENGINE", "1 − bookings ÷ booking starts", b.asOf); }

@@ -4,6 +4,7 @@ import type { SqlClient } from "./sql.js";
 import { PgModelStore } from "./store.js";
 import { claim, complete, enqueue, fail, recoverExpired, type Job } from "./queue.js";
 import { trace } from "./trace.js";
+import { latestImport } from "./imports.js";
 
 export interface WorkerDeps {
   readonly spec?: PropertySpec;                 // the property this runtime serves (one for now; the model store holds many)
@@ -38,9 +39,16 @@ async function latestSnapshot(db: SqlClient, propertyId: string, maxAgeMs: numbe
   return (typeof row.context === "string" ? JSON.parse(row.context) : row.context) as ExternalContext;
 }
 
+/** Operator registers plus the latest PMS file import for the property, if one exists: that is how a real export reaches the engine. */
+async function registersFor(db: SqlClient, propertyId: string, deps: WorkerDeps): Promise<OperatorRegisters> {
+  const base = deps.registers ?? emptyRegisters();
+  const imp = await latestImport(db, propertyId); if (!imp || !imp.snapshot) return base;
+  return { ...base, systems: { ...base.systems, pms: imp.snapshot }, sourceQuality: { ...base.sourceQuality, "CONN-PMS": imp.quality } };
+}
+
 async function collect(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Promise<ExternalContext> {
   const spec = deps.spec ?? COUNTRY_HOUSE_34; const t0 = Date.now();
-  const ctx = await buildContext(spec, deps.registers ?? emptyRegisters(), { offline: deps.offline });
+  const ctx = await buildContext(spec, await registersFor(db, spec.id, deps), { offline: deps.offline });
   const connected = ctx.connectors.filter((c) => c.status === "CONNECTED").map((c) => c.id);
   await db.query(`insert into context_snapshots (property_id, fetched_at, connected, context) values ($1, $2, $3, $4::jsonb)`, [spec.id, ctx.fetchedAt, connected, JSON.stringify(ctx)]);
   for (const c of ctx.connectors) await trace(db, { jobId: job.id, propertyId: spec.id, kind: "connector", type: c.id, state: c.status, detail: c.statusNote, at: now });

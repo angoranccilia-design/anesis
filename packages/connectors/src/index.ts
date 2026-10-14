@@ -92,7 +92,7 @@ export async function buildContext(spec: PropertySpec = COUNTRY_HOUSE_34, reg: O
     hol?.contract ?? offlineNote("CONN-CALENDAR", "calendar", "Public holidays", "gov.uk", "STATIC"),
     fx?.contract ?? offlineNote("CONN-FX", "macro", "Exchange rates (GBP)", "Frankfurter", "DAILY"),
     mapsConnector(spec),
-    ...CONTRACT_ONLY.map((c) => (c.id === "CONN-EVENTS" && reg.events.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.events.length} operator-entered event(s)` } : c.id === "CONN-COMPETITOR" && reg.competitors.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.competitors.length} operator-entered observation(s)` } : c)),
+    ...CONTRACT_ONLY.map((c) => (c.id === "CONN-PMS" && reg.systems.pms ? { ...c, status: "CONNECTED" as const, statusNote: `file import: ${reg.systems.pms.source}`, lastFetchedAt: reg.systems.pms.asOf } : c.id === "CONN-EVENTS" && reg.events.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.events.length} operator-entered event(s)` } : c.id === "CONN-COMPETITOR" && reg.competitors.length ? { ...c, status: "OPERATOR_ENTERED" as const, statusNote: `${reg.competitors.length} operator-entered observation(s)` } : c)),
     cameraConnector(reg.cameras, process.env, now),
   ];
   const weather = overrides.weather !== undefined ? overrides.weather : wx?.data ?? null;

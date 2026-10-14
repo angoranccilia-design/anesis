@@ -1,0 +1,11 @@
+{
+  "name": "@anesis/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS data ingestion — generic PMS export reader (CSV/XLSX): field detection without invention, provenance, reconciliation of duplicates, modifications, cancellations and conflicts, and a typed snapshot the engine already understands. Absent means null, never zero.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@anesis/engine": "workspace:*", "xlsx": "0.18.5" },
+  "devDependencies": { "typescript": "^5.7.2", "vitest": "^2.1.8", "@types/node": "^22.10.2" }
+}

@@ -47,6 +47,18 @@ create table if not exists context_snapshots (
   context jsonb not null
 );
 create index if not exists context_snapshots_prop on context_snapshots (property_id, fetched_at desc);
+create table if not exists pms_imports (
+  id bigserial primary key,
+  property_id text not null,
+  filename text not null,
+  sha256 text not null,
+  imported_at timestamptz not null,
+  period_from date,
+  period_to date,
+  verdict text not null,
+  result jsonb not null
+);
+create index if not exists pms_imports_prop on pms_imports (property_id, imported_at desc);
 `;
 
 export async function migrate(db: SqlClient): Promise<void> { for (const stmt of SCHEMA_SQL.split(";").map((s) => s.trim()).filter(Boolean)) await db.query(stmt); }

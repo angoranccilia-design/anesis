@@ -57,3 +57,25 @@ describe("runtime — the engine running in time, on Postgres", () => {
     expect(await store.list()).toContain("PROP-TEST-2"); await store.remove("PROP-TEST-2"); expect(await store.list()).not.toContain("PROP-TEST-2");
   });
 });
+
+describe("runtime — a PMS file import feeds the next cycle (synthetic file, marked as such)", () => {
+  it("stores the import with provenance, marks the PMS connector CONNECTED and the cycle's PMS metrics VERIFIED", async () => {
+    const { writeFileSync, mkdtempSync } = await import("node:fs"); const { join } = await import("node:path"); const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "anesis-import-")); const file = join(dir, "sim-export.csv");
+    writeFileSync(file, `Reservation ID,Booking Date,Arrival,Departure,Status,Room Revenue,Currency,Channel\nS1,2026-09-01,2026-10-01,2026-10-04,Confirmed,540,GBP,Booking.com\nS2,2026-09-20,2026-10-02,2026-10-03,Confirmed,180,GBP,Website\nS3,2026-09-25,2026-10-03,2026-10-06,Cancelled,600,GBP,Expedia\n`);
+    const { importFile, latestImport } = await import("../imports.js");
+    const r = await importFile(db, file, { propertyId: COUNTRY_HOUSE_34.id, rooms: 34, importedAt: "2026-10-14T09:00:00Z" });
+    expect(r.snapshot?.roomNightsSold).toBe(4); expect(r.snapshot?.cancellations).toBe(1); expect(r.snapshot?.otaCommissionGbp).toBeNull();
+    expect((await latestImport(db, COUNTRY_HOUSE_34.id))?.provenance.sha256).toBe(r.provenance.sha256);
+    await enqueue(db, { kind: "cycle", key: "cycle:import-test", payload: { propertyId: COUNTRY_HOUSE_34.id }, runAt: "2026-10-28T09:00:00.000Z" });
+    await db.query("delete from context_snapshots");   // force a fresh collect so the import is read
+    const run = await runOnce(db, { offline: true, now: () => "2026-10-28T09:00:00.000Z" });
+    expect(run.processed.some((p) => p.kind === "cycle" && p.outcome === "done")).toBe(true);
+    const conn = (await db.query<{ state: string; detail: string }>("select state, detail from runtime_traces where kind = 'connector' and type = 'CONN-PMS' order by id desc limit 1")).rows[0];
+    expect(conn?.state).toBe("CONNECTED"); expect(conn?.detail).toMatch(/file import sim-export.csv/);
+    const m = await new PgModelStore(db).load(COUNTRY_HOUSE_34.id); const last = m!.cycles[m!.cycles.length - 1]!;
+    expect(last.verifiedMetrics).toEqual(expect.arrayContaining(["occupancy", "adr", "ota_share", "cancellation_rate"]));
+    expect(last.verifiedMetrics).not.toContain("ops.peak_occupancy");
+    expect(last.simulated).toBe(true);   // honest: the rest of the property is still simulated
+  });
+});
