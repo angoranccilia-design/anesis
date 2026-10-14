@@ -1,0 +1,11 @@
+{
+  "name": "@anesis/connectors",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS external data connectors — live key-less public sources and typed contracts with explicit states. Shared by the web app and the runtime. Nothing here fabricates a connection or a value.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "@anesis/engine": "workspace:*" },
+  "devDependencies": { "typescript": "^5.7.2", "@types/node": "^22.10.2" }
+}

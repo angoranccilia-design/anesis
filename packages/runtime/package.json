@@ -1,0 +1,31 @@
+{
+  "name": "@anesis/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS autonomous runtime \u2014 the engine running in time: durable jobs on Postgres (scheduled cycles, collection by freshness), resume after failure, singleton keys so no cycle runs twice, persisted property models and traces. PGlite (embedded Postgres) when no DATABASE_URL is set.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "anesis-runtime": "./dist/cli.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "esbuild src/cli.ts src/index.ts --bundle --platform=node --format=esm --target=node22 --external:@electric-sql/pglite --external:pg --outdir=dist --out-extension:.js=.mjs"
+  },
+  "dependencies": {
+    "@anesis/engine": "workspace:*",
+    "@anesis/connectors": "workspace:*",
+    "@electric-sql/pglite": "^0.2.17",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "@types/pg": "^8.11.10",
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.28.1"
+  }
+}

@@ -24,3 +24,7 @@ contacts-*.csv
 
 # Modèles persistés par établissement (données locales, jamais dans le dépôt)
 .anesis-data/
+
+# runtime build
+packages/runtime/dist/
+.anesis-pglite/
