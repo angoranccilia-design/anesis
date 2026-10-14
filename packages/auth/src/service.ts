@@ -134,3 +134,10 @@ export async function resolveSession(client: SqlClient, sessionId: string, deps:
   if (nowMs > Date.parse(String(r.expires_at))) return null;
   return rowToOperator(r);
 }
+
+/** Revokes a session server-side: a cookie that still carries its id resolves to nothing afterwards. Idempotent. */
+export async function revokeSession(client: SqlClient, sessionId: string, deps: AuthDeps = {}): Promise<boolean> {
+  const { nowMs } = resolveDeps(deps);
+  const { rows } = await client.query(`update sessions set revoked_at = $2 where id = $1 and revoked_at is null returning id`, [sessionId, new Date(nowMs).toISOString()]);
+  return rows.length > 0;
+}

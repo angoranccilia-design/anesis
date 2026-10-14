@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { answer, classify, detectLanguage, SPEECH_LOCALE, type Lang, type Previous } from "@/lib/engine/ask";
 import { authoriseCommand } from "@/lib/engine/governance";
-import { executeRun, getRun, latestRun, resetAll } from "@/lib/engine/store";
+import { executeRun, getRun, latestRun } from "@/lib/engine/store";
+import { guardApi } from "@/lib/guard";
 import { llmEnabled, rephrase } from "@/lib/engine/llm";
 import { explainChange } from "@anesis/engine";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
  *    a scenario runs a cycle, "why" walks the causal chain, "what would change your mind" reads thresholds, etc.
  */
 export async function POST(req: Request) {
+  const g = await guardApi(); if (!g.ok) return g.response;
   const { question, runId, channel, language, previous } = (await req.json()) as { question: string; runId?: string; channel?: "text" | "voice"; language?: Lang | "auto"; previous?: Previous };
   const q = question ?? "";
   const lang: Lang = language && language !== "auto" ? language : detectLanguage(q);
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
   const intent = classify(q);
   let run = runId ? getRun(runId) : latestRun();
   let a = answer(q, run?.result, lang, previous);
-  if (a.action?.type === "reset") { await resetAll(); return NextResponse.json({ intent, tier: gov.command.tier, level: gov.command.level, executed: true, language: lang, locale, answer: { ...a, headline: fr ? "État du moteur réinitialisé : cycles et mémoire effacés." : "Engine state reset: runs and memory cleared." } }); }
+  if (a.action?.type === "reset") return NextResponse.json({ intent, tier: gov.command.tier, level: gov.command.level, executed: false, language: lang, locale, answer: { ...a, headline: fr ? "La réinitialisation ne se fait pas par une phrase : utilisez la commande de réinitialisation, qui demande une confirmation explicite." : "A reset is not done by sentence: use the reset control, which asks for an explicit confirmation.", facts: [] } });
   if (a.action?.type === "run") {
     const prev = run;
     const spec = a.action.spec ? { ...(prev?.input.spec ?? {}), ...a.action.spec } : prev?.input.spec;

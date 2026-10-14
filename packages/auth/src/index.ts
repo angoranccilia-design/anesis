@@ -18,6 +18,7 @@ export {
   requestMagicLink,
   consumeMagicLink,
   resolveSession,
+  revokeSession,
   type AuthDeps,
   type RequestMagicLinkInput,
   type RequestMagicLinkResult,

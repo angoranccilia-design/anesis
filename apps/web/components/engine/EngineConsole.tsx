@@ -85,7 +85,7 @@ export function EngineConsole({ initial }: { initial: RunRecord | null }) {
     await refreshRuns(); setRunning(false);
   }, [run, scenario, pace, loadRun, refreshRuns]);
 
-  const reset = async () => { await fetch("/api/engine/reset", { method: "POST" }); setRun(null); setEvents([]); setState("IDLE"); setRuns([]); setMemory([]); setCompareWith(""); };
+  const reset = async () => { if (!window.confirm("Reset the engine state for this property? Runs, registers and the persisted model are erased.")) return; await fetch("/api/engine/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) }); setRun(null); setEvents([]); setState("IDLE"); setRuns([]); setMemory([]); setCompareWith(""); };
 
   const r = run?.result ?? null; const d = r?.diagnosis ?? null;
   const num = (id: string, text: string, cls = "") => <button onClick={() => setInspect(id)} className={`underline decoration-gold/50 decoration-dotted underline-offset-[5px] transition-colors hover:text-gold-deep hover:decoration-gold ${cls}`} data-evidence={id}>{text}</button>;

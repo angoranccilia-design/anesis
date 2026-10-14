@@ -1,3 +1,4 @@
+// Demo-mode scripts: the server must run WITHOUT a database and WITH ANESIS_DEMO_OPEN=1, otherwise the engine API answers 403 (by design).
 /**
  * Acceptance test of the Commercial Intelligence Engine console (brief §40), run against a live server.
  * Usage: BASE_URL=http://localhost:3111 node e2e/engine.e2e.mjs   (needs Playwright + Chromium)
@@ -15,7 +16,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? 
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 
-await fetch(`${BASE}/api/engine/reset`, { method: "POST" });
+await fetch(`${BASE}/api/engine/reset`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
 await page.goto(`${BASE}/engine`, { waitUntil: "load", timeout: 90000 });
 
 await step("1. cold start: core idle, nothing pre-filled, simulated label visible", async () => {

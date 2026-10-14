@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { executeRun, getRun, type RunRequest } from "@/lib/engine/store";
 import { authoriseIntent } from "@/lib/engine/governance";
+import { guardApi } from "@/lib/guard";
 export const dynamic = "force-dynamic";
 
 /** POST /api/engine/run — executes a real decision cycle; streams engine events as they are emitted (SSE). `repeatOf` reuses a run's context snapshot. */
 export async function POST(req: Request) {
+  const g = await guardApi(); if (!g.ok) return g.response;
   const body = (await req.json().catch(() => ({}))) as RunRequest & { stream?: boolean; repeatOf?: string };
   const auth = authoriseIntent("run_cycle", { seed: body.seed, budgetGbp: body.budgetGbp });
   if (auth.outcome.kind !== "allow") return NextResponse.json({ error: "not authorised", outcome: auth.outcome }, { status: 403 });

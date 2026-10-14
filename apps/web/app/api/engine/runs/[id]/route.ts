@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getRun, listRuns } from "@/lib/engine/store";
 import { compareRuns, explainChange } from "@anesis/engine";
+import { guardApi } from "@/lib/guard";
 export const dynamic = "force-dynamic";
-export function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const g = await guardApi(); if (!g.ok) return g.response;
   return params.then(({ id }) => {
     const run = id === "latest" ? listRuns().at(-1) : getRun(id);
     if (!run) return NextResponse.json({ error: "no such run" }, { status: 404 });

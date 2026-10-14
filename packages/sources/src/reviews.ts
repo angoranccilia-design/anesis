@@ -33,8 +33,8 @@ export const reviewsSource = (opts: ReviewsSourceOptions): SignalSource => ({
     const input = opts.buildInput
       ? opts.buildInput(property)
       : { searchStringsArray: [property.name], maxReviews: 0, maxItems: 1 };
-    const url = `https://api.apify.com/v2/acts/${opts.actorId}/run-sync-get-dataset-items?token=${opts.token}`;
-    const res = await http.postJson(url, input);
+    const url = `https://api.apify.com/v2/acts/${opts.actorId}/run-sync-get-dataset-items`;
+    const res = await http.postJson(url, input, { headers: { authorization: `Bearer ${opts.token}` } });
     if (res.status < 200 || res.status >= 300) return {};
     const items = (await res.json()) as unknown;
     const first = Array.isArray(items) ? (items[0] as Record<string, unknown> | undefined) : undefined;

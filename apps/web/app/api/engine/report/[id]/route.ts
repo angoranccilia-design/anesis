@@ -1,10 +1,12 @@
 import { getRun, listRuns } from "@/lib/engine/store";
+import { guardApi } from "@/lib/guard";
 export const dynamic = "force-dynamic";
 const gbp = (x: number) => `£${Math.round(x).toLocaleString("en-GB")}`;
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 
 /** GET /api/engine/report/[id] — the demo report, generated from the run's records (HTML, printable). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const g = await guardApi(); if (!g.ok) return g.response;
   const { id } = await params;
   const run = id === "latest" ? listRuns().at(-1) : getRun(id);
   if (!run) return new Response("no such run", { status: 404 });

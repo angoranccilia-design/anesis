@@ -1,3 +1,4 @@
+// Demo-mode scripts: the server must run WITHOUT a database and WITH ANESIS_DEMO_OPEN=1, otherwise the engine API answers 403 (by design).
 /**
  * Final Build Challenge §34 — the 25-step acceptance sequence, run against a live server.
  * Usage: BASE_URL=http://localhost:3111 node e2e/acceptance.e2e.mjs
@@ -16,7 +17,7 @@ const runCount = async () => (await (await fetch(`${BASE}/api/engine/runs`)).jso
 const waitRuns = async (n) => { for (let i = 0; i < 120; i++) { if ((await runCount()) >= n) return; await new Promise((r) => setTimeout(r, 500)); } throw new Error(`timeout waiting for ${n} runs`); };
 const status = async (id) => page.locator(`[data-testid="line-${id}"] [data-status]`).getAttribute("data-status");
 
-await fetch(`${BASE}/api/engine/reset`, { method: "POST" });
+await fetch(`${BASE}/api/engine/reset`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) });
 await page.goto(`${BASE}/engine`, { waitUntil: "load", timeout: 90000 });
 
 await step("1. open a property (cold: nothing pre-filled)", async () => { await page.locator("text=No decision cycle has been run").waitFor(); });
@@ -66,7 +67,7 @@ await step("16–18. change a relevant assumption in the scenario lab (memory of
   await page.check('[data-testid="scenario-lab"] input[type=checkbox] >> nth=-1');
 });
 await step("19–23. run intervention → measure → counterfactual → forecast error → learning record", async () => {
-  await fetch(`${BASE}/api/engine/reset`, { method: "POST" }); await page.goto(`${BASE}/engine`, { waitUntil: "load", timeout: 90000 });
+  await fetch(`${BASE}/api/engine/reset`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true }) }); await page.goto(`${BASE}/engine`, { waitUntil: "load", timeout: 90000 });
   await page.click('[data-testid="run-cycle"]'); await page.locator('[data-testid="measurement"]').waitFor({ timeout: 60000 });
   const t = await page.locator('[data-testid="measurement"]').innerText();
   if (!/counterfactual/.test(t) || !/forecast error/.test(t) || !/LR-001/.test(t) || !/sha256/.test(t)) throw new Error(t.slice(0, 300));

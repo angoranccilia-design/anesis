@@ -46,7 +46,10 @@ export function makeMailer(cfg: MailerConfig = {}): Mailer {
         log(`[mail:noop] to ${String(to)} — "${subject}" (RESEND_API_KEY unset)`);
       },
       async sendMagicLink(to, link) {
-        log(`[auth:noop] magic link for ${to} (RESEND_API_KEY unset): ${link}`);
+        // A sign-in link is a credential: it is never written to a log unless a developer asks for it explicitly, and never in production.
+        if (process.env.NODE_ENV === "production") throw new Error("mailer: RESEND_API_KEY is not set; a sign-in link cannot be delivered in production");
+        if (process.env.ANESIS_DEV_LOG_MAGIC_LINK === "1") log(`[auth:noop] magic link for ${to} (ANESIS_DEV_LOG_MAGIC_LINK=1): ${link}`);
+        else log(`[auth:noop] magic link generated for ${to} (RESEND_API_KEY unset; set ANESIS_DEV_LOG_MAGIC_LINK=1 in development to print it)`);
       },
     };
   }

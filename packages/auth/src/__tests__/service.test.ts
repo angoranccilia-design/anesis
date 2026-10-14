@@ -93,12 +93,20 @@ describe("lien magique — cycle complet", () => {
 });
 
 describe("mailer", () => {
-  it("sans RESEND_API_KEY : mode noop, logge le lien, ne lève jamais", async () => {
+  it("sans RESEND_API_KEY : mode noop ; le lien (un identifiant) n'est jamais journalisé sauf ANESIS_DEV_LOG_MAGIC_LINK=1, et jamais en production", async () => {
     const logs: string[] = [];
     const m = makeMailer({ apiKey: undefined, log: (s) => logs.push(s) });
     expect(m.mode).toBe("noop");
-    await expect(m.sendMagicLink("x@anesis.test", "https://link")).resolves.toBeUndefined();
-    expect(logs[0]).toContain("https://link");
+    const env = { ...process.env };
+    try {
+      delete process.env.ANESIS_DEV_LOG_MAGIC_LINK; process.env.NODE_ENV = "test";
+      await expect(m.sendMagicLink("x@anesis.test", "https://link")).resolves.toBeUndefined();
+      expect(logs[0]).not.toContain("https://link"); expect(logs[0]).toContain("x@anesis.test");
+      process.env.ANESIS_DEV_LOG_MAGIC_LINK = "1";
+      await m.sendMagicLink("x@anesis.test", "https://link"); expect(logs[1]).toContain("https://link");
+      process.env.NODE_ENV = "production";
+      await expect(m.sendMagicLink("x@anesis.test", "https://link")).rejects.toThrow(/cannot be delivered in production/);
+    } finally { process.env = env; }
   });
 
   it("avec clé : mode resend, appelle l'API HTTP (fetch injecté)", async () => {

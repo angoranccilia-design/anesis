@@ -1,7 +1,9 @@
 import { subscribe } from "@/lib/engine/store";
+import { guardApi } from "@/lib/guard";
 export const dynamic = "force-dynamic";
 /** GET /api/engine/stream — live engine events from any run in this process (server-sent events). */
-export function GET() {
+export async function GET() {
+  const g = await guardApi(); if (!g.ok) return g.response;
   const enc = new TextEncoder();
   let unsub = () => {};
   const stream = new ReadableStream({

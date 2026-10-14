@@ -17,7 +17,7 @@ export interface ApifyPreflight {
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 export async function apifyPreflight(token: string, http: HttpClient, batchSize = 150): Promise<ApifyPreflight> {
-  const res = await http.get(`https://api.apify.com/v2/users/me/limits?token=${token}`);
+  const res = await http.get("https://api.apify.com/v2/users/me/limits", { headers: { authorization: `Bearer ${token}` } });
   if (res.status !== 200) {
     return { ok: false, monthlyUsageUsd: null, monthlyLimitUsd: null, remainingUsd: null, note: `Apify a répondu ${res.status} — token/plan à vérifier` };
   }
