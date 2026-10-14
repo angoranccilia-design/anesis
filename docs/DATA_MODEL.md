@@ -24,3 +24,8 @@ Records not yet modelled (PLANNED): `Property` as a persisted entity with data-r
 ## Provenance chain example
 
 `C-001` (conversion constraint) cites `OBS-015` (sessions.mobile, MODELLED = OBS-013 × OBS-014), `OBS-017` (conv.mobile, SIMULATED from SRC-SIM-WEB), `OBS-016`, `OBS-014`, `OBS-028` (booking_value_avg = OBS-003 adr × 1.9). Its benchmark comes from `SRC-BENCH` and is a placeholder. The console's evidence inspector walks this chain by clicking.
+
+
+## Persisted property model (`persist.ts`)
+
+The Anesis Commercial Constraint as a durable asset, one per property. `PropertyModel` holds: `spec` (the 25-field description) and `specHistory`; `calibration` (the learning records that `calibrationFactors` reads); `cycles` (one `CycleEntry` per real cycle: binding constraint, decision, governance level, pre-registration id/version/SHA-256, every intervention's decision status and budget status with estimated and approved amounts, measurement status, forecast error, and whether the cycle ran on simulated data); and `memory` (the `PropertyMemory`). `newModel` creates it, `cycleInputFromModel` hands the next cycle its memory and cycle number, `appendCycle` advances it from a real `CycleResult`, `parseModel` refuses another schema version. `ModelStore` is the storage seam; the engine ships `MemoryModelStore`, the web app a file store. Nothing in the model is invented: every entry is an extract of a cycle that ran.

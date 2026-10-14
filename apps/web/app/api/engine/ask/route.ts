@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const intent = classify(q);
   let run = runId ? getRun(runId) : latestRun();
   let a = answer(q, run?.result, lang, previous);
-  if (a.action?.type === "reset") { resetAll(); return NextResponse.json({ intent, tier: gov.command.tier, level: gov.command.level, executed: true, language: lang, locale, answer: { ...a, headline: fr ? "État du moteur réinitialisé : cycles et mémoire effacés." : "Engine state reset: runs and memory cleared." } }); }
+  if (a.action?.type === "reset") { await resetAll(); return NextResponse.json({ intent, tier: gov.command.tier, level: gov.command.level, executed: true, language: lang, locale, answer: { ...a, headline: fr ? "État du moteur réinitialisé : cycles et mémoire effacés." : "Engine state reset: runs and memory cleared." } }); }
   if (a.action?.type === "run") {
     const prev = run;
     const spec = a.action.spec ? { ...(prev?.input.spec ?? {}), ...a.action.spec } : prev?.input.spec;

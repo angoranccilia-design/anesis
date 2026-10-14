@@ -21,3 +21,6 @@ contacts-*.csv
 **/.env
 **/.env.local
 **/.env.*
+
+# Modèles persistés par établissement (données locales, jamais dans le dépôt)
+.anesis-data/
