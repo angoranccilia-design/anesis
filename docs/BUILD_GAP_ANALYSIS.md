@@ -74,7 +74,7 @@
 
 | Source | Reachable without credentials | Decision |
 |---|---|---|
-| Open-Meteo forecast and geocoding | yes (HTTP 200) | build a live connector: **WEATHER · CONNECTED**, **MAPS · CONNECTED** |
+| Open-Meteo forecast | yes (HTTP 200) | build a live connector: **WEATHER · CONNECTED**. (Maps: no geocoding call is made; the connector reports OPERATOR_ENTERED coordinates — corrected 14 Oct 2026) |
 | gov.uk bank holidays JSON; Nager.Date public holidays | yes (200) | live connector: **PUBLIC HOLIDAYS · CONNECTED** |
 | Frankfurter exchange rates | yes (200) | live connector: **FX · CONNECTED** |
 | ONS CPIH observations API | no (HTTP 500 on the observations endpoint) | contract only: **INFLATION · NOT CONNECTED** (endpoint recorded) |

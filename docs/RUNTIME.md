@@ -22,8 +22,9 @@
 
 ```
 pnpm --filter @anesis/runtime build
-anesis-runtime migrate | schedule | once | work | status
+anesis-runtime migrate | property | properties | register | grant | schedule --property | once | work | status [--json] | import | assay | connectors | health | backup | restore
 ```
+A property is declared before any job runs on it (`property <id> --file spec.json`); a real property runs under the `verified_only` evidence policy with the benchmarks declared in its registers; the built-in simulated property is the only one allowed simulated evidence and is labelled. `connectors` calls every live source now and prints the statuses it got. `work` serves `GET /health` on `ANESIS_HEALTH_PORT`. See `DEPLOYMENT.md` and `FIRST_ASSAY_RUNBOOK.md`.
 Backend: `DATABASE_URL` (Postgres) or `ANESIS_PGLITE_DIR` (embedded, one process at a time). `ANESIS_OFFLINE=1` skips live connectors. `ANESIS_CADENCE_DAYS` sets the cadence.
 
 ## What it does not do yet

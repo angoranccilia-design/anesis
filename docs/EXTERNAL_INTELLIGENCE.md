@@ -48,6 +48,11 @@ Assessments are fused per domain and, when several fall within 30 days, as a nea
 
 ## What the connectors report
 
-Every connector is a `ConnectorContract { id, domain, name, provider, kind, requires[], freshness, status, statusNote, lastFetchedAt, legal }` with status CONNECTED · NOT_CONNECTED · SOURCE_NOT_CONFIGURED · ERROR · SIMULATED · OPERATOR_ENTERED. Connected today without credentials: weather, public holidays, exchange rates, geocoding. Contracts declaring their environment variables: PMS, booking engine, GA4, Google Ads, Meta Ads, CRM, RMS, OTA channel manager, events provider, search (Search Console), rate shopping, camera. Inflation and bank rate are live contracts whose endpoints failed from this environment; the failure is recorded, no value is invented.
+Every connector is a `ConnectorContract { id, domain, name, provider, kind, requires[], freshness, status, statusNote, lastFetchedAt, legal }` with status CONNECTED · NOT_CONNECTED · SOURCE_NOT_CONFIGURED · ERROR · SIMULATED · OPERATOR_ENTERED. Connected today without credentials: weather, public holidays, exchange rates, maps (coordinates declared in the property record, OPERATOR_ENTERED: no geocoding call). Contracts declaring their environment variables: PMS, booking engine, GA4, Google Ads, Meta Ads, CRM, RMS, OTA channel manager, events provider, search (Search Console), rate shopping, camera. Inflation and bank rate are live contracts whose endpoints failed from this environment; the failure is recorded, no value is invented.
 
 Every run stores the exact context snapshot it used, so "run again" repeats the same decision even if the forecast has since changed.
+
+
+## Status honesty (14 October 2026)
+
+A connector is CONNECTED only after a successful call in the same run. Live, credential-free: weather (Open-Meteo), public holidays (gov.uk), exchange rates (Frankfurter), UK CPIH (ONS API, latest dataset version), Bank of England base rate (CSV). Maps are the coordinates declared in the property record and say so. Every other connector is a contract without an adapter and reports AUTHENTICATION_REQUIRED or NOT_CONNECTED; none produces a value. `anesis-runtime connectors` prints the real statuses. Note: Open-Meteo's free tier is for non-commercial use; a paying client needs the commercial plan or the Met Office DataHub free tier (360 calls/day).

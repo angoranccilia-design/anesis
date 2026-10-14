@@ -14,6 +14,7 @@
  *   health                                    the health record as JSON (exit 1 when not ok); `work` also serves GET /health on ANESIS_HEALTH_PORT
  *   backup <dir> | restore <dir>              business tables as JSON files (restore never overwrites an existing row)
  *   status [--json]
+ *   assay <file> --property <id> --rooms N [--registers registers.json] [--collected-at ISO]   import, run one cycle now, print what was assessed and what was withheld
  *   import <file> --property <id> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]
  * Backend: DATABASE_URL (Postgres) or ANESIS_PGLITE_DIR (embedded); neither = in-memory, which is only useful for `once`.
  */
@@ -25,6 +26,8 @@ import { listJobs } from "./queue.js";
 import { importFile } from "./imports.js";
 import { upsertProperty, listProperties, grantProperty } from "./properties.js";
 import { saveRegisters } from "./registers.js";
+import { loadCycleResult } from "./results.js";
+import { listInterventions } from "./interventions.js";
 import { COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
 import { verifyConnectors } from "@anesis/connectors";
 import { health, startHealthServer } from "./health.js";
@@ -69,6 +72,26 @@ try {
   else if (cmd === "connectors") {
     const id = arg("--property") ?? process.env.ANESIS_PROPERTY_ID ?? COUNTRY_HOUSE_34.id; const spec = (await loadProperty(db, id)) ?? COUNTRY_HOUSE_34;
     for (const r of await verifyConnectors(spec)) console.log(`${r.id.padEnd(18)} ${r.status.padEnd(18)} ${String(r.ms).padStart(5)} ms  ${r.note}`);
+  }
+  else if (cmd === "assay") {
+    const file = process.argv[3]; const id = propertyArg(); if (!file || !arg("--rooms")) { console.error("usage: anesis-runtime assay <file> --property <id> --rooms N [--registers registers.json] [--collected-at ISO]"); process.exit(2); }
+    if (arg("--registers")) await saveRegisters(db, id, JSON.parse(readFileSync(arg("--registers")!, "utf8")));
+    const imp = await importFile(db, file, { propertyId: id, rooms: Number(arg("--rooms")), collectedAt: arg("--collected-at") ?? null });
+    const now = new Date().toISOString(); await scheduleCycle(db, id, now, deps.cadenceDays); const run = await runOnce(db, deps);
+    const done = run.processed.find((p) => p.kind === "cycle"); if (!done || done.outcome !== "done") { console.error(JSON.stringify(run)); process.exit(1); }
+    const latest = (await db.query<{ run_id: string }>("select run_id from cycle_results where property_id = $1 order by at desc limit 1", [id])).rows[0]!.run_id;
+    const r = (await loadCycleResult(db, id, latest))!.result;
+    const out = {
+      property: id, import: { verdict: imp.sufficiency.verdict, window: imp.sufficiency.window.note, recency: imp.recency.statement, cannotCompute: imp.sufficiency.cannotCompute, nextData: imp.sufficiency.nextData },
+      cycle: { runId: latest, evidencePolicy: r.diagnosis.evidencePolicy, seriesSource: r.seriesSource, verifiedMetrics: r.verifiedMetrics, spec: { rooms: r.property.spec.rooms, adrGbp: r.property.spec.adrGbp, occupancy: r.property.spec.occupancy, otaShare: r.property.spec.otaShare } },
+      assessed: r.diagnosis.constraints.filter((c) => c.assessable).map((c) => ({ id: c.id, name: c.name, attainment: c.attainment, gapGbp: c.gapGbp })),
+      withheld: r.diagnosis.constraints.filter((c) => !c.assessable).map((c) => ({ id: c.id, name: c.name, needs: c.missing })),
+      binding: r.diagnosis.binding, bindingWhy: r.diagnosis.bindingWhy,
+      decision: r.allocation.lines.map((l) => ({ intervention: l.interventionId, status: l.status, reason: l.blockedBy[0] ?? null })),
+      contracts: (await listInterventions(db, id)).filter((c) => c.runId === latest).map((c) => `${c.id} ${c.state}`),
+      dataQuality: r.dataQualityNotes,
+    };
+    console.log(JSON.stringify(out, null, 2));
   }
   else if (cmd === "status" && has("--json")) { console.log(JSON.stringify({ properties: await listProperties(db), jobs: await listJobs(db, 20), health: await health(db) }, null, 2)); }
   else if (cmd === "status") {

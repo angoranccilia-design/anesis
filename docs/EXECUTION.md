@@ -18,6 +18,10 @@ PREPARED → SUBMITTED → AUTHORISED → IN_EXECUTION → EXECUTED → MEASURED
 
 **The contract is the budget authority** (coherence audit, C3). Its `budgetStatus` and `approvedCost` are the engine's budget lifecycle as recorded; every transition checks them whether or not the caller hands over a budget record, and a record handed over must be the contract's own and agree with it. An UNKNOWN estimate cannot be authorised without a stated amount: UNKNOWN is never read as zero. A withdrawn or rejected proposal rejects its budget. `budgetFromContract` rebuilds the engine record from the contract; actual spend and provider cost are not kept on the contract and come back UNKNOWN.
 
+## Execution record
+
+`contract.execution` (outside the origin hash): structured proofs `{kind, reference, note, by, recordedAt}` — EXECUTED needs at least one with a checkable reference; `actualSpend` OBSERVED when reported at execution, UNKNOWN when not (never zero); `executedAt`; `measured`, the observed change on the property's own weekly history (`observedChange` in the engine: post vs pre window, prior-year scaling when the history allows, NOT_ESTABLISHED by construction). The closure dossier prints approved cost, actual spend, proofs and the result. From the console, `/api/interventions/[id]/transition` records the session operator as the actor; demo mode has no human and cannot authorise, execute, measure, close or reject.
+
 ## Outcome
 
 `assessOutcome` keeps "observed change" apart from "incrementality": without a pre-registered plan the result is NOT_MEASURABLE; without a counterfactual run, with an altered plan, with an INCONCLUSIVE measurement or a failed placebo it is NOT_ESTABLISHED; ESTABLISHED only when the pre-registered comparison held and the placebo passed.

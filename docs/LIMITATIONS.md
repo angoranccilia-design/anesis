@@ -31,3 +31,16 @@ Four defects demonstrated by the end-to-end audit were corrected; the rest of th
 - **C3.** Who the human is remains declarative (C4): the lifecycle checks the budget, not an identity. Actual spend and provider cost are not kept on the contract and come back UNKNOWN from `budgetFromContract`.
 - **C6.** The engine knows committed interventions only through what the runtime reads from the `interventions` table; the console does not yet pass open contracts (it has none: only the runtime persists contracts). A dependant of an intervention in progress stays BLOCKED until that intervention is measured. The runtime no longer simulates outcomes, so calibration grows only from real MEASURED contracts, of which there are none yet.
 - All tests are on synthetic data and prove behaviour, not commercial value. No real property data has been read.
+
+## Towards a real Commercial Assay, 14 October 2026 (chantiers A–G)
+
+Done and tested on synthetic data: API behind operator sessions (or an explicit demo flag), session revocation, mandate and property grants; one truth across worker, console, imports and memory; `verified_only` evidence policy on real properties (constraints withheld with what they need, no simulated effect shown, spec and weekly history from the data, no simulated outcome); honest connector statuses with ONS and Bank of England really fetched; proofs, actual cost and observed result on contracts with the session operator as actor; health, logs, backups, Dockerfile, compose, CI builds; `assay` command and runbook.
+
+What remains, and is said:
+- No real property has been processed. Benchmarks are to be declared by the founder with a source; without them the OTA constraint is withheld.
+- Conversion, demand and retention constraints need GA4, a booking engine funnel or a CRM: no adapter exists; they stay withheld on a PMS export alone.
+- Observed change is on the property's own history, seasonally scaled only when a prior year exists; never incremental.
+- The console serves one property (ANESIS_PROPERTY_ID); multi-property navigation is not built. The interventions page is minimal (prompts, no forms).
+- Nothing has been deployed to a host; Docker artefacts are written and the console build passes in CI, but no container has been run here.
+- Open-Meteo free tier is non-commercial; a paying client needs a commercial plan or Met Office DataHub.
+- The language layer stays off without a key; it only rephrases.
