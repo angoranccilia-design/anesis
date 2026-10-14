@@ -3,7 +3,7 @@
  * cannot establish is null or UNKNOWN; nothing is filled with zero or a convenient guess. The contract is frozen at
  * preparation (its hash is kept); everything that happens afterwards is appended to its history, never edited in.
  */
-import type { MoneyLine, BudgetStatus, InterventionStatus } from "@anesis/engine";
+import type { MoneyLine, BudgetStatus, InterventionStatus, FundingSource } from "@anesis/engine";
 
 export type EvidenceClass = "VERIFIED" | "ESTIMATED" | "HYPOTHESIS" | "UNKNOWN";
 export interface EvidenceItem { readonly id: string; readonly metric: string; readonly value: number | null; readonly unit: string | null; readonly source: string; readonly cls: EvidenceClass; readonly note: string }
@@ -40,6 +40,7 @@ export interface InterventionContract {
   readonly risks: { readonly operational: string; readonly financial: string; readonly reputational: string; readonly level: string; readonly reversibility: string };   // 15
   readonly prerequisites: { readonly dependsOn: readonly string[]; readonly status: string; readonly unmet: readonly string[] };   // 16
   readonly estimatedBudget: MoneyLine;                    // 17  ESTIMATE or UNKNOWN
+  readonly funding: { readonly source: FundingSource; readonly note: string };   // 17b who funds it under the contract on record; never assumed
   readonly approvedCost: MoneyLine;                       // 18  UNKNOWN until a human approves
   readonly owner: { readonly head: string; readonly capabilities: readonly string[]; readonly executionResources: readonly string[] };   // 19
   readonly actions: readonly string[];                    // 20

@@ -1,17 +1,49 @@
 import { prepareInterventions, transition, originIntact, type InterventionContract, type TransitionInput } from "@anesis/execution";
-import { sha256Hex, type CycleResult } from "@anesis/engine";
+import { sha256Hex, type CycleResult, type OpenIntervention } from "@anesis/engine";
 import type { SqlClient } from "./sql.js";
 import { trace } from "./trace.js";
 
-/** Contracts prepared after a cycle are persisted once per (run, intervention); re-preparing the same run is a no-op. */
-export async function persistPrepared(db: SqlClient, r: CycleResult, runId: string, preparedAt: string, jobId: number | null = null): Promise<InterventionContract[]> {
+const COMMITTED = ["AUTHORISED", "IN_EXECUTION", "EXECUTED", "MEASURED"] as const;
+const PENDING = ["PREPARED", "SUBMITTED"] as const;
+export interface PendingContract { readonly contractId: string; readonly interventionId: string; readonly state: string; readonly decisionStatus: string }
+
+/**
+ * What the next cycle must know about earlier contracts (audit C6). Committed ones (a human has authorised them) come back
+ * as OpenIntervention for the engine, which marks them IN_PROGRESS instead of re-proposing them. Pending ones (prepared or
+ * submitted, no human decision yet) are kept so the same proposal is not duplicated, or withdrawn when the decision moves.
+ */
+export async function openInterventions(db: SqlClient, propertyId: string): Promise<{ committed: OpenIntervention[]; pending: PendingContract[] }> {
+  const r = await db.query<{ id: string; intervention_id: string; state: string; contract: unknown }>(`select id, intervention_id, state, contract from interventions where property_id = $1 and state not in ('CLOSED','REJECTED','WITHDRAWN') order by prepared_at, id`, [propertyId]);
+  const committed: OpenIntervention[] = [], pending: PendingContract[] = [];
+  for (const row of r.rows) {
+    const c = (typeof row.contract === "string" ? JSON.parse(row.contract) : row.contract) as InterventionContract;
+    if ((COMMITTED as readonly string[]).includes(row.state)) committed.push({ interventionId: row.intervention_id, contractId: row.id, state: row.state, budgetStatus: c.budgetStatus, approvedGbp: c.approvedCost.amountGbp, since: c.history.at(-1)?.at ?? c.decisionPackageRef.preparedAt, planId: c.measurement.preregistration?.planId ?? null, awaitingMeasurement: row.state === "EXECUTED" });
+    else if ((PENDING as readonly string[]).includes(row.state)) pending.push({ contractId: row.id, interventionId: row.intervention_id, state: row.state, decisionStatus: c.decisionStatus });
+  }
+  return { committed, pending };
+}
+
+/**
+ * Contracts prepared after a cycle are persisted once per (run, intervention); re-preparing the same run is a no-op. A pending
+ * contract for the same intervention and the same decision is kept, not duplicated; one whose decision has moved is withdrawn
+ * by the engine (nothing was committed) and replaced. Interventions in progress get no new contract: the engine did not propose them.
+ */
+export async function persistPrepared(db: SqlClient, r: CycleResult, runId: string, preparedAt: string, jobId: number | null = null, pending: readonly PendingContract[] = []): Promise<InterventionContract[]> {
   const contracts = prepareInterventions(r, runId, preparedAt);
+  const kept: InterventionContract[] = [];
   for (const c of contracts) {
+    const p = pending.find((x) => x.interventionId === c.decisionPackageRef.interventionId);
+    if (p && p.decisionStatus === c.decisionStatus) {
+      await trace(db, { jobId, runId, propertyId: c.propertyId, kind: "job", type: "INTERVENTION_PENDING_KEPT", state: p.state, detail: `${p.contractId} (${p.decisionStatus}) still awaits a human decision; ${c.id} not created — no duplicate proposal`, at: preparedAt });
+      continue;
+    }
+    if (p) await transitionIntervention(db, p.contractId, { to: "WITHDRAWN", actor: { by: "engine", human: false, at: preparedAt }, note: `superseded by ${runId}: ${c.decisionPackageRef.interventionId} is now ${c.decisionStatus}` });
     const ins = await db.query<{ id: string }>(`insert into interventions (id, property_id, run_id, intervention_id, state, version, origin_sha256, contract, prepared_at) values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9) on conflict (id) do nothing returning id`,
       [c.id, c.propertyId, runId, c.decisionPackageRef.interventionId, c.state, c.version, c.originSha256, JSON.stringify(c), preparedAt]);
     if (ins.rows[0]) await trace(db, { jobId, runId, propertyId: c.propertyId, kind: "job", type: "INTERVENTION_PREPARED", state: c.decisionStatus, detail: `${c.id}: ${c.deliverables.map((d) => d.kind).join(", ") || "no deliverable"}; approval L${c.approvalLevel}; origin ${c.originSha256.slice(0, 12)}`, at: preparedAt });
+    kept.push(c);
   }
-  return contracts;
+  return kept;
 }
 
 export async function loadIntervention(db: SqlClient, id: string): Promise<InterventionContract | null> {

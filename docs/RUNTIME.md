@@ -8,14 +8,14 @@
 |---|---|
 | Scheduled execution | `runtime_jobs.run_at`; a worker claims jobs whose time has come (`SELECT … FOR UPDATE SKIP LOCKED`, so several workers can share one table) |
 | No dangerous duplicates | one live job per singleton `key` (unique partial index on `state in ('queued','running')`); scheduling the same cycle twice is a no-op; a cycle key is `cycle:<property>:<cadence window>` |
-| Resume after failure | a claimed job holds `locked_until`; if the worker dies, the lock expires and the job returns to the queue with the note "lock expired; resumed" |
+| Resume after failure | a claimed job holds `locked_until`; if the worker dies, the lock expires and the job returns to the queue with the note "lock expired; resumed". A cycle's writes (model, contracts, next job) are one transaction: a failure commits nothing and the job retries; a retried job whose cycle was already committed (the cycle entry carries its `jobKey`) does not run the engine again (`CYCLE_ALREADY_PERSISTED`) |
 | Bounded retries | `attempts` / `max_attempts`, exponential backoff, then `failed` with the error kept |
 | Persistent traces | every claim, connector state, engine event, model write and scheduling decision is a row in `runtime_traces`; the indicator "cost per problem correctly solved" is computed from these rows and nowhere else |
 | One truth | the property model lives in `property_models`; the console uses the same store when `DATABASE_URL` or `ANESIS_PGLITE_DIR` is set, so a cycle run from the console and a cycle run by the worker land in the same record |
 
 ## Jobs
 
-- `cycle` — load the model, take the latest context snapshot if younger than six hours (else collect), run the engine with the model's memory and calibration, append the cycle, save, schedule the next cycle one cadence later (default 7 days).
+- `cycle` — load the model, take the latest context snapshot if younger than six hours (else collect), read the open contracts, run the engine with the model's memory, calibration and the committed interventions (marked IN_PROGRESS, not re-proposed; `measure: false`, no simulated outcome), then in one transaction append the cycle, save, persist the new contracts (pending proposals kept or superseded, never duplicated) and schedule the next cycle one cadence later (default 7 days).
 - `collect` — call the connectors (live public sources unless `ANESIS_OFFLINE=1`; contracts report their state) and store the context snapshot with the list of connected sources.
 
 ## Commands

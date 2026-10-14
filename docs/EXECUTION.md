@@ -14,7 +14,9 @@ Derived from the contract and its nature, never imposed: a funded conversion int
 
 ## Lifecycle
 
-PREPARED → SUBMITTED → AUTHORISED → IN_EXECUTION → EXECUTED → MEASURED → CLOSED, with REJECTED and WITHDRAWN. It wraps the engine's budget lifecycle rather than duplicating it: AUTHORISED requires a named human and moves the budget PROPOSED → APPROVED → AUTHORISED with the approved amount; IN_EXECUTION requires an AUTHORISED budget unless the funding model includes it; EXECUTED requires execution evidence; MEASURED requires a measurement record. Unmet prerequisites and an open data request block authorisation. Every transition appends a history event; versions only go up; the origin never changes.
+PREPARED → SUBMITTED → AUTHORISED → IN_EXECUTION → EXECUTED → MEASURED → CLOSED, with REJECTED and WITHDRAWN. It wraps the engine's budget lifecycle rather than duplicating it: AUTHORISED requires a named human and moves the budget PROPOSED → APPROVED → AUTHORISED with the approved amount; IN_EXECUTION requires an AUTHORISED budget with a known approved amount, whatever the funding model; EXECUTED requires execution evidence; MEASURED requires a measurement record. Unmet prerequisites and an open data request block authorisation. Every transition appends a history event; versions only go up; the origin never changes.
+
+**The contract is the budget authority** (coherence audit, C3). Its `budgetStatus` and `approvedCost` are the engine's budget lifecycle as recorded; every transition checks them whether or not the caller hands over a budget record, and a record handed over must be the contract's own and agree with it. An UNKNOWN estimate cannot be authorised without a stated amount: UNKNOWN is never read as zero. A withdrawn or rejected proposal rejects its budget. `budgetFromContract` rebuilds the engine record from the contract; actual spend and provider cost are not kept on the contract and come back UNKNOWN.
 
 ## Outcome
 
@@ -23,3 +25,5 @@ PREPARED → SUBMITTED → AUTHORISED → IN_EXECUTION → EXECUTED → MEASURED
 ## Runtime
 
 After each cycle the worker persists the contracts (`interventions` table, one row per run and intervention, no duplicates). `transitionIntervention` is the only write path afterwards; each transition is traced with who did it. Reloading a contract verifies its origin hash.
+
+Continuity (C6): before a cycle the worker reads the open contracts. Committed ones (AUTHORISED, IN_EXECUTION, EXECUTED, MEASURED) go to the engine as `openInterventions`; the engine marks them IN_PROGRESS, charges nothing for them, registers no plan for them, and remembers their state (`memory.executions`, `cycle.inProgress`). Pending ones (PREPARED, SUBMITTED) are kept when the new decision is the same and withdrawn by the engine as "superseded" when it moved; no second proposal is written for the same intervention. The runtime runs the engine with `measure: false`: a measurement is a MEASURED transition on a contract with its record, never a simulated outcome.

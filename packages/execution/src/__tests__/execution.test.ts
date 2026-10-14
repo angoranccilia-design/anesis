@@ -1,7 +1,7 @@
 /** SYNTHETIC fixtures only: the simulated 34-room property and a synthetic PMS snapshot. Nothing here is a real property. */
 import { describe, it, expect } from "vitest";
 import { runCycle, emptyContext, sha256Hex, COUNTRY_HOUSE_34, type CycleResult } from "@anesis/engine";
-import { prepareInterventions, transition, originIntact, assessOutcome, closureDossier, deliverablesFor, type InterventionContract } from "../index.js";
+import { prepareInterventions, transition, originIntact, assessOutcome, closureDossier, deliverablesFor, budgetFromContract, type InterventionContract } from "../index.js";
 
 const NOW = "2026-10-14T09:00:00Z";
 const base = (): CycleResult => runCycle({ seed: 1, budgetGbp: 16_000, now: NOW, measure: false });
@@ -93,5 +93,61 @@ describe("decision-to-execution — contracts from a real cycle", () => {
   it("an analytical intervention never gets an acquisition brief; a demand intervention gets one only when funded", () => {
     const cs = prepareInterventions(base(), "RUN-001", NOW);
     for (const c of cs) { const kinds = c.deliverables.map((d) => d.kind); if (c.decisionStatus !== "FUNDED") expect(kinds).not.toContain("ACQUISITION_BRIEF"); if (c.constraint.kind === "CONVERSION" && c.decisionStatus === "FUNDED") expect(kinds).not.toContain("ACQUISITION_BRIEF"); }
+  });
+});
+
+/** C3 — budget governance: the contract is the budget authority; no path reaches execution without a human-authorised, known cost. */
+describe("C3 — budget governance on the lifecycle", () => {
+  const submitted = (c: InterventionContract) => transition(c, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
+  const funded = () => { const r = withPms(); return { c: submitted(find(prepareInterventions(r, "RUN-001", NOW), "I-001")), budget: r.records.find((x) => x.id === "I-001")!.budget }; };
+  it("the audit's bypass: AUTHORISED then IN_EXECUTION without any budget record is refused — the contract's own budget governs", () => {
+    const { c } = funded();
+    const a = transition(c, { to: "AUTHORISED", actor: human });                       // no budget record given: the contract's estimate supplies the amount
+    expect(a.contract.budgetStatus).toBe("AUTHORISED"); expect(a.contract.approvedCost.status).toBe("OBSERVED"); expect(a.contract.approvedCost.amountGbp).toBe(c.estimatedBudget.amountGbp);
+    const forged: InterventionContract = { ...a.contract, budgetStatus: "PROPOSED", approvedCost: c.approvedCost };   // a contract whose state says AUTHORISED but whose budget was never approved
+    expect(() => transition(forged, { to: "IN_EXECUTION", actor: human })).toThrow(/execution needs an AUTHORISED budget \(is PROPOSED\)/);
+    const e = transition(a.contract, { to: "IN_EXECUTION", actor: human });
+    expect(e.contract.budgetStatus).toBe("IN_EXECUTION"); expect(e.budget.status).toBe("IN_EXECUTION");
+  });
+  it("UNKNOWN is not zero: an unknown estimate cannot be authorised without a stated amount; a stated amount is recorded as OBSERVED", () => {
+    const { c } = funded();
+    const noEstimate: InterventionContract = { ...c, estimatedBudget: { kind: "estimated_intervention_budget", amountGbp: null, status: "UNKNOWN", assumptions: ["no basis"], source: "none" } };
+    expect(() => transition(noEstimate, { to: "AUTHORISED", actor: human })).toThrow(/UNKNOWN is not zero/);
+    const a = transition(noEstimate, { to: "AUTHORISED", actor: human, approvedAmountGbp: 4_000 });
+    expect(a.contract.approvedCost).toMatchObject({ amountGbp: 4_000, status: "OBSERVED" });
+    expect(() => transition(noEstimate, { to: "AUTHORISED", actor: human, approvedAmountGbp: -1 })).toThrow(/finite, non-negative/);
+    expect(() => transition(noEstimate, { to: "AUTHORISED", actor: human, approvedAmountGbp: Number.NaN })).toThrow(/finite, non-negative/);
+  });
+  it("a budget record handed over must be the contract's own and agree with it: another intervention's, or a diverging status, is refused", () => {
+    const { c, budget } = funded();
+    expect(() => transition(c, { to: "AUTHORISED", actor: human, budget: { ...budget, interventionId: "I-002" } })).toThrow(/belongs to I-002/);
+    expect(() => transition(c, { to: "AUTHORISED", actor: human, budget: { ...budget, status: "AUTHORISED" } })).toThrow(/contract is the authority/);
+    const a = transition(c, { to: "AUTHORISED", actor: human, budget });
+    expect(() => transition(a.contract, { to: "IN_EXECUTION", actor: human, budget })).toThrow(/contract is the authority/);   // the stale PROPOSED record cannot be replayed
+  });
+  it("a rejected or closed budget cannot be authorised; the engine still cannot authorise; a withdrawn proposal rejects its budget", () => {
+    const { c, budget } = funded();
+    expect(() => transition({ ...c, budgetStatus: "REJECTED" }, { to: "AUTHORISED", actor: human })).toThrow(/only a PROPOSED or APPROVED budget/);
+    expect(() => transition(c, { to: "AUTHORISED", actor: { by: "engine", human: false, at: NOW }, budget })).toThrow(/requires a named human/);
+    expect(() => transition(c, { to: "AUTHORISED", actor: { by: "", human: true, at: NOW } })).toThrow(/must name the person/);
+    const w = transition(c, { to: "WITHDRAWN", actor: { by: "engine", human: false, at: NOW }, note: "superseded" });
+    expect(w.contract.budgetStatus).toBe("REJECTED"); expect(w.contract.approvedCost.status).toBe("UNKNOWN");
+  });
+  it("an intervention included in the partnership still needs an explicit authorisation before execution", () => {
+    const { c } = funded();
+    const included: InterventionContract = { ...c, funding: { source: "included_in_partnership", note: "test" } };
+    expect(() => transition({ ...included, state: "AUTHORISED" } as InterventionContract, { to: "IN_EXECUTION", actor: human })).toThrow(/execution needs an AUTHORISED budget/);
+    expect(budgetFromContract(included).fundingSource).toBe("included_in_partnership");
+  });
+  it("the full governed path keeps budget and contract in step and the origin intact; approved cost is never null past AUTHORISED", () => {
+    const { c } = funded();
+    const a = transition(c, { to: "AUTHORISED", actor: human, approvedAmountGbp: 7_500 });
+    const e = transition(a.contract, { to: "IN_EXECUTION", actor: human });
+    const x = transition(e.contract, { to: "EXECUTED", actor: human, evidence: ["deployment record"] });
+    const m = transition(x.contract, { to: "MEASURED", actor: human, evidence: ["measurement MP-001"] });
+    const z = transition(m.contract, { to: "CLOSED", actor: human });
+    expect([a, e, x, m, z].map((s) => s.contract.budgetStatus)).toEqual(["AUTHORISED", "IN_EXECUTION", "IN_EXECUTION", "IN_EXECUTION", "CLOSED"]);
+    expect([a, e, x, m, z].every((s) => s.contract.approvedCost.amountGbp === 7_500 && s.contract.approvedCost.status === "OBSERVED")).toBe(true);
+    expect(originIntact(z.contract, sha256Hex)).toBe(true); expect(z.contract.version).toBe(7);
   });
 });

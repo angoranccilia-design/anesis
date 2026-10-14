@@ -16,7 +16,7 @@
  * Money is never one number: observed cost, estimated intervention budget, approved budget, actual spend, provider cost,
  * Anesis revenue, client-funded spend and media spend are distinct kinds, each OBSERVED, ESTIMATE or UNKNOWN.
  */
-import type { Intervention, InterventionStatus } from "./model.js";
+import type { Intervention, InterventionStatus, OpenIntervention } from "./model.js";
 
 export type FundingModel = "managed_partnership" | "partnership_plus_intervention_budget" | "hybrid" | "client_funded_execution";
 export const FUNDING_MODEL_LABEL: Record<FundingModel, string> = {
@@ -109,15 +109,15 @@ export function fundingSource(terms: PartnershipTerms, caps: readonly Capability
   }
 }
 
-export function interventionBudget(i: Intervention, status: InterventionStatus, terms: PartnershipTerms, level: 0 | 1 | 2 | 3 | 4): InterventionBudget {
+export function interventionBudget(i: Intervention, status: InterventionStatus, terms: PartnershipTerms, level: 0 | 1 | 2 | 3 | 4, open?: OpenIntervention): InterventionBudget {
   const caps = HEAD_FOR_FACTOR[i.actsOn]?.capabilities ?? [];
   const estimated: MoneyLine = { kind: "estimated_intervention_budget", amountGbp: i.costGbp, status: "ESTIMATE", assumptions: ["declared engine estimate of the economic budget the intervention needs; not a provider quote, not the partnership fee, not an authorised spend"], source: "engine (declared)" };
   const f = fundingSource(terms, caps, i.costGbp);
   return {
     interventionId: i.id, estimated,
-    approved: unknown("approved_budget", "no approval recorded"), actualSpend: unknown("actual_spend", "execution has not started"), providerCost: unknown("provider_cost", "no quote on record"),
+    approved: open && open.approvedGbp !== null ? { kind: "approved_budget", amountGbp: open.approvedGbp, status: "OBSERVED", assumptions: [], source: `human approval recorded on ${open.contractId}` } : unknown("approved_budget", open ? `${open.contractId} is ${open.state} but carries no approved amount` : "no approval recorded"), actualSpend: unknown("actual_spend", "execution has not started"), providerCost: unknown("provider_cost", "no quote on record"),
     anesisRevenue: terms.fundingModel === "partnership_plus_intervention_budget" || f.source === "separate_intervention_budget" ? unknown("anesis_revenue", "an intervention billed separately is revenue only per the contract's terms; not derived from the estimate") : unknown("anesis_revenue", "the partnership fee is a separate line; nothing here is Anesis revenue by itself"),
-    status: status === "FUNDED" ? "PROPOSED" : status === "INVESTIGATE" ? "PROPOSED" : "REJECTED", approvalRequired: true, approvalLevel: level, fundingSource: f.source, fundingNote: f.note, partnershipSeparate: true,
+    status: open ? (open.budgetStatus as BudgetStatus) : status === "FUNDED" ? "PROPOSED" : status === "INVESTIGATE" ? "PROPOSED" : "REJECTED", approvalRequired: true, approvalLevel: level, fundingSource: f.source, fundingNote: f.note, partnershipSeparate: true,
   };
 }
 
@@ -125,7 +125,7 @@ export function decisionPackage(i: Intervention, constraintName: string, status:
   const h = HEAD_FOR_FACTOR[i.actsOn];
   return {
     interventionId: i.id, commercialConstraint: constraintName,
-    decision: status === "FUNDED" ? `Prioritise: ${i.name}` : status === "INVESTIGATE" ? `Investigate before committing: ${i.name} (${i.informationOption?.name ?? "information purchase"})` : `Do not start now: ${i.name}`,
+    decision: status === "IN_PROGRESS" ? `In progress: ${i.name} — committed on an earlier contract; not re-proposed` : status === "FUNDED" ? `Prioritise: ${i.name}` : status === "INVESTIGATE" ? `Investigate before committing: ${i.name} (${i.informationOption?.name ?? "information purchase"})` : `Do not start now: ${i.name}`,
     estimatedInterventionBudget: budget.estimated, partnership: "Separate",
     fundingModel: terms.fundingModel ? `${FUNDING_MODEL_LABEL[terms.fundingModel]} → ${budget.fundingNote}` : "Requires contract determination",
     responsibleAnesisFunction: h ? HEAD_TITLE[h.head] : "Founder & CEO",
@@ -133,7 +133,7 @@ export function decisionPackage(i: Intervention, constraintName: string, status:
     executionResources: resources,
     clientRole: "Approve intervention / constraints / budget; refuse; adjust; ask for explanations; provide resources; take decisions that are legally or strategically theirs",
     anesisRole: "Own the decision, orchestration, governance and measurement; the client is not the project manager",
-    execution: status === "FUNDED" ? "Mobilised by the responsible Head after approval" : status === "INVESTIGATE" ? "Information purchase first; execution not mobilised" : "Not mobilised",
+    execution: status === "IN_PROGRESS" ? "Under way on its own contract; nothing restarts here" : status === "FUNDED" ? "Mobilised by the responsible Head after approval" : status === "INVESTIGATE" ? "Information purchase first; execution not mobilised" : "Not mobilised",
     measurement, outcome: "Recorded against the pre-registered plan", learning: "Returned to Anesis Memory (forecast error, calibration, provider evidence)",
     budgetStatus: budget.status, approval: budget.approvalRequired ? `REQUIRED — governance level L${budget.approvalLevel}; a recommendation is never an authorised spend` : "not required",
   };

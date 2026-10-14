@@ -32,6 +32,8 @@ export interface CycleEntry {
   readonly budgets: readonly CycleBudgetEntry[];
   readonly measurement: { readonly planId: string; readonly status: string; readonly incrementalPointGbp: number; readonly pPositive: number; readonly placeboPassed: boolean } | null;
   readonly learningId: string | null; readonly forecastError: number | null;
+  readonly inProgress: readonly { readonly interventionId: string; readonly contractId: string; readonly state: string }[];   // committed interventions this cycle did not re-propose (C6)
+  readonly jobKey: string | null;    // the runtime job that produced this entry; a retried job finds its entry and does not append twice
   readonly simulated: boolean;        // true while the property is simulated; false only when every metric is VERIFIED
 }
 
@@ -56,7 +58,7 @@ export function cycleInputFromModel(m: PropertyModel): { memory: LearningRecord[
 }
 
 /** Advances the model by one real cycle. Pure: returns a new model; the caller stores it. */
-export function appendCycle(m: PropertyModel, r: CycleResult, meta: { readonly id: string; readonly at: string }): PropertyModel {
+export function appendCycle(m: PropertyModel, r: CycleResult, meta: { readonly id: string; readonly at: string; readonly jobKey?: string | null }): PropertyModel {
   const spec = r.property.spec;
   const specChanged = JSON.stringify(spec) !== JSON.stringify(m.spec);
   const entry: CycleEntry = {
@@ -68,6 +70,7 @@ export function appendCycle(m: PropertyModel, r: CycleResult, meta: { readonly i
     budgets: r.records.map((x) => ({ interventionId: x.id, decisionStatus: x.decisionStatus, budgetStatus: x.budget.status, estimatedGbp: x.budget.estimated.amountGbp, estimateStatus: x.budget.estimated.status, approvedGbp: x.budget.approved.amountGbp, approvalLevel: x.approvalLevel, owner: x.owner })),
     measurement: r.measurement ? { planId: r.measurement.planId, status: r.measurement.status, incrementalPointGbp: r.measurement.incrementalPointGbp, pPositive: r.measurement.pPositive, placeboPassed: r.measurement.placebo.passed } : null,
     learningId: r.learning?.id ?? null, forecastError: r.learning?.error ?? null,
+    inProgress: (r.input.openInterventions ?? []).map((o) => ({ interventionId: o.interventionId, contractId: o.contractId, state: o.state })), jobKey: meta.jobKey ?? null,
     simulated: r.property.observations.some((o) => o.status !== "VERIFIED"),
   };
   return {
@@ -85,7 +88,10 @@ export function parseModel(json: string): PropertyModel {
   const m = JSON.parse(json) as Partial<PropertyModel>;
   if (m.schemaVersion !== MODEL_SCHEMA_VERSION) throw new Error(`PropertyModel schema ${String(m.schemaVersion)} is not ${MODEL_SCHEMA_VERSION}; migrate before loading`);
   if (typeof m.propertyId !== "string" || !Array.isArray(m.cycles) || !Array.isArray(m.calibration) || !m.memory || !m.spec) throw new Error("PropertyModel is incomplete");
-  return m as PropertyModel;
+  // Fields added within schema 1 (C6): absent in models written before them, read as empty — nothing is invented.
+  const memory = { ...m.memory, executions: m.memory.executions ?? [] };
+  const cycles = m.cycles.map((c) => ({ ...c, inProgress: c.inProgress ?? [], jobKey: c.jobKey ?? null }));
+  return { ...m, memory, cycles } as PropertyModel;
 }
 
 /** Storage seam. The engine ships an in-memory store; applications provide durable ones (file, database). */

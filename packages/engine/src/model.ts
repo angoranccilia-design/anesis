@@ -45,7 +45,10 @@ export interface Metric extends Observation {
 export interface Range { readonly low: number; readonly high: number; }
 
 export type ConstraintKind = "DEMAND" | "CONVERSION" | "CAPACITY" | "OPERATIONAL" | "ECONOMIC" | "RETENTION";
-export type InterventionStatus = "FUNDED" | "BLOCKED" | "INVESTIGATE" | "REJECTED" | "DEFERRED";
+export type InterventionStatus = "FUNDED" | "BLOCKED" | "INVESTIGATE" | "REJECTED" | "DEFERRED" | "IN_PROGRESS";
+
+/** An intervention a human has committed to in an earlier cycle (its contract is AUTHORISED, IN_EXECUTION, EXECUTED or MEASURED). The next cycle must not re-propose it, re-budget it or measure around it. */
+export interface OpenIntervention { readonly interventionId: string; readonly contractId: string; readonly state: string; readonly budgetStatus: string; readonly approvedGbp: number | null; readonly since: string; readonly planId: string | null; readonly awaitingMeasurement: boolean }
 
 export interface Constraint {
   readonly id: string;               // "C-001"

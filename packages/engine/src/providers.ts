@@ -29,7 +29,7 @@ export function providerBriefs(records: readonly InterventionRecord[], actsOn: R
   const binding = records.find((r) => r.decisionStatus === "FUNDED");
   return records.map((r) => {
     const p = assignProvider(actsOn[r.id] ?? "", providers);
-    const instruction: ProviderBrief["instruction"] = r.decisionStatus === "FUNDED" ? "PROCEED" : r.decisionStatus === "INVESTIGATE" ? "PREPARE" : r.decisionStatus === "DEFERRED" ? "HOLD" : "DO_NOT_START";
+    const instruction: ProviderBrief["instruction"] = r.decisionStatus === "FUNDED" || r.decisionStatus === "IN_PROGRESS" ? "PROCEED" : r.decisionStatus === "INVESTIGATE" ? "PREPARE" : r.decisionStatus === "DEFERRED" ? "HOLD" : "DO_NOT_START";
     const weeks = (weeksToImpact[r.id] ?? 8) + (plan?.windowWeeks ?? 52);
     const deadline = r.decisionStatus === "FUNDED" ? new Date(Date.parse(nowIso) + weeks * 7 * 86400e3).toISOString().slice(0, 10) : null;
     return { providerId: p.id, providerName: p.name, role: p.role, interventionId: r.id, priority: binding ? `${binding.constraint[0]} — ${binding.problem}` : "none funded", status: r.decisionStatus, instruction, blocked: r.blockedBy, requiredIntervention: r.name, owner: r.owner, successThreshold: unblock[actsOn[r.id] ?? ""] ? `${unblock[actsOn[r.id] ?? ""]} (the level at which the dependent acquisition decision changes) — and ${r.successThreshold}` : r.successThreshold, measurement: r.measurementPlanId ? `pre-registered plan ${r.measurementPlanId}: synthetic-control counterfactual, placebo-tested; the provider's own attribution is not the measure` : "none until funded", deadline, whatWouldUnblock: r.whatWouldUnblock,

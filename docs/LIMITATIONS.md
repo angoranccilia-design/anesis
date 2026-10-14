@@ -21,3 +21,13 @@
 14. **Languages.** Ask Anesis detects the question's language; answer templates are complete in English and French; Spanish, German, Italian, Portuguese and Dutch are detected and answered in English with a notice. Engine record text (intervention names, block reasons, formulas) is English. Full translation requires the language layer (LLM) when enabled. Voice follows the selected language.
 15. **No claim of endorsement, certification or assurance** is made anywhere in the product; "Commercial Assay by Anesis" is brand language only.
 16. **Commercial model.** Partnership terms, funding model and providers are operator-entered; estimated intervention budgets are declared engine estimates; approved budgets, provider costs, actual spend and Anesis revenue are UNKNOWN until recorded by a human. No contract or billing system is connected.
+
+## Coherence corrections, 14 October 2026 (C1, C2, C3, C6)
+
+Four defects demonstrated by the end-to-end audit were corrected; the rest of the audit's list (C4, C5, C7 to C12) stands. What remains after the corrections:
+
+- **C1.** The 90-day minimum bounds the seasonal bias of a projection; it does not remove it. Between 90 and 364 days annual totals are MODELLED projections and the cycle says so. Nothing in the engine yet seasonally adjusts a partial-year window.
+- **C2.** The collection date is declared by the operator; when absent, the import date stands in and the statement says so. No threshold calls an export "too old": the gap is reported, the decision is dated by the period end.
+- **C3.** Who the human is remains declarative (C4): the lifecycle checks the budget, not an identity. Actual spend and provider cost are not kept on the contract and come back UNKNOWN from `budgetFromContract`.
+- **C6.** The engine knows committed interventions only through what the runtime reads from the `interventions` table; the console does not yet pass open contracts (it has none: only the runtime persists contracts). A dependant of an intervention in progress stays BLOCKED until that intervention is measured. The runtime no longer simulates outcomes, so calibration grows only from real MEASURED contracts, of which there are none yet.
+- All tests are on synthetic data and prove behaviour, not commercial value. No real property data has been read.

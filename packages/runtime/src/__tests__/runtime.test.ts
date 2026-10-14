@@ -30,7 +30,7 @@ describe("runtime — the engine running in time, on Postgres", () => {
     const r = await runOnce(db, { offline: true, now: () => "2026-10-21T09:00:00.000Z" });
     expect(r.processed[0]?.outcome).toBe("done");
     const m = await new PgModelStore(db).load(COUNTRY_HOUSE_34.id);
-    expect(m?.cycles).toHaveLength(2); expect(m?.calibration).toHaveLength(2); expect(m?.memory.decisions).toHaveLength(2);
+    expect(m?.cycles).toHaveLength(2); expect(m?.calibration).toHaveLength(0); expect(m?.memory.measured).toHaveLength(0); expect(m?.memory.decisions).toHaveLength(2);   // no simulated outcome in the runtime: nothing is "measured" until a contract is
     const tr = await tracesFor(db, "RUN-002"); expect(tr.some((t) => String(t.type) === "MEMORY_RECALLED")).toBe(true);
   });
   it("resume after a crash: a job whose lock expired is re-queued and runs; it is not duplicated", async () => {
@@ -62,10 +62,10 @@ describe("runtime — a PMS file import feeds the next cycle (synthetic file, ma
   it("stores the import with provenance, marks the PMS connector CONNECTED and the cycle's PMS metrics VERIFIED", async () => {
     const { writeFileSync, mkdtempSync } = await import("node:fs"); const { join } = await import("node:path"); const { tmpdir } = await import("node:os");
     const dir = mkdtempSync(join(tmpdir(), "anesis-import-")); const file = join(dir, "sim-export.csv");
-    writeFileSync(file, `Reservation ID,Booking Date,Arrival,Departure,Status,Room Revenue,Currency,Channel\nS1,2026-09-01,2026-10-01,2026-10-04,Confirmed,540,GBP,Booking.com\nS2,2026-09-20,2026-10-02,2026-10-03,Confirmed,180,GBP,Website\nS3,2026-09-25,2026-10-03,2026-10-06,Cancelled,600,GBP,Expedia\n`);
+    writeFileSync(file, `Reservation ID,Booking Date,Arrival,Departure,Status,Room Revenue,Currency,Channel\nS0,2026-06-01,2026-07-01,2026-07-02,Confirmed,150,GBP,Website\nS1,2026-09-01,2026-10-01,2026-10-04,Confirmed,540,GBP,Booking.com\nS2,2026-09-20,2026-10-02,2026-10-03,Confirmed,180,GBP,Website\nS3,2026-09-25,2026-10-03,2026-10-06,Cancelled,600,GBP,Expedia\n`);
     const { importFile, latestImport } = await import("../imports.js");
     const r = await importFile(db, file, { propertyId: COUNTRY_HOUSE_34.id, rooms: 34, importedAt: "2026-10-14T09:00:00Z" });
-    expect(r.snapshot?.roomNightsSold).toBe(4); expect(r.snapshot?.cancellations).toBe(1); expect(r.snapshot?.otaCommissionGbp).toBeNull();
+    expect(r.snapshot?.roomNightsSold).toBe(5); expect(r.snapshot?.periodDays).toBe(95); expect(r.sufficiency.window.cls).toBe("PARTIAL_YEAR"); expect(r.snapshot?.cancellations).toBe(1); expect(r.snapshot?.otaCommissionGbp).toBeNull();
     expect((await latestImport(db, COUNTRY_HOUSE_34.id))?.provenance.sha256).toBe(r.provenance.sha256);
     await enqueue(db, { kind: "cycle", key: "cycle:import-test", payload: { propertyId: COUNTRY_HOUSE_34.id }, runAt: "2026-10-28T09:00:00.000Z" });
     await db.query("delete from context_snapshots");   // force a fresh collect so the import is read
@@ -75,7 +75,7 @@ describe("runtime — a PMS file import feeds the next cycle (synthetic file, ma
     expect(conn?.state).toBe("CONNECTED"); expect(conn?.detail).toMatch(/file import sim-export.csv/);
     const m = await new PgModelStore(db).load(COUNTRY_HOUSE_34.id); const last = m!.cycles[m!.cycles.length - 1]!;
     expect(last.verifiedMetrics).toEqual(expect.arrayContaining(["occupancy", "adr", "ota_share", "cancellation_rate"]));
-    expect(last.verifiedMetrics).not.toContain("ops.peak_occupancy");
+    expect(last.verifiedMetrics).not.toContain("ops.peak_occupancy"); expect(last.verifiedMetrics).not.toContain("room_nights");   // 97 days: ratios observed, annual totals are projections (C1)
     expect(last.simulated).toBe(true);   // honest: the rest of the property is still simulated
   });
 });

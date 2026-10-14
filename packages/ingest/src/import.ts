@@ -5,7 +5,7 @@
  * justify), the data quality, and a sufficiency statement. Deterministic: same bytes and options → same result.
  */
 import { createHash } from "node:crypto";
-import { quality, type PmsSnapshot, type DataQuality } from "@anesis/engine";
+import { quality, classifyWindow, ANNUALISATION_MIN_DAYS, FULL_YEAR_DAYS, type PmsSnapshot, type DataQuality, type WindowClass } from "@anesis/engine";
 import { parseCsv, parseXlsx, type Table } from "./table.js";
 import { detectMapping, classifyChannel, classifyStatus, type Field, type Mapping } from "./fields.js";
 import { inferDateOrder, parseDate, parseMoney, parseInt0, daysBetween, type DateOrder } from "./values.js";
@@ -19,12 +19,13 @@ export interface ImportOptions {
   readonly mapping?: Partial<Record<Field, string>>;    // declared header → field overrides
   readonly dateOrder?: DateOrder;                       // declared when the file is ambiguous
   readonly fxToGbp?: Record<string, number>;            // declared rates; without one, foreign revenue stays unknown
-  readonly importedAt?: string;
+  readonly importedAt?: string;                         // when Anesis read the file (defaults to now)
+  readonly collectedAt?: string | null;                 // when the PMS produced the export, if the operator knows it; null or absent = unknown
   readonly period?: { from: string; to: string };       // restrict the stay window; default: the file's own span
 }
 
 export interface ImportResult {
-  readonly provenance: { readonly filename: string; readonly sha256: string; readonly bytes: number; readonly format: "csv" | "xlsx"; readonly delimiter: string | null; readonly sheet: string | null; readonly dataRows: number; readonly importedAt: string; readonly dateOrder: DateOrder; readonly declared: { rooms: number | null; mapping: Partial<Record<Field, string>>; fxToGbp: Record<string, number> } };
+  readonly provenance: { readonly filename: string; readonly sha256: string; readonly bytes: number; readonly format: "csv" | "xlsx"; readonly delimiter: string | null; readonly sheet: string | null; readonly dataRows: number; readonly importedAt: string; readonly collectedAt: string | null; readonly dateOrder: DateOrder; readonly declared: { rooms: number | null; mapping: Partial<Record<Field, string>>; fxToGbp: Record<string, number> } };
   readonly mapping: Mapping;
   readonly fields: { readonly available: Field[]; readonly missing: Field[] };
   readonly period: { readonly from: string | null; readonly to: string | null; readonly days: number | null; readonly coverage: number | null };   // coverage: share of days in the window with at least one stay night
@@ -34,7 +35,9 @@ export interface ImportResult {
   readonly channels: { readonly name: string; readonly cls: string; readonly roomNights: number; readonly revenueGbp: number | null }[];
   readonly snapshot: PmsSnapshot | null;             // null when the engine could not be fed honestly (rooms or room nights unknown)
   readonly quality: DataQuality;
-  readonly sufficiency: { readonly verdict: "SUFFICIENT_FOR_OCCUPANCY_AND_ADR" | "PARTIAL" | "INSUFFICIENT"; readonly canCompute: string[]; readonly cannotCompute: { metric: string; because: string }[]; readonly nextData: string[] };
+  /** Three dates kept apart (audit C2): the observed period's end, the export's collection date, the import date. A file is a historical record: it is never "live", so it is never STALE; the gap says how current it is. */
+  readonly recency: { readonly periodEnd: string | null; readonly collectedAt: string | null; readonly importedAt: string; readonly daysPeriodEndToCollection: number | null; readonly daysPeriodEndToImport: number | null; readonly statement: string };
+  readonly sufficiency: { readonly verdict: "SUFFICIENT_FOR_OCCUPANCY_AND_ADR" | "WINDOW_TOO_SHORT" | "PARTIAL" | "INSUFFICIENT"; readonly window: { readonly days: number | null; readonly cls: WindowClass | null; readonly minimumDays: number; readonly fullYearDays: number; readonly note: string }; readonly canCompute: string[]; readonly cannotCompute: { metric: string; because: string }[]; readonly nextData: string[] };
   readonly simulated: false;
 }
 
@@ -49,6 +52,7 @@ function toTable(opts: ImportOptions): { table: Table; bytes: Uint8Array } {
 
 export function importPmsExport(opts: ImportOptions): ImportResult {
   const importedAt = opts.importedAt ?? new Date().toISOString();
+  const collectedAt = opts.collectedAt ?? null;
   const { table, bytes } = toTable(opts);
   const mapping = detectMapping(table.headers, opts.mapping ?? {});
   const col = (f: Field) => mapping.byField[f]?.column;
@@ -114,12 +118,16 @@ export function importPmsExport(opts: ImportOptions): ImportResult {
   const channels = [...byChannel.entries()].map(([name, c]) => ({ name, cls: c.cls, roomNights: c.nights, revenueGbp: c.revenue })).sort((a, b) => b.roomNights - a.roomNights);
   const snapshot: PmsSnapshot | null = rooms && roomNightsSold !== null && days && from && to ? {
     asOf: to, periodDays: days, rooms, roomNightsSold, roomRevenueGbp: revenueGbp, cancellations, noShows, otaRoomNights, otaCommissionGbp: commissionGbp, peakOccupancy, bookingWindowDays,
-    channels: channels.map((c) => ({ name: c.name, roomNights: c.roomNights, revenueGbp: c.revenueGbp ?? 0 })), source: `file import ${opts.filename} sha256 ${sha256(bytes).slice(0, 12)} imported ${importedAt}`,
+    channels: channels.map((c) => ({ name: c.name, roomNights: c.roomNights, revenueGbp: c.revenueGbp ?? 0 })), source: `file import ${opts.filename} sha256 ${sha256(bytes).slice(0, 12)}; period to ${to}; ${collectedAt ? `exported ${collectedAt}` : "export date not declared"}; imported ${importedAt}`,
   } : null;
   const expected: Field[] = ["reservationId", "arrival", "departure", "status", "revenue", "channel", "bookingDate"];
   const completeness = expected.filter((f) => available.includes(f)).length / expected.length;
-  const ageHours = to ? Math.max(0, (Date.parse(importedAt) - Date.parse(to + "T00:00:00Z")) / 3_600_000) : null;
-  const q = quality(completeness, kept.length ? 0.9 : 0, ageHours, "DAILY", `${kept.length} reservations kept of ${rows.length} rows; ${rec.issues.length} issue kinds`);
+  const dayGap = (a: string | null, b: string | null) => (a && b ? Math.max(0, Math.round((Date.parse(b) - Date.parse(a + "T00:00:00Z")) / 86_400_000)) : null);
+  const toCollection = dayGap(to, collectedAt), toImport = dayGap(to, importedAt);
+  const recencyStatement = !to ? "period end unknown: how current these data are cannot be said" : `data describe a period ending ${to}${collectedAt ? `, exported ${toCollection} day(s) later` : ", export date not declared"}, imported ${toImport} day(s) after the period end; a historical record of that period, not a live feed`;
+  // Age is measured from the period end to the collection date when declared, else to the import date; a file import is HISTORICAL by nature (never stale), and the age dates it.
+  const ageHours = to ? Math.max(0, (Date.parse(collectedAt ?? importedAt) - Date.parse(to + "T00:00:00Z")) / 3_600_000) : null;
+  const q = quality(completeness, kept.length ? 0.9 : 0, ageHours, "HISTORICAL", `${kept.length} reservations kept of ${rows.length} rows; ${rec.issues.length} issue kinds; ${recencyStatement}`);
   const can: string[] = []; const cannot: { metric: string; because: string }[] = []; const next: string[] = [];
   if (roomNightsSold !== null) can.push("room nights"); else cannot.push({ metric: "room nights", because: "no readable arrival and departure dates" });
   if (occupancy !== null) can.push("occupancy"); else if (!rooms) { cannot.push({ metric: "occupancy", because: "room count not declared" }); next.push("declare the number of sellable rooms"); }
@@ -130,16 +138,23 @@ export function importPmsExport(opts: ImportOptions): ImportResult {
   if (peakOccupancy !== null) can.push("peak occupancy"); else cannot.push({ metric: "peak occupancy", because: !rooms ? "room count not declared" : days !== null && days < 28 ? "window shorter than 28 days" : "stay coverage below 90 % of the window" });
   if (commissionGbp === null) { cannot.push({ metric: "OTA commission", because: "no commission column (rare in reservation exports)" }); next.push("OTA commission statements or channel-manager report"); }
   if (dateOrder === "ambiguous") next.push("declare the date format (day/month order)");
-  const verdict = roomNightsSold !== null && occupancy !== null && adr !== null ? "SUFFICIENT_FOR_OCCUPANCY_AND_ADR" : roomNightsSold !== null ? "PARTIAL" : "INSUFFICIENT";
+  // Window (audit C1): what the covered period can establish. Window figures (occupancy, ADR over the window) are observed;
+  // annual figures are projections below a full year and are not made at all below the minimum. The engine applies the same rule.
+  const wcls = days !== null ? classifyWindow(days) : null;
+  const windowNote = days === null ? "period unknown: nothing can be annualised" : wcls === "FULL_YEAR" ? `${days} days: a full year; annual totals observed` : wcls === "PARTIAL_YEAR" ? `${days} days: annual totals are projections (× 365 ÷ ${days}) with possible seasonal bias; window figures are observed for the window only` : `${days} days: below the ${ANNUALISATION_MIN_DAYS}-day minimum — window figures describe these days only; no annual figure is derived and the engine will not use them as annual rates`;
+  if (wcls === "TOO_SHORT") { cannot.push({ metric: "annual room nights, revenue, occupancy, ADR", because: `window of ${days} days is below the ${ANNUALISATION_MIN_DAYS}-day minimum` }); next.push(`an export covering at least ${ANNUALISATION_MIN_DAYS} days; ${FULL_YEAR_DAYS} days to remove seasonal bias`); }
+  else if (wcls === "PARTIAL_YEAR") next.push(`a full ${FULL_YEAR_DAYS}-day export to replace annual projections with observed totals`);
+  const verdict = wcls === "TOO_SHORT" && roomNightsSold !== null ? "WINDOW_TOO_SHORT" : roomNightsSold !== null && occupancy !== null && adr !== null ? "SUFFICIENT_FOR_OCCUPANCY_AND_ADR" : roomNightsSold !== null ? "PARTIAL" : "INSUFFICIENT";
   return {
-    provenance: { filename: opts.filename, sha256: sha256(bytes), bytes: bytes.byteLength, format: table.format, delimiter: table.delimiter, sheet: table.sheet, dataRows: table.rows.length, importedAt, dateOrder, declared: { rooms, mapping: opts.mapping ?? {}, fxToGbp: fx } },
+    provenance: { filename: opts.filename, sha256: sha256(bytes), bytes: bytes.byteLength, format: table.format, delimiter: table.delimiter, sheet: table.sheet, dataRows: table.rows.length, importedAt, collectedAt, dateOrder, declared: { rooms, mapping: opts.mapping ?? {}, fxToGbp: fx } },
     mapping, fields: { available, missing },
     period: { from, to, days, coverage },
     counts: { rows: rows.length, kept: kept.length, cancelled: rec.excluded.filter((e) => e.why === "CANCELLED").length, noShows: rec.excluded.filter((e) => e.why === "NO_SHOW").length, duplicates: rec.excluded.filter((e) => e.why === "EXACT_DUPLICATE").length, modified: rec.excluded.filter((e) => e.why === "MODIFIED_RESERVATION").length, conflicting: rec.excluded.filter((e) => e.why === "CONFLICTING_RESERVATION").length, excludedOther: rec.excluded.filter((e) => !["CANCELLED", "NO_SHOW", "EXACT_DUPLICATE", "MODIFIED_RESERVATION", "CONFLICTING_RESERVATION"].includes(e.why)).length },
     issues: rec.issues,
     metrics: { roomNightsSold, roomRevenueGbp: revenueGbp, adrGbp: adr, occupancy, revparGbp: revpar, otaShare: otaRoomNights !== null && roomNightsSold ? otaRoomNights / roomNightsSold : null, cancellationRate: cancellations !== null && roomNightsSold !== null ? cancelledNights / Math.max(1, roomNights + cancelledNights) : null, bookingWindowDays, peakOccupancy, basis },
     channels, snapshot, quality: q,
-    sufficiency: { verdict, canCompute: can, cannotCompute: cannot, nextData: [...new Set(next)] },
+    recency: { periodEnd: to, collectedAt, importedAt, daysPeriodEndToCollection: toCollection, daysPeriodEndToImport: toImport, statement: recencyStatement },
+    sufficiency: { verdict, window: { days, cls: wcls, minimumDays: ANNUALISATION_MIN_DAYS, fullYearDays: FULL_YEAR_DAYS, note: windowNote }, canCompute: can, cannotCompute: cannot, nextData: [...new Set(next)] },
     simulated: false,
   };
 }

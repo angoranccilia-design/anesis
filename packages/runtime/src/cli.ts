@@ -6,7 +6,7 @@
  *   work                    run the worker loop (ANESIS_OFFLINE=1 for no live connectors)
  *   once                    process due jobs once and exit
  *   status                  jobs, models, last traces
- *   import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85]   read a PMS export, store the result, feed the next cycle
+ *   import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]   read a PMS export, store the result, feed the next cycle
  * Backend: DATABASE_URL (Postgres) or ANESIS_PGLITE_DIR (embedded); neither = in-memory, which is only useful for `once`.
  */
 import { openDatabase } from "./sql.js";
@@ -25,10 +25,10 @@ else if (cmd === "schedule") { const r = await scheduleCycle(db, COUNTRY_HOUSE_3
 else if (cmd === "once") { const r = await runOnce(db, deps); console.log(JSON.stringify(r)); }
 else if (cmd === "work") { console.log(`worker on ${db.backend}; offline=${deps.offline}`); await startWorker(db, deps); }
 else if (cmd === "import") {
-  const file = process.argv[3]; if (!file) { console.error("usage: anesis-runtime import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85]"); process.exit(2); }
+  const file = process.argv[3]; if (!file) { console.error("usage: anesis-runtime import <file> [--rooms N] [--date-order DMY|MDY] [--fx EUR=0.85] [--collected-at ISO]"); process.exit(2); }
   const arg = (k: string) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
   const fx: Record<string, number> = {}; for (const kv of (arg("--fx") ?? "").split(",").filter(Boolean)) { const [c, v] = kv.split("="); if (c && v) fx[c.toUpperCase()] = Number(v); }
-  const r = await importFile(db, file, { propertyId: COUNTRY_HOUSE_34.id, rooms: arg("--rooms") ? Number(arg("--rooms")) : null, dateOrder: arg("--date-order") as never, fxToGbp: fx });
+  const r = await importFile(db, file, { propertyId: COUNTRY_HOUSE_34.id, rooms: arg("--rooms") ? Number(arg("--rooms")) : null, dateOrder: arg("--date-order") as never, fxToGbp: fx, collectedAt: arg("--collected-at") ?? null });
   console.log(JSON.stringify({ file: r.provenance.filename, sha256: r.provenance.sha256.slice(0, 12), rows: r.counts, period: r.period, fields: r.fields, metrics: r.metrics, verdict: r.sufficiency.verdict, cannot: r.sufficiency.cannotCompute, next: r.sufficiency.nextData, issues: r.issues.map((i) => `${i.kind}×${i.count}: ${i.examples[0]}`) }, null, 2));
 }
 else if (cmd === "status") {

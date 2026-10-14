@@ -7,7 +7,7 @@
  * Causal chain: demand → conversion → capacity → operational. An action on a factor is blocked while a downstream
  * factor's attainment is more than ten points lower — unless memory shows that constraint measured resolved.
  */
-import type { Allocation, AllocationLine, Diagnosis, Intervention, InterventionStatus, VoiResult } from "./model.js";
+import type { Allocation, AllocationLine, Diagnosis, Intervention, InterventionStatus, OpenIntervention, VoiResult } from "./model.js";
 import { expectedValue } from "./interventions.js";
 import { PARAMS, type Params } from "./benchmarks.js";
 
@@ -22,7 +22,7 @@ export function riskAdjustedValue(i: Intervention, all: readonly Intervention[],
 }
 
 import type { RequirementsResult } from "./requirements.js";
-export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number; readonly requirements?: Readonly<Record<string, RequirementsResult>> }
+export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number; readonly requirements?: Readonly<Record<string, RequirementsResult>>; readonly open?: Readonly<Record<string, OpenIntervention>> }
 
 export function allocate(items: readonly Intervention[], d: Diagnosis, voi: readonly VoiResult[], budgetGbp: number, P: Params = PARAMS, opts: AllocateOptions = {}): Allocation {
   const reserve = budgetGbp * P.reserveShare, usable = budgetGbp - reserve;
@@ -32,6 +32,10 @@ export function allocate(items: readonly Intervention[], d: Diagnosis, voi: read
   const funded: string[] = []; let spent = 0; const lines: AllocationLine[] = [];
   for (const i of ranked) {
     const rav = riskAdjustedValue(i, items, P), ev = expectedValue(i);
+    // Continuity (audit C6): an intervention a human has committed to is in progress, not a candidate. Its capital was approved
+    // on its own contract in an earlier cycle; it is not re-proposed, not re-budgeted, and this cycle's budget is not charged for it.
+    const o = opts.open?.[i.id];
+    if (o) { lines.push({ interventionId: i.id, allocatedGbp: 0, riskAdjustedValueGbp: rav, expectedValueGbp: ev, funded: false, status: "IN_PROGRESS", blockedBy: [`in progress: contract ${o.contractId} is ${o.state} since ${o.since}${o.awaitingMeasurement ? "; awaiting its measurement record" : ""}; not re-proposed in this cycle`], requiredCondition: o.awaitingMeasurement ? `measurement record on ${o.contractId}, then decision re-run` : `${o.contractId} executed and measured, then decision re-run`, qualityFactor: opts.qualityFactor?.(i.id) ?? 1 }); continue; }
     const blocked: string[] = []; let condition: string | null = null; let status: InterventionStatus | null = null;
     const factor = byFactor(i.actsOn);
     // causal dependency walk

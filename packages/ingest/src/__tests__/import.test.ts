@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import * as XLSX from "xlsx";
 import { importPmsExport, parseCsv, inferDateOrder, parseMoney, classifyChannel, classifyStatus } from "../index.js";
-import { observationsFromSystems, runCycle, emptyContext } from "@anesis/engine";
+import { observationsFromSystems, runCycle, emptyContext, qualityFactor } from "@anesis/engine";
 
 const T = "2026-10-14T09:00:00Z";
 const CLEAN = `Reservation ID,Booking Date,Arrival,Departure,Status,Room Revenue,Currency,Channel
@@ -30,7 +30,8 @@ describe("generic PMS export reader", () => {
     expect(r.metrics.occupancy).toBeCloseTo(9 / (10 * 9), 4);
     expect(r.metrics.otaShare).toBeCloseTo(6 / 9, 4);
     expect(r.snapshot).not.toBeNull(); expect(r.snapshot!.otaCommissionGbp).toBeNull(); expect(r.snapshot!.cancellations).toBe(1); expect(r.snapshot!.noShows).toBe(1);
-    expect(r.sufficiency.verdict).toBe("SUFFICIENT_FOR_OCCUPANCY_AND_ADR");
+    expect(r.sufficiency.verdict).toBe("WINDOW_TOO_SHORT");   // every field is there, but 9 days establish nothing annual (C1)
+    expect(r.sufficiency.canCompute).toEqual(expect.arrayContaining(["room nights", "occupancy", "ADR", "OTA share"]));
     expect(r.metrics.basis.occupancy).toMatch(/10 declared rooms/);
   });
   it("is deterministic: same bytes and options give the same result", () => {
@@ -45,7 +46,7 @@ A3;22/09/2026;25/09/2026;Confirmée;"900,00 €";Téléphone`;
     const r = importPmsExport({ filename: "sim-fr.csv", content: fr, rooms: 8, importedAt: T });
     expect(r.provenance.delimiter).toBe(";"); expect(r.provenance.dateOrder).toBe("DMY");
     expect(r.metrics.roomNightsSold).toBe(6); expect(r.metrics.roomRevenueGbp).toBeNull(); expect(r.metrics.adrGbp).toBeNull();
-    expect(r.snapshot!.roomRevenueGbp).toBeNull(); expect(r.sufficiency.verdict).toBe("PARTIAL");
+    expect(r.snapshot!.roomRevenueGbp).toBeNull(); expect(r.sufficiency.verdict).toBe("WINDOW_TOO_SHORT"); expect(r.sufficiency.window.days).toBe(10);
     expect(r.sufficiency.cannotCompute.find((c) => c.metric === "ADR")?.because).toMatch(/currency without a declared GBP rate/);
     expect(r.sufficiency.nextData).toContain("declare the currency and a GBP rate, or export in GBP");
     const withFx = importPmsExport({ filename: "sim-fr.csv", content: fr, rooms: 8, importedAt: T, fxToGbp: { EUR: 0.85 } });
@@ -96,17 +97,41 @@ B5,2026-09-01,2026-09-03,weird status,120,GBP,Some Tour Partner`;
     expect(r.provenance.format).toBe("xlsx"); expect(r.provenance.sheet).toBe("Reservations"); expect(r.period.from).toBe("2026-09-01");
     expect(r.metrics.roomNightsSold).toBe(4); expect(r.metrics.roomRevenueGbp).toBe(720); expect(r.metrics.otaShare).toBeCloseTo(0.75);
   });
-  it("the snapshot feeds the existing engine: null fields produce no observation, present fields become VERIFIED and override the simulation", () => {
+  it("C1 — a 9-day export is not a year: the reader says WINDOW_TOO_SHORT, the engine takes only the room count and the decision does not move", () => {
     const r = importPmsExport({ filename: "sim-clean.csv", content: CLEAN, rooms: 34, importedAt: T });
+    expect(r.sufficiency.verdict).toBe("WINDOW_TOO_SHORT"); expect(r.sufficiency.window).toMatchObject({ days: 9, cls: "TOO_SHORT", minimumDays: 90 });
+    expect(r.sufficiency.cannotCompute.some((c) => /annual/.test(c.metric))).toBe(true); expect(r.sufficiency.nextData.some((n) => /at least 90 days/.test(n))).toBe(true);
+    expect(r.metrics.occupancy).toBeCloseTo(9 / (34 * 9), 4);                                   // the window figure stays, labelled as a window figure
     const obs = observationsFromSystems({ pms: r.snapshot! }, T);
-    const metrics = obs.map((o) => o.metric);
-    expect(metrics).toEqual(expect.arrayContaining(["rooms", "room_nights", "occupancy", "adr", "room_revenue", "ota_share", "cancellation_rate"]));
-    expect(metrics).not.toContain("ota_commission_rate"); expect(metrics).not.toContain("ops.peak_occupancy");
-    expect(obs.every((o) => o.status === "VERIFIED")).toBe(true);
+    expect(obs.map((o) => o.metric)).toEqual(["rooms"]);                                           // nothing annualised, no window ratio passed off as annual
+    const none = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false });
     const cycle = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false, context: { ...emptyContext(T), systems: { pms: r.snapshot! } } });
-    expect(cycle.verifiedMetrics).toEqual(expect.arrayContaining(["occupancy", "adr", "ota_share"]));
-    expect(cycle.verifiedMetrics).not.toContain("ops.peak_occupancy");
-    expect(cycle.diagnosis.binding).toBeTruthy();
+    expect(cycle.verifiedMetrics).toEqual(["rooms"]); expect(cycle.diagnosis.binding).toBe(none.diagnosis.binding);
+    expect(cycle.dataQualityNotes.some((n) => /CONN-PMS: 9-day window is below the 90-day minimum/.test(n))).toBe(true);
+    expect(cycle.events.some((e) => e.type === "DATA_WINDOW_LIMITED")).toBe(true);
+  });
+  it("C1 — synthetic seasonal year: a summer month projects a false year, a quarter is a flagged projection, a full year is observed", () => {
+    // SYNTHETIC: 20 rooms, daily occupancy 0.9 in Jun–Sep, 0.35 otherwise; ADR £200 flat. One reservation per occupied room-night.
+    const rows: string[] = ["id,arrival,departure,status,revenue,currency,channel"]; let k = 0;
+    const start = Date.parse("2025-10-01T00:00:00Z");
+    for (let d = 0; d < 365; d++) { const day = new Date(start + d * 86_400_000); const m = day.getUTCMonth(); const occ = m >= 5 && m <= 8 ? 0.9 : 0.35; const sold = Math.round(20 * occ); const a = day.toISOString().slice(0, 10), b = new Date(start + (d + 1) * 86_400_000).toISOString().slice(0, 10); for (let i = 0; i < sold; i++) rows.push(`S${++k},${a},${b},confirmed,200,GBP,${i % 2 ? "Booking.com" : "Website"}`); }
+    const csv = rows.join("\n");
+    const year = importPmsExport({ filename: "sim-year.csv", content: csv, rooms: 20, importedAt: T });
+    const quarter = importPmsExport({ filename: "sim-year.csv", content: csv, rooms: 20, importedAt: T, period: { from: "2026-06-01", to: "2026-08-31" } });
+    const month = importPmsExport({ filename: "sim-year.csv", content: csv, rooms: 20, importedAt: T, period: { from: "2026-07-01", to: "2026-07-31" } });
+    expect(year.sufficiency.window.cls).toBe("FULL_YEAR"); expect(quarter.sufficiency.window.cls).toBe("PARTIAL_YEAR"); expect(month.sufficiency.window.cls).toBe("TOO_SHORT");
+    const trueAnnualNights = year.metrics.roomNightsSold!;
+    const oy = observationsFromSystems({ pms: year.snapshot! }, T), oq = observationsFromSystems({ pms: quarter.snapshot! }, T), om = observationsFromSystems({ pms: month.snapshot! }, T);
+    const nights = (o: typeof oy) => o.find((x) => x.metric === "room_nights");
+    expect(nights(oy)).toMatchObject({ status: "VERIFIED", value: trueAnnualNights });
+    expect(nights(oq)!.status).toBe("MODELLED"); expect(nights(oq)!.value).toBeGreaterThan(trueAnnualNights * 1.3);   // the summer projection overstates the year: that is why it is MODELLED, not VERIFIED
+    expect(nights(oq)!.assumptions.join(" ")).toMatch(/seasonal bias/); expect(oq.find((x) => x.metric === "occupancy")).toMatchObject({ status: "VERIFIED", confidence: 0.9 });
+    expect(nights(om)).toBeUndefined(); expect(om.map((o) => o.metric)).toEqual(["rooms"]);
+    const cy = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false, context: { ...emptyContext(T), systems: { pms: year.snapshot! } } });
+    expect(cy.verifiedMetrics).toEqual(expect.arrayContaining(["room_nights", "occupancy", "adr", "room_revenue", "ota_share"])); expect(cy.dataQualityNotes.some((n) => /CONN-PMS/.test(n))).toBe(false);
+    const cq = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false, context: { ...emptyContext(T), systems: { pms: quarter.snapshot! } } });
+    expect(cq.verifiedMetrics).toEqual(expect.arrayContaining(["occupancy", "adr"])); expect(cq.verifiedMetrics).not.toContain("room_nights");
+    expect(cq.dataQualityNotes.some((n) => /annual room nights, revenue, occupancy, ADR and channel mix are projections/.test(n))).toBe(true);
   });
   it("helpers: delimiter sniffing, money forms, channel and status vocabularies", () => {
     expect(parseCsv("a\tb\n1\t2").headers).toEqual(["a", "b"]);
@@ -114,5 +139,32 @@ B5,2026-09-01,2026-09-03,weird status,120,GBP,Some Tour Partner`;
     expect(inferDateOrder(["01/02/2026", "13/02/2026"])).toBe("DMY"); expect(inferDateOrder(["02/13/2026"])).toBe("MDY");
     expect(classifyChannel("Booking.com")).toBe("OTA"); expect(classifyChannel("Site web")).toBe("DIRECT"); expect(classifyChannel("Tour operator")).toBe("OTHER"); expect(classifyChannel("Zorg")).toBe("UNCLASSIFIED");
     expect(classifyStatus("Annulée")).toBe("CANCELLED"); expect(classifyStatus("No-show")).toBe("NO_SHOW"); expect(classifyStatus("Checked out")).toBe("ACTIVE"); expect(classifyStatus("???")).toBe("UNKNOWN");
+  });
+});
+
+/** C2 — freshness: a file is a historical record; the period end, the export date and the import date are kept apart. */
+describe("C2 — three dates, historical never stale", () => {
+  const year = (() => { const rows = ["id,arrival,departure,status,revenue,currency,channel"]; let k = 0; const start = Date.parse("2025-09-01T00:00:00Z"); for (let d = 0; d < 365; d++) { const a = new Date(start + d * 86_400_000).toISOString().slice(0, 10), b = new Date(start + (d + 1) * 86_400_000).toISOString().slice(0, 10); for (let i = 0; i < 10; i++) rows.push(`Y${++k},${a},${b},confirmed,150,GBP,Website`); } return rows.join("\n"); })();   // SYNTHETIC, 20 rooms at 50 %
+  it("an export closed three weeks before import is not stale (the audit's probe): quality keeps its factor, the statement dates the period", () => {
+    const r = importPmsExport({ filename: "sim-old.csv", content: year, rooms: 20, importedAt: "2026-09-21T09:00:00Z" });
+    expect(r.period.to).toBe("2026-09-01"); expect(r.quality.expectedFreshness).toBe("HISTORICAL"); expect(r.quality.stale).toBe(false);
+    expect(qualityFactor(r.quality)).toBeCloseTo(r.quality.completeness * 0.9, 6); expect(r.quality.ageHours).toBeCloseTo(20 * 24 + 9, 1);
+    expect(r.recency).toMatchObject({ periodEnd: "2026-09-01", collectedAt: null, daysPeriodEndToCollection: null, daysPeriodEndToImport: 20 });
+    expect(r.recency.statement).toMatch(/period ending 2026-09-01, export date not declared, imported 20 day\(s\) after the period end; a historical record/);
+    const cycle = runCycle({ seed: 1, budgetGbp: 16_000, now: "2026-09-21T09:00:00Z", measure: false, context: { ...emptyContext("2026-09-21T09:00:00Z"), systems: { pms: r.snapshot! }, sourceQuality: { "CONN-PMS": r.quality } } });
+    expect(cycle.dataQualityNotes.some((n) => /STALE/.test(n))).toBe(false);
+    expect(cycle.requirements.every((q) => q.checks.every((c) => !/stale/.test(c.how)))).toBe(true);
+  });
+  it("a declared export date is used for the age and the statement; an export imported the day it closes reads as current", () => {
+    const r = importPmsExport({ filename: "sim-old.csv", content: year, rooms: 20, importedAt: "2026-10-14T09:00:00Z", collectedAt: "2026-09-02T18:00:00Z" });
+    expect(r.recency).toMatchObject({ collectedAt: "2026-09-02T18:00:00Z", daysPeriodEndToCollection: 2, daysPeriodEndToImport: 43 });
+    expect(r.quality.ageHours).toBeCloseTo(42, 1); expect(r.provenance.collectedAt).toBe("2026-09-02T18:00:00Z"); expect(r.snapshot!.source).toMatch(/period to 2026-09-01; exported 2026-09-02T18:00:00Z; imported 2026-10-14/);
+    const fresh = importPmsExport({ filename: "sim-old.csv", content: year, rooms: 20, importedAt: "2026-09-01T06:00:00Z" });
+    expect(fresh.recency.daysPeriodEndToImport).toBe(0); expect(fresh.quality.stale).toBe(false);
+  });
+  it("missing metadata: no readable dates means no period end, no age, and a statement that says so rather than a guess", () => {
+    const amb = `id,arrival,departure,status\nX1,03/04/2026,05/04/2026,confirmed\nX2,06/07/2026,08/07/2026,confirmed`;
+    const r = importPmsExport({ filename: "sim-amb.csv", content: amb, rooms: 5, importedAt: T });
+    expect(r.recency.periodEnd).toBeNull(); expect(r.quality.ageHours).toBeNull(); expect(r.quality.stale).toBe(false); expect(r.recency.statement).toMatch(/period end unknown/);
   });
 });

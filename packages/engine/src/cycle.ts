@@ -21,12 +21,12 @@ import { plausibleRanges, type PlausibleRange } from "./plausible.js";
 import { assessCapacity, defaultGraph, type CapacityGraph, type NodeAssessment } from "./context/capacity.js";
 import { compression, type CompressionReading } from "./context/compression.js";
 import { reconcile, type Reconciliation } from "./context/reconcile.js";
-import { observationsFromSystems, mergeObservations } from "./context/systems.js";
+import { observationsFromSystems, mergeObservations, systemsWindowNotes } from "./context/systems.js";
 import { checkRequirements, type RequirementsResult } from "./requirements.js";
 import { providerBriefs, providerReliability, assignProvider, type ProviderBrief, type ProviderReliability, type ProviderEvidence } from "./providers.js";
 import { classifyDay } from "./context/weather.js";
 import { interventionBudget, decisionPackage, HEAD_FOR_FACTOR, HEAD_TITLE, NO_TERMS } from "./economics.js";
-import { emptyMemory, recall, remember, resolvedConstraints, type PropertyMemory } from "./memory.js";
+import { emptyMemory, recall, remember, resolvedConstraints, withOpen, type PropertyMemory } from "./memory.js";
 import { pooledCalibration } from "./portfolio.js";
 import { LEVEL_TIER } from "./governance.js";
 import { emptyContext, qualityFactor, type CommercialAssessment, type ExternalContext, type ExternalSignal, type Perturbation } from "./context/types.js";
@@ -40,7 +40,7 @@ import { otaSignals } from "./context/ota.js";
 import { operationsSignals } from "./context/operations.js";
 import { fuse, type FusedVerdict } from "./context/fusion.js";
 import type { DecisionSignature } from "./context/relevance.js";
-import type { Observation, Allocation, AssayVerdict, ChangeCondition, Decision, Diagnosis, EngineEvent, Exposure, Intervention, InterventionRecord, LearningRecord, MeasurementPlan, MeasurementResult, VoiResult } from "./model.js";
+import type { Observation, Allocation, AssayVerdict, ChangeCondition, Decision, Diagnosis, EngineEvent, Exposure, Intervention, InterventionRecord, LearningRecord, MeasurementPlan, MeasurementResult, OpenIntervention, VoiResult } from "./model.js";
 
 export interface CycleInput {
   readonly seed: number;
@@ -53,6 +53,7 @@ export interface CycleInput {
   readonly portfolio?: readonly LearningRecord[];         // other properties' learning records
   readonly enablePooling?: boolean;
   readonly context?: ExternalContext;                     // external signals snapshot (fetched by the application)
+  readonly openInterventions?: readonly OpenIntervention[];   // committed on earlier contracts (C6): not re-proposed, remembered
   readonly cycleNumber?: number;
   readonly now?: string;
   readonly measure?: boolean;
@@ -106,7 +107,7 @@ const OWNERS: Record<string, { owner: string; team: string }> = Object.fromEntri
 const gbp = (x: number) => `£${Math.round(x).toLocaleString("en-GB")}`;
 
 /** Diagnose → interventions → VOI → allocate on a spec. Used by relevance re-runs, sensitivity and thresholds. */
-function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>) {
+function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>, open: Readonly<Record<string, OpenIntervention>>) {
   return (spec: PropertySpec, B: BenchMap, budget: number): DecisionEval & { d: Diagnosis; items: Intervention[]; voi: VoiResult[]; alloc: Allocation; prop: SimulatedProperty } => {
     const sim = simulateProperty(spec, seed, now);
     const merged = mergeObservations(sim.observations, observationsFromSystems(ctx.systems, now));
@@ -115,7 +116,7 @@ function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, m
     const funnel = { mobileShare: obsValue(prop, "sessions.mobile_share").value, convMobile: obsValue(prop, "conv.mobile").value, convDesktop: obsValue(prop, "conv.desktop").value, bookingValue: obsValue(prop, "booking_value_avg").value };
     const items = interventions(d, funnel, cal, qualityFor, { rooms: spec.rooms, occupancy: spec.occupancy, peakOccupancy: spec.peakOccupancy, weekendShare: spec.weekendShare, adrGbp: spec.adrGbp });
     const voi = items.map(valueOfInformation);
-    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations) });
+    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations), open });
     const statuses: Record<string, string> = {}; for (const l of alloc.lines) statuses[l.interventionId] = l.status;
     return { binding: d.binding, funded: alloc.lines.filter((l) => l.funded).map((l) => l.interventionId).sort(), blocked: alloc.lines.filter((l) => !l.funded).map((l) => l.interventionId).sort(), statuses, expectedValueGbp: planExpectedValue(items, alloc), d, items, voi, alloc, prop };
   };
@@ -140,7 +141,7 @@ export function runCycle(input: CycleInput): CycleResult {
   const spec: PropertySpec = { ...COUNTRY_HOUSE_34, ...input.spec };
   const B = benchMap(input.benchmarks);
   const memory = input.memory ?? [];
-  const pmem = input.propertyMemory ?? emptyMemory(spec.id);
+  const pmem = withOpen(input.propertyMemory ?? emptyMemory(spec.id), input.openInterventions ?? [], now);
   const ctx = input.context ?? emptyContext(now);
 
   bus.emit("CYCLE_STARTED", "OBSERVING", `cycle ${n}, seed ${input.seed}, budget ${gbp(input.budgetGbp)}`);
@@ -149,7 +150,8 @@ export function runCycle(input: CycleInput): CycleResult {
   const mergedObs = mergeObservations(simulated.observations, verified);
   const property: SimulatedProperty = { ...simulated, observations: mergedObs.observations };
   const consistency = checkConsistency(simulated);
-  bus.emit("OBSERVATIONS_READY", "OBSERVING", `${property.observations.length} observations from ${spec.name} (${mergedObs.replaced.length ? `${mergedObs.replaced.length} VERIFIED from connected systems: ${mergedObs.replaced.join(", ")}; the rest ` : ""}SIMULATED PROPERTY DATA); consistency ${consistency.length === 0 ? "passed" : "FAILED: " + consistency.join("; ")}`, property.observations.map((o) => o.id));
+  const verifiedMetrics = mergedObs.replaced.filter((m) => verified.find((o) => o.metric === m)?.status === "VERIFIED"), projectedMetrics = mergedObs.replaced.filter((m) => !verifiedMetrics.includes(m));
+  bus.emit("OBSERVATIONS_READY", "OBSERVING", `${property.observations.length} observations from ${spec.name} (${verifiedMetrics.length ? `${verifiedMetrics.length} VERIFIED from connected systems: ${verifiedMetrics.join(", ")}; ` : ""}${projectedMetrics.length ? `${projectedMetrics.length} PROJECTED (annualised from a partial year): ${projectedMetrics.join(", ")}; ` : ""}${mergedObs.replaced.length ? "the rest " : ""}SIMULATED PROPERTY DATA); consistency ${consistency.length === 0 ? "passed" : "FAILED: " + consistency.join("; ")}`, property.observations.map((o) => o.id));
   // Capacity network: explicit graph from the context, else derived from the property, operations and POS snapshots
   const weatherPoor = (ctx.weather?.days ?? []).slice(0, 7).some((d) => classifyDay(d) === "poor");
   const capacityFor = (sp: PropertySpec): NodeAssessment[] => {
@@ -167,6 +169,8 @@ export function runCycle(input: CycleInput): CycleResult {
   const srcOf = (obsId: string) => property.observations.find((o) => o.id === obsId)?.source ?? "";
   const qualityForSource = (src: string) => { const q = ctx.sourceQuality[src]; return q ? qualityFactor(q) : 1; };
   const dataQualityNotes: string[] = Object.entries(ctx.sourceQuality).filter(([, q]) => q.stale || q.completeness < 1).map(([s, q]) => `${s}: ${q.note} (completeness ${q.completeness}, factor ${qualityFactor(q).toFixed(2)}) — decision confidence reduced`);
+  const windowNotes = systemsWindowNotes(ctx.systems); dataQualityNotes.push(...windowNotes);
+  if (windowNotes.length) bus.emit("DATA_WINDOW_LIMITED", "ALERT", windowNotes.join(" | "));
   const connected = ctx.connectors.filter((c) => c.status === "CONNECTED").map((c) => c.name);
   bus.emit("CONTEXT_LOADED", "OBSERVING", `${ctx.connectors.length} connector contracts; connected: ${connected.join(", ") || "none"}; ${dataQualityNotes.length ? dataQualityNotes.join(" | ") : "no data-quality reduction"}`);
 
@@ -187,7 +191,8 @@ export function runCycle(input: CycleInput): CycleResult {
     if (pooled.evidenceLevel !== "benchmark") calibrationBefore[id] = { factor: pooled.pooledFactor, cycles: pooled.propertyN + (pooled.evidenceLevel === "property" ? 0 : pooled.portfolioN) };
   }
   const requirementsFor = (obs: readonly Observation[]): Record<string, RequirementsResult> => { const out: Record<string, RequirementsResult> = {}; for (const id of ids) out[id] = checkRequirements(id, obs, ctx.systems, qualityForSource); return out; };
-  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor);
+  const open: Record<string, OpenIntervention> = {}; for (const o of input.openInterventions ?? []) open[o.interventionId] = o;
+  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor, open);
   const base = evaluate(spec, B, input.budgetGbp);
   const items = base.items, voi = base.voi, allocation = base.alloc;
   const baseSig: DecisionSignature = { binding: base.binding, funded: base.funded, blocked: base.blocked };
@@ -245,7 +250,8 @@ export function runCycle(input: CycleInput): CycleResult {
 
   bus.emit("ALLOCATION_STARTED", "DECIDING", `risk-adjusted allocation of ${gbp(input.budgetGbp)} (reserve ${P.reserveShare * 100} %)`);
   for (const l of allocation.lines) {
-    if (l.funded) bus.emit("ACTION_PROPOSED", "DECIDING", `${l.interventionId}: estimated intervention budget ${gbp(l.allocatedGbp)} PROPOSED — approval required; separate from the partnership; not an authorised spend (risk-adjusted value ${gbp(l.riskAdjustedValueGbp)})`, [l.interventionId]);
+    if (l.status === "IN_PROGRESS") bus.emit("INTERVENTION_IN_PROGRESS", "COMPARING", `${l.interventionId}: ${l.blockedBy[0]}`, [l.interventionId]);
+    else if (l.funded) bus.emit("ACTION_PROPOSED", "DECIDING", `${l.interventionId}: estimated intervention budget ${gbp(l.allocatedGbp)} PROPOSED — approval required; separate from the partnership; not an authorised spend (risk-adjusted value ${gbp(l.riskAdjustedValueGbp)})`, [l.interventionId]);
     else bus.emit("ACTION_BLOCKED", "BLOCKING", `${l.interventionId} ${l.status} — ${l.blockedBy.join(" | ")} — required condition: ${l.requiredCondition}`, [l.interventionId]);
   }
   for (const l of allocation.lines) { const r = recall(pmem, l.interventionId, now); if (r.timesConsidered) bus.emit("MEMORY_RECALLED", "COMPARING", r.statement, [l.interventionId]); }
@@ -291,16 +297,16 @@ export function runCycle(input: CycleInput): CycleResult {
     const level: InterventionRecord["approvalLevel"] = i.costGbp >= 50_000 ? 4 : i.costGbp > 0 ? 3 : 1;
     const inPlan = plan?.interventionIds.includes(i.id) ?? false;
     const terms = ctx.partnership ?? NO_TERMS;
-    const budget = interventionBudget(i, l.status, terms, level);
+    const budget = interventionBudget(i, l.status, terms, level, open[i.id]);
     const pkg = decisionPackage(i, c0?.name ?? "", l.status, budget, terms, ctx.providers.filter((p) => p.factors.includes(i.actsOn)).map((p) => `${p.name} (${p.role})`), inPlan && plan ? `Anesis controlled measurement framework — pre-registered plan ${plan.id}@v${plan.version}` : "Anesis controlled measurement framework — registered on approval");
     return {
       budget, package: pkg,
       id: i.id, name: i.name, objective: `move ${i.actsOn} toward benchmark`, problem: c0?.name ?? "", constraint: i.addresses, constraintKind: c0?.kind ?? null,
       owner: OWNERS[i.actsOn]?.owner ?? "Founder", team: OWNERS[i.actsOn]?.team ?? "—", dependency: i.mustFollow, dependencyStatus: depStatus,
       capitalGbp: i.costGbp, expectedImpactGbp: i.effectIfWorksGbp, expectedValueGbp: l.expectedValueGbp, risk: i.risk, reversibility: i.reversibility, confidence: i.confidence, confidenceBasis: i.confidenceBasis,
-      measurementPlanId: inPlan && plan ? `${plan.id}@v${plan.version}` : null, successThreshold: inPlan && plan ? plan.successRule : "not registered: no plan exists for an unfunded intervention",
+      measurementPlanId: inPlan && plan ? `${plan.id}@v${plan.version}` : open[i.id]?.planId ?? null, successThreshold: inPlan && plan ? plan.successRule : open[i.id] ? `registered on ${open[i.id]!.contractId}; measured there, not here` : "not registered: no plan exists for an unfunded intervention",
       decisionStatus: l.status, blockedBy: l.blockedBy, whatWouldUnblock: l.requiredCondition, approvalLevel: level, approvalTier: LEVEL_TIER[level],
-      startDate: null, endDate: null,
+      startDate: open[i.id]?.since ?? null, endDate: null,
       outcome: inPlan && measurement ? { status: measurement.status, incrementalGbp: measurement.incrementalPointGbp, planStatus: measurement.planStatus } : null,
       forecastError: inPlan && learning ? learning.error : null, learning: inPlan && learning ? learning.calibrationNote : null,
       history: recall(pmem, i.id, now).statement, evidence: i.evidence,
@@ -313,10 +319,10 @@ export function runCycle(input: CycleInput): CycleResult {
   const evidence: ProviderEvidence[] = pmem.measured.map((m) => ({ providerId: assignProvider(actsOn[m.interventionId] ?? "", ctx.providers).id, interventionId: m.interventionId, planId: m.planId, expectedGbp: m.expectedGbp, actualGbp: m.incrementalGbp, forecastError: m.expectedGbp ? (m.incrementalGbp - m.expectedGbp) / m.expectedGbp : 0, measurementStatus: m.status, at: m.at }));
   const reliability = providerReliability(ctx.providers.length ? ctx.providers : [{ id: "PV-FOUNDER", name: "Founder / general manager", role: "founder", scope: "all", factors: [], systems: [] }], evidence);
   for (const b of briefs.filter((x) => x.instruction === "PROCEED" || x.instruction === "PREPARE")) bus.emit("PROVIDER_BRIEFED", "DECIDING", `${b.providerName} (${b.role}): ${b.instruction} ${b.interventionId} — ${b.note}`, [b.interventionId]);
-  const memoryAfter = remember(pmem, { runId: `cycle-${n}`, spec, diagnosis, decision, statuses, addresses, measurement, plan: plan ? { id: `${plan.id}@v${plan.version}`, interventionIds: plan.interventionIds, expectedPointGbp: plan.expectedPointGbp } : null, learning });
+  const memoryAfter = remember(pmem, { runId: `cycle-${n}`, spec, diagnosis, decision, statuses, addresses, measurement, plan: plan ? { id: `${plan.id}@v${plan.version}`, interventionIds: plan.interventionIds, expectedPointGbp: plan.expectedPointGbp } : null, learning, open: input.openInterventions ?? [], now });
   bus.emit("MEMORY_UPDATED", "LEARNING", `property memory: ${memoryAfter.decisions.length} decision(s), ${memoryAfter.measured.length} measured intervention(s), ${memoryAfter.failedHypotheses.length} failed hypothesis(es)`);
   bus.emit("CYCLE_COMPLETE", "IDLE", `cycle ${n} complete`);
-  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, plausibleRanges: ranges, sensitivity: sens, thresholds, decisionSensitivity: decSens, capacity, compression: comp.reading, reconciliation, requirements, providerBriefs: briefs, providerReliability: reliability, verifiedMetrics: mergedObs.replaced, assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
+  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, plausibleRanges: ranges, sensitivity: sens, thresholds, decisionSensitivity: decSens, capacity, compression: comp.reading, reconciliation, requirements, providerBriefs: briefs, providerReliability: reliability, verifiedMetrics, assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
 }
 
 /** Field-by-field comparison of two runs, with an explanation of what changed the decision. */

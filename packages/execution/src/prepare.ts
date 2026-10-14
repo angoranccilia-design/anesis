@@ -34,7 +34,8 @@ function protocolFor(r: CycleResult, rec: InterventionRecord, sources: EvidenceI
 }
 
 export function prepareInterventions(r: CycleResult, runId: string, preparedAt: string, propertyId = r.property.spec.id): InterventionContract[] {
-  return r.records.map((rec) => {
+  // An intervention in progress already has its contract (C6): nothing is prepared for it here.
+  return r.records.filter((rec) => rec.decisionStatus !== "IN_PROGRESS").map((rec) => {
     const sources = sourcesFor(r, rec);
     const req = r.requirements.find((q) => q.interventionId === rec.id);
     const verified = sources.filter((s) => s.cls === "VERIFIED").map((s) => `${s.metric} (${s.id})`);
@@ -61,7 +62,7 @@ export function prepareInterventions(r: CycleResult, runId: string, preparedAt: 
       observationWindowWeeks: protocol.windowWeeks,
       risks: { operational: rec.risk === "High" ? "operational load on the property during execution" : "low operational load", financial: `estimate ${rec.budget.estimated.status} ${rec.budget.estimated.amountGbp !== null ? "£" + rec.budget.estimated.amountGbp.toLocaleString("en-GB") : "unknown"}; no spend without approval`, reputational: rec.reversibility === "Low" ? "hard to reverse if guests notice a regression" : "reversible; guest-facing changes can be rolled back", level: rec.risk, reversibility: rec.reversibility },
       prerequisites: { dependsOn: rec.dependency, status: rec.dependencyStatus, unmet: rec.dependencyStatus === "UNRESOLVED" ? rec.blockedBy : [] },
-      estimatedBudget: rec.budget.estimated, approvedCost: rec.budget.approved,
+      estimatedBudget: rec.budget.estimated, funding: { source: rec.budget.fundingSource, note: rec.budget.fundingNote }, approvedCost: rec.budget.approved,
       owner: { head: rec.owner, capabilities: rec.package.requiredCapabilities, executionResources: rec.package.executionResources },
       actions: actionsFor(rec), executionEvidenceRequired: evidenceFor(rec),
       measurement: protocol,
