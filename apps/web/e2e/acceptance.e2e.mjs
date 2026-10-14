@@ -28,7 +28,7 @@ await step("2. run: internal + external commercial context is shown, with connec
   const cam = await page.locator('[data-connector="CONN-CAMERA"]').getAttribute("data-state");
   const pms = await page.locator('[data-connector="CONN-PMS"]').getAttribute("data-state");
   results.push(["INFO", `weather ${wx}, camera ${cam}, pms ${pms}`]);
-  if (cam !== "SOURCE_NOT_CONFIGURED" || pms !== "NOT_CONNECTED") throw new Error("connector states wrong");
+  if (cam !== "SOURCE_NOT_CONFIGURED" || !["AUTHENTICATION_REQUIRED", "NOT_CONNECTED"].includes(pms)) throw new Error("connector states wrong: camera must be SOURCE_NOT_CONFIGURED and the PMS must declare AUTHENTICATION_REQUIRED (credentials absent) or NOT_CONNECTED");
   if (!(await page.locator('[data-testid="fused"]').innerText()).length) throw new Error("no fused verdicts");
 });
 await step("3–4. ask 'What is limiting value right now?' → diagnosis", async () => { const t = await ask("What is limiting value right now?"); if (!/limiting constraint is C-00/.test(t)) throw new Error(t.slice(0, 200)); });
