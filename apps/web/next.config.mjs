@@ -21,7 +21,9 @@ const nextConfig = {
     "@anesis/connectors",
     "@anesis/runtime", "@anesis/execution"],
   // PGlite (embedded Postgres) and pg load native/WASM assets at runtime: never bundle them.
-  serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg", "xlsx"],
+  // The runtime bundle (copied to .runtime/ by prebuild) and the packages it loads natively must ship with the server functions.
+  outputFileTracingIncludes: { "/**": [".runtime/**", "node_modules/@electric-sql/pglite/**", "node_modules/xlsx/**"] },
   webpack: (config) => {
     // …et résoudre leurs imports ESM en `.js` vers les sources `.ts`/`.tsx`.
     config.resolve.extensionAlias = {

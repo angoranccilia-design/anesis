@@ -1,5 +1,6 @@
 import "server-only";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /**
@@ -12,13 +13,18 @@ export type Runtime = typeof import("@anesis/runtime");
 export type RuntimeHandle = { rt: Runtime; db: Awaited<ReturnType<Runtime["openDatabase"]>> };
 const g = globalThis as unknown as { __anesisRuntime?: Promise<RuntimeHandle> };
 
-export const runtimeConfigured = (): boolean => Boolean(process.env.DATABASE_URL || process.env.ANESIS_PGLITE_DIR);
+import { demoMode } from "../demo";
+export const runtimeConfigured = (): boolean => Boolean(process.env.DATABASE_URL || process.env.ANESIS_PGLITE_DIR) || demoMode();
 
 export function getRuntime(): Promise<RuntimeHandle> {
   return (g.__anesisRuntime ??= (async () => {
-    const bundle = process.env.ANESIS_RUNTIME_BUNDLE ?? join(process.cwd(), "..", "..", "packages", "runtime", "dist", "index.mjs");
+    const local = join(process.cwd(), ".runtime", "index.mjs"); // copied by `prebuild`, so a deployed app carries its runtime
+    const bundle = process.env.ANESIS_RUNTIME_BUNDLE ?? (existsSync(local) ? local : join(process.cwd(), "..", "..", "packages", "runtime", "dist", "index.mjs"));
+    // Referenced here so the build traces PGlite (WASM assets) and pg into the deployed functions; the bundle imports them by name.
+    await Promise.all([import("@electric-sql/pglite"), import("pg")]);
     const rt = (await import(/* webpackIgnore: true */ pathToFileURL(bundle).href)) as Runtime;
     const db = await rt.openDatabase(); await rt.migrate(db);
+    if (demoMode()) { const { ensureDemoSeed } = await import("../console/seed"); await ensureDemoSeed(rt, db); }
     return { rt, db };
   })());
 }

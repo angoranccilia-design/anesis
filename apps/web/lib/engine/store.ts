@@ -3,6 +3,7 @@ import { runCycle, EngineBus, emptyMemory, COUNTRY_HOUSE_34, newModel, appendCyc
 import { buildContext, emptyRegisters, type OperatorRegisters } from "@/lib/connectors";
 import { defaultStore } from "./fileStore";
 import { getRuntime, runtimeConfigured } from "./runtimeDb";
+import { demoMode, DEMO_PROPERTY_ID } from "../demo";
 
 /**
  * Engine store — the application's system of record for engine runs, property memory and operator registers.
@@ -25,7 +26,7 @@ const g = globalThis as unknown as { __anesisEngineState?: State };
 const state: State = (g.__anesisEngineState ??= { runs: [], memory: [], propertyMemory: emptyMemory(COUNTRY_HOUSE_34.id), registers: emptyRegisters(), seq: 0, listeners: new Set(), model: null, store: defaultStore() });
 
 /** The property the console serves: declared in the runtime registry when a database is configured, else the simulated one. */
-export const propertyId = (): string => process.env.ANESIS_PROPERTY_ID ?? COUNTRY_HOUSE_34.id;
+export const propertyId = (): string => process.env.ANESIS_PROPERTY_ID ?? (demoMode() ? DEMO_PROPERTY_ID : COUNTRY_HOUSE_34.id);
 export async function declaredSpec(): Promise<PropertySpec> {
   if (!runtimeConfigured()) return COUNTRY_HOUSE_34;
   const { rt, db } = await getRuntime(); return (await rt.loadProperty(db, propertyId())) ?? COUNTRY_HOUSE_34;
@@ -92,7 +93,8 @@ export async function executeRun(req: RunRequest, persistence: Persistence | nul
   const regs = await registers();
   const evidencePolicy = req.evidencePolicy ?? (declared.id === COUNTRY_HOUSE_34.id ? "simulated_allowed" : "verified_only");
   const benchmarkSources = Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, { source: b.source, asOf: b.asOf }]));
-  const input: CycleInput = { evidencePolicy, benchmarkSources, informationObtained: regs.informationObtained ?? {}, seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: { ...Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, b.value])), ...req.benchmarks }, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
+  const open = runtimeConfigured() ? await (async () => { const { rt, db } = await getRuntime(); return rt.openInterventions(db, spec.id); })() : { committed: [], pending: [] };
+  const input: CycleInput = { evidencePolicy, benchmarkSources, informationObtained: regs.informationObtained ?? {}, openInterventions: open.committed, measure: evidencePolicy === "verified_only" ? false : undefined, seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: { ...Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, b.value])), ...req.benchmarks }, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
   const t0 = Date.now();
   const result = runCycle(input);
   const run: RunRecord = {
@@ -107,7 +109,7 @@ export async function executeRun(req: RunRequest, persistence: Persistence | nul
     await state.store.save(state.model);           // the model is the asset: it is written before the run is reported
     bus.emit("MODEL_PERSISTED", "LEARNING", modelSummary(state.model, run.createdAt));
   }
-  if (runtimeConfigured()) { const { rt, db } = await getRuntime(); await rt.saveCycleResult(db, { runId: id, propertyId: spec.id, label: run.label, at: run.createdAt, durationMs: run.durationMs, result }); }
+  if (runtimeConfigured()) { const { rt, db } = await getRuntime(); await rt.saveCycleResult(db, { runId: id, propertyId: spec.id, label: run.label, at: run.createdAt, durationMs: run.durationMs, result }); await rt.persistPrepared(db, result, id, run.createdAt, null, open.pending); }
   void persistence?.saveRun(run); if (result.learning) void persistence?.saveLearning(result.learning);
   return run;
 }

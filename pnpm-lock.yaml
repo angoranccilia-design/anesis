@@ -90,6 +90,9 @@ importers:
       '@anesis/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+      '@electric-sql/pglite':
+        specifier: ^0.2.17
+        version: 0.2.17
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -117,6 +120,9 @@ importers:
       recharts:
         specifier: ^2.15.0
         version: 2.15.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      xlsx:
+        specifier: 0.18.5
+        version: 0.18.5
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

@@ -15,6 +15,8 @@ export function sessionCookieOptions(expires?: Date) {
   };
 }
 
+export async function getDemoCookie(): Promise<string | null> { const jar = await cookies(); return jar.get("anesis_demo")?.value ?? null; }
+
 export async function getSessionId(): Promise<string | null> {
   const jar = await cookies();
   return jar.get(SESSION_COOKIE)?.value ?? null;
