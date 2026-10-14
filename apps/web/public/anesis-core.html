@@ -1121,20 +1121,213 @@ NODES.forEach((n,i)=>{ const side=i<4?-1:1; const k=i%4; const y=(k-1.5)*3.3; co
 // a faint floor reflection plane far below, and dust
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,40),new THREE.MeshStandardMaterial({color:0x07110c,metalness:0.9,roughness:0.3})); floor.rotation.x=-Math.PI/2; floor.position.y=-CORE_R*2.4; scene.add(floor);
 const pulses=[];
+// ---- the globe itself: a sphere whose surface is displaced by 3D Perlin noise (Stefan Gustavson / Ian McEwan, MIT), the classic three.js vertex-displacement technique.
+// `uAmp` is the speech energy (0 idle … 1 speaking), `uBeat` the word kick: when the core speaks, its surface ripples harder and faster, and it turns.
+const NOISE_GLSL=`//
+// GLSL textureless classic 3D noise "cnoise",
+// with an RSL-style periodic variant "pnoise".
+// Author:  Stefan Gustavson (stefan.gustavson@liu.se)
+// Version: 2024-11-07
+//
+// Many thanks to Ian McEwan of Ashima Arts for the
+// ideas for permutation and gradient selection.
+//
+// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
+// Distributed under the MIT license. See LICENSE file.
+// https://github.com/stegu/webgl-noise
+//
+
+vec3 mod289(vec3 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 mod289(vec4 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 permute(vec4 x)
+{
+  return mod289(((x*34.0)+10.0)*x);
+}
+
+vec4 taylorInvSqrt(vec4 r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec3 fade(vec3 t) {
+  return t*t*t*(t*(t*6.0-15.0)+10.0);
+}
+
+// Classic Perlin noise
+float cnoise(vec3 P)
+{
+  vec3 Pi0 = floor(P); // Integer part for indexing
+  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+
+  float n000 = norm0.x * dot(g000, Pf0);
+  float n010 = norm0.y * dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n100 = norm0.z * dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n110 = norm0.w * dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = norm1.x * dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n011 = norm1.y * dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n101 = norm1.z * dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n111 = norm1.w * dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Classic Perlin noise, periodic variant
+float pnoise(vec3 P, vec3 rep)
+{
+  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+
+  float n000 = norm0.x * dot(g000, Pf0);
+  float n010 = norm0.y * dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n100 = norm0.z * dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n110 = norm0.w * dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = norm1.x * dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n011 = norm1.y * dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n101 = norm1.z * dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n111 = norm1.w * dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+`;
+const globeMat=new THREE.ShaderMaterial({ uniforms:{ uTime:{value:0}, uAmp:{value:0}, uBeat:{value:0}, uCream:{value:new THREE.Color(0xfff3d6)}, uGold:{value:new THREE.Color(0xe2c784)}, uDeep:{value:new THREE.Color(0x6b5324)}, uForest:{value:new THREE.Color(0x1f3d2f)} },
+  vertexShader: NOISE_GLSL + `
+    uniform float uTime; uniform float uAmp; uniform float uBeat; varying float vNoise; varying float vDisp; varying vec3 vNormal; varying vec3 vView;
+    float turbulence(vec3 p){ float w=100.0, t=-0.5; for(float f=1.0; f<=8.0; f++){ float power=pow(2.0,f); t+=abs(pnoise(vec3(power*p), vec3(10.0,10.0,10.0))/power); } return t; }
+    void main(){
+      float speed=0.12+0.9*uAmp;                                   // the surface moves slowly at rest, quickly in speech
+      float n=turbulence(0.5*normal+uTime*speed);                  // fine ripples (the clicktorelease displacement)
+      float b=pnoise(0.6*position+vec3(2.0*uTime*speed), vec3(100.0)); // one slow, large swell
+      float disp=-0.7*n*(0.5+0.9*uAmp) + 0.5*b*(0.6+0.9*uAmp) + 0.3*uBeat*b; // amplitude scales with speech, word kicks push the swell
+      vNoise=n; vDisp=disp; vNormal=normalize(normalMatrix*normal); vec3 p=position+normal*disp; vec4 mv=modelViewMatrix*vec4(p,1.0); vView=-mv.xyz; gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`
+    uniform vec3 uCream; uniform vec3 uGold; uniform vec3 uDeep; uniform vec3 uForest; uniform float uAmp; uniform float uTime; varying float vNoise; varying float vDisp; varying vec3 vNormal; varying vec3 vView;
+    void main(){ vec3 N=normalize(vNormal); vec3 V=normalize(vView); float fres=pow(1.0-abs(dot(N,V)),2.4);          // rim light: the edge of the globe glows
+      float lam=0.30+0.70*max(dot(N,normalize(vec3(0.45,0.75,0.6))),0.0);                                         // a key light from upper left gives the sphere its volume
+      float k=smoothstep(-0.25,0.55,vNoise); vec3 body=mix(uForest,uDeep,smoothstep(0.0,0.45,k)); body=mix(body,uGold,smoothstep(0.35,0.8,k)); body=mix(body,uCream,smoothstep(0.75,1.0,k)); // hollows forest-dark, slopes deep gold, ridges gold, crests cream
+      float veins=smoothstep(0.86,1.0,sin(vNoise*46.0+vDisp*18.0+uTime*1.5))*(0.35+0.65*uAmp);                     // filaments of light running across the surface, brighter in speech
+      vec3 col=body*lam+uCream*veins*0.7+mix(uGold,uCream,fres)*fres*(0.8+0.6*uAmp); gl_FragColor=vec4(col,1.0); }` });
+const globe=new THREE.Mesh(new THREE.IcosahedronGeometry(CORE_R*0.98,6),globeMat); core.add(globe);
+// the rest of the hall steps back: only the globe is shown
+[plasma,plasmaOuter,nucleus,veil,lattice,lozenge,lozenge2,lozTube,floor].forEach(o=>o.visible=false);
+nodeObjs.forEach(n=>{ n.line.visible=false; n.pad.visible=false; n.gl.visible=false; n.lab.visible=false; n.dot.visible=false; n.pos.multiplyScalar(0.0); });
 // lights
 scene.add(new THREE.AmbientLight(0x4a6a58,0.6)); const pl=new THREE.PointLight(0xe2c784,2.2,60,2); pl.position.set(0,0,0); scene.add(pl); const rim=new THREE.DirectionalLight(0x9fd3a8,0.35); rim.position.set(-10,12,-8); scene.add(rim);
 // particles
 const pGeo=new THREE.BufferGeometry(); const pN=900; const pos=new Float32Array(pN*3); for(let i=0;i<pN;i++){ pos[i*3]=(Math.random()-0.5)*50; pos[i*3+1]=(Math.random()-0.5)*26; pos[i*3+2]=(Math.random()-0.5)*20-4; } pGeo.setAttribute("position",new THREE.BufferAttribute(pos,3)); const particles=new THREE.Points(pGeo,new THREE.PointsMaterial({color:GOLD2,size:0.06,transparent:true,opacity:0.7})); scene.add(particles);
 const composer=new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene,camera)); const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.75,0.6,0.7); composer.addPass(bloom);
 function resize(){ const w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.resolution.set(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); camera.position.z = w<700? 40 : 27; camera.position.y = w<700? 0.4 : 0.6; } window.addEventListener("resize",resize); resize();
-let heat=0, t=0, last=performance.now();
+let heat=0, t=0, last=performance.now(); let speech=0, beat=0, speakUntil=0; window.__anesisCore=()=>({speech,beat,x:core.position.x,speaking:speakUntil>performance.now()});
 function frame(now){ const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
   plasma.rotation.y+=dt*0.05; plasma.rotation.x=Math.sin(t*0.1)*0.1; lattice.rotation.y-=dt*0.12; lattice.rotation.z+=dt*0.05; lozTube.children.forEach((c,i)=>{ if(c.isSprite) c.material.opacity=0.6+0.4*Math.sin(t*2+i); }); core.position.y=Math.sin(t*0.5)*0.12;
   nucleus.scale.setScalar(1+0.05*Math.sin(t*2.2)+0.3*heat); plasmaOuter.rotation.y-=dt*0.08; plasmaOuter.material.opacity=0.3+0.4*heat; innerGlow.material.opacity=0.85+0.15*Math.sin(t*2.5); innerGlow.scale.setScalar(CORE_R*(1.9+0.6*heat)); coreGlow.scale.setScalar(CORE_R*(4.2+2.5*heat)); bloom.strength=0.75+0.6*heat; pl.intensity=2.2+4*heat; heat=Math.max(0,heat-dt*0.5);
   
   nodeObjs.forEach(n=>{ n.glow=Math.max(0,n.glow-dt*0.8); n.line.material.opacity=0.45+0.55*n.glow; n.gl.scale.setScalar(1.6+3*n.glow); n.lab.material.opacity=0.75+0.25*n.glow; n.t=(n.t+dt*(0.18+0.6*n.glow))%1; const p=n.pts; const k=(1-n.t)*(p.length-1); const i0=Math.max(0,Math.min(p.length-1,Math.floor(k))), i1=Math.min(p.length-1,i0+1); if(p[i0]&&p[i1]) n.dot.position.lerpVectors(p[i0],p[i1],k-i0); n.dot.material.opacity=0.5+0.5*n.glow; });
   for(let i=pulses.length-1;i>=0;i--){ const p=pulses[i]; p.t+=dt*1.5; p.s.position.lerpVectors(p.from,core.position,Math.min(1,p.t)); p.s.material.opacity=1-p.t; if(p.t>=1){ scene.remove(p.s); pulses.splice(i,1); heat=Math.min(1,heat+0.3);} }
-  const cx=Math.sin(t*0.05)*1.2; camera.position.x=cx; camera.lookAt(0,0,0);
+  // ---- speech: while the core speaks it moves. `speech` is the envelope (0..1), `beat` the syllable kick decaying between word boundaries. ----
+  if(speakUntil>now) speech=Math.min(1,speech+dt*4); else speech=Math.max(0,speech-dt*2.5); beat=Math.max(0,beat-dt*6);
+  const v=speech*(0.55+0.45*Math.sin(t*9.0)*Math.sin(t*5.3))+beat*0.8; // the cadence of a voice: two incommensurate rhythms plus the word kicks
+  core.position.y+=speech*0.35*Math.sin(t*1.7); core.position.x=speech*0.25*Math.sin(t*1.1); core.rotation.z=speech*0.06*Math.sin(t*1.3);
+  nucleus.scale.multiplyScalar(1+0.22*v); lattice.rotation.y-=dt*speech*0.9; lattice.rotation.x=speech*0.25*Math.sin(t*2.1); plasma.rotation.y+=dt*speech*0.35; plasmaOuter.material.opacity+=0.25*v;
+  innerGlow.scale.multiplyScalar(1+0.18*v); coreGlow.scale.multiplyScalar(1+0.1*v); lozenge.material.opacity=0.95-0.35*v; lozenge2.material.opacity=0.5+0.4*v; bloom.strength+=0.35*v; veil.material.opacity=0.10+0.12*v;
+  globeMat.uniforms.uTime.value=t; globeMat.uniforms.uAmp.value=Math.min(1,speech*(0.75+0.25*Math.sin(t*7.0))+beat*0.6); globeMat.uniforms.uBeat.value=beat;
+  globe.rotation.y+=dt*(0.08+0.6*speech); globe.rotation.x=0.15*Math.sin(t*0.3)+speech*0.2*Math.sin(t*1.9);
+  const cx=Math.sin(t*0.05)*1.2+speech*0.6*Math.sin(t*0.9); camera.position.x=cx; camera.lookAt(0,0,0);
   composer.render(); requestAnimationFrame(frame); }
 requestAnimationFrame(frame);
 function light(nodeId){ const n=nodeObjs[NODES.findIndex(x=>x.id===nodeId)]; if(!n) return; n.glow=1; const s=sprite(glowTex("rgba(255,246,220,1)","rgba(226,199,132,.6)"),1.0); s.position.copy(n.pos); scene.add(s); pulses.push({s,from:n.pos.clone(),t:0}); }
@@ -1144,8 +1337,14 @@ let voiceOn=true, voice=null;
 function pickVoice(){ const lang=$("lang").value, base=lang.slice(0,2); const vs=(speechSynthesis.getVoices()||[]).filter(v=>v.lang&&v.lang.toLowerCase().startsWith(base)); voice=null; for(const n of MALE[base]){ const v=vs.find(v=>v.name.includes(n)); if(v){voice=v;break;} } if(!voice) voice=vs[0]||null; $("voice-name").textContent=voice?`voice: ${voice.name}`:"voice: none installed for this language"; }
 if("speechSynthesis" in window){ speechSynthesis.onvoiceschanged=pickVoice; pickVoice(); } else { $("voice-name").textContent="voice: not supported by this browser"; voiceOn=false; }
 $("lang").addEventListener("change",pickVoice);
-$("voice").addEventListener("click",()=>{ voiceOn=!voiceOn; $("voice").setAttribute("aria-pressed",String(voiceOn)); $("voice").textContent=voiceOn?"Voice on":"Voice off"; if(!voiceOn) speechSynthesis.cancel(); });
-function say(text){ if(!voiceOn||!("speechSynthesis" in window)) return; const u=new SpeechSynthesisUtterance(text); if(voice) u.voice=voice; u.lang=$("lang").value; u.pitch=0.85; u.rate=0.96; speechSynthesis.speak(u); }
+$("voice").addEventListener("click",()=>{ voiceOn=!voiceOn; $("voice").setAttribute("aria-pressed",String(voiceOn)); $("voice").textContent=voiceOn?"Voice on":"Voice off"; if(!voiceOn){ speechSynthesis.cancel(); speakUntil=0; } });
+function say(text){ if(!voiceOn) return; const est=performance.now()+Math.max(1500,text.length*62); // speaking length if the browser gives no voice: the core still moves while the text is shown
+  if(!("speechSynthesis" in window)){ speakUntil=Math.max(speakUntil,est); return; }
+  const u=new SpeechSynthesisUtterance(text); if(voice) u.voice=voice; u.lang=$("lang").value; u.pitch=0.85; u.rate=0.96;
+  let started=false; u.onstart=()=>{ started=true; speakUntil=Infinity; beat=1; }; u.onboundary=()=>{ beat=1; };
+  u.onend=u.onerror=()=>{ utterances.delete(u); if(started) speakUntil=performance.now()+200; }; // a queued utterance raises it again on its own start
+  utterances.add(u); speakUntil=Math.max(speakUntil,est); speechSynthesis.speak(u); }
+const utterances=new Set(); // keeps utterances alive until they end (Chrome drops their events when they are collected)
 const fr=()=>$("lang").value==="fr-FR";
 // ---------- the real engine ----------
 let model=E.newModel(E.COUNTRY_HOUSE_34,new Date().toISOString()); let seed=1, running=false, liveTimer=null;
