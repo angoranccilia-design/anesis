@@ -10,7 +10,7 @@ import clsx from "clsx";
  * Contenu de fond : Partie 10 (différenciation) du doc business. Aucun mot « AI ».
  */
 const ROWS: { q: string; agency: string; anesis: string }[] = [
-  { q: "How you’re charged", agency: "A monthly retainer, whatever the outcome.", anesis: "Tied to the direct revenue we actually recover — never to your spend." },
+  { q: "How you’re charged", agency: "A monthly retainer, whatever the outcome.", anesis: "A partnership fee for the decision and its governance; intervention budgets approved one by one; an annual settlement only on value we measured." },
   { q: "What’s promised", agency: "Activity: posts, ads, reports.", anesis: "A figure in pounds, and the responsibility to return it." },
   { q: "Who carries the risk", agency: "You do. Results are “not guaranteed”.", anesis: "We underwrite it. If there’s nothing recoverable, we say so and stop." },
   { q: "What’s measured", agency: "Impressions, reach, engagement.", anesis: "Direct bookings, against a baseline, every month." },
