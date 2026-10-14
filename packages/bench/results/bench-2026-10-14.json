@@ -1,0 +1,114 @@
+{
+  "ranAt": "2026-10-14T07:50:00.568Z",
+  "providers": [
+    {
+      "id": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "ran": true,
+      "why": "always runs"
+    },
+    {
+      "id": "anthropic",
+      "model": "(not run)",
+      "ran": false,
+      "why": "no ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN in this environment; the row is NOT RUN, not a result"
+    }
+  ],
+  "rows": [
+    {
+      "taskId": "T1",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "expected C-001, got C-001",
+      "inventedData": false,
+      "latencyMs": 111,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "C-001"
+    },
+    {
+      "taskId": "T2",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "got INVESTIGATE",
+      "inventedData": false,
+      "latencyMs": 114,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "INVESTIGATE"
+    },
+    {
+      "taskId": "T3",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "ok",
+      "inventedData": false,
+      "latencyMs": 101,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "La contrainte qui limite la valeur est C-001 Mobile booking conversion below benchmark, avec un écart de £141020 à £249497 par an et une confiance 0.6. L'acquisition payante est bloquée tant que cette contrainte lie."
+    },
+    {
+      "taskId": "T4",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "5/5 correct (L3,L0,L2,L1,L0)",
+      "inventedData": false,
+      "latencyMs": 73,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "L3,L0,L2,L1,L0"
+    },
+    {
+      "taskId": "T5",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "4/4 fields within tolerance",
+      "inventedData": false,
+      "latencyMs": 79,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "{\"roomNightsSold\":113,\"occupancy\":0.831,\"adrGbp\":173.81,\"otaShare\":0.566}"
+    },
+    {
+      "taskId": "T6",
+      "provider": "deterministic",
+      "model": "engine (TypeScript rules, no model)",
+      "score": 1,
+      "note": "threshold, approval, no extra amounts, 58 words",
+      "inventedData": false,
+      "latencyMs": 72,
+      "inputTokens": null,
+      "outputTokens": null,
+      "costGbp": null,
+      "error": null,
+      "output": "Objective: move conversion toward benchmark. Success threshold: VALIDATED if the 90 % interval excludes 0 and the point estimate lies within the expected range; PARTIALLY_VALIDATED if it excludes 0 but falls outside the range; NOT_VALIDATED if it includes 0. Estimated intervention budget £8000 (estimate). Execution starts only after the client approves the budget; this brief authorises no spend."
+    }
+  ],
+  "summary": {
+    "deterministic": {
+      "tasks": 6,
+      "meanScore": 1,
+      "invented": 0,
+      "errors": 0,
+      "p50LatencyMs": 101,
+      "totalCostGbp": null,
+      "costPerSuccessGbp": null
+    }
+  }
+}

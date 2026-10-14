@@ -1,0 +1,10 @@
+{
+  "name": "@anesis/bench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS model benchmark — representative Anesis tasks run against a deterministic baseline and, when credentials exist, against model providers. Same inputs, same scorers, reproducible report. No provider is chosen here; the report is the evidence.",
+  "scripts": { "typecheck": "tsc --noEmit", "bench": "vitest run --reporter=dot", "test": "vitest run" },
+  "dependencies": { "@anesis/engine": "workspace:*", "@anthropic-ai/sdk": "^0.80.0" },
+  "devDependencies": { "typescript": "^5.7.2", "vitest": "^2.1.8" }
+}
