@@ -79,3 +79,26 @@ describe("runtime — a PMS file import feeds the next cycle (synthetic file, ma
     expect(last.simulated).toBe(true);   // honest: the rest of the property is still simulated
   });
 });
+
+describe("runtime — interventions persist and stay traceable across a restart (embedded Postgres on disk)", () => {
+  it("12. prepared after a cycle, reloaded from disk with its origin verified, transitioned by a named human, history intact", async () => {
+    const { mkdtempSync } = await import("node:fs"); const { join } = await import("node:path"); const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "anesis-rt-")); const T = "2026-11-01T09:00:00.000Z";
+    let d = await openDatabase({ pgliteDir: dir }); await migrate(d);
+    await scheduleCycle(d, COUNTRY_HOUSE_34.id, T, 7); await runOnce(d, { offline: true, now: () => T });
+    const { listInterventions, loadIntervention, transitionIntervention } = await import("../interventions.js");
+    const before = await listInterventions(d, COUNTRY_HOUSE_34.id); expect(before.length).toBeGreaterThanOrEqual(5); expect(before.every((x) => x.state === "PREPARED")).toBe(true);
+    await d.close();
+    d = await openDatabase({ pgliteDir: dir });                                   // the restart
+    const funded = (await listInterventions(d, COUNTRY_HOUSE_34.id)).find((x) => x.interventionId === "I-001")!;
+    const c = await loadIntervention(d, funded.id); expect(c?.state).toBe("PREPARED"); expect(c?.decisionStatus).toBe("FUNDED");
+    const s = await transitionIntervention(d, funded.id, { to: "SUBMITTED", actor: { by: "engine", human: false, at: T } });
+    await expect(transitionIntervention(d, funded.id, { to: "AUTHORISED", actor: { by: "engine", human: false, at: T } })).rejects.toThrow(/named human/);
+    const a = await transitionIntervention(d, funded.id, { to: "AUTHORISED", actor: { by: "Cecilia (founder)", human: true, at: T }, note: "test authorisation on a synthetic property" });
+    expect(a.version).toBe(3); expect(a.history.map((h) => h.to)).toEqual(["PREPARED", "SUBMITTED", "AUTHORISED"]); expect(s.state).toBe("SUBMITTED");
+    const tr = (await d.query<{ detail: string }>("select detail from runtime_traces where type = 'INTERVENTION_TRANSITION' order by id")).rows;
+    expect(tr.length).toBe(2); expect(tr[1]!.detail).toMatch(/SUBMITTED → AUTHORISED by Cecilia \(founder\) \(human\)/);
+    await d.close();
+    d = await openDatabase({ pgliteDir: dir }); const again = await loadIntervention(d, funded.id); expect(again?.version).toBe(3); expect(again?.history).toHaveLength(3); await d.close();
+  });
+});

@@ -59,6 +59,19 @@ create table if not exists pms_imports (
   result jsonb not null
 );
 create index if not exists pms_imports_prop on pms_imports (property_id, imported_at desc);
+create table if not exists interventions (
+  id text primary key,                   -- INT-<run>-<intervention>
+  property_id text not null,
+  run_id text not null,
+  intervention_id text not null,
+  state text not null,
+  version int not null,
+  origin_sha256 text not null,
+  contract jsonb not null,
+  prepared_at timestamptz not null,
+  updated_at timestamptz not null default now()
+);
+create index if not exists interventions_prop on interventions (property_id, prepared_at desc);
 `;
 
 export async function migrate(db: SqlClient): Promise<void> { for (const stmt of SCHEMA_SQL.split(";").map((s) => s.trim()).filter(Boolean)) await db.query(stmt); }

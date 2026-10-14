@@ -1,0 +1,11 @@
+{
+  "name": "@anesis/execution",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANESIS decision-to-execution — turns a decision package into a prepared, explainable, traceable and measurable intervention contract with its deliverables and a governed lifecycle. Prepares, never executes; no spend, no production change, no message sent.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@anesis/engine": "workspace:*" },
+  "devDependencies": { "typescript": "^5.7.2", "vitest": "^2.1.8" }
+}

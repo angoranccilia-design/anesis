@@ -1,0 +1,97 @@
+/** SYNTHETIC fixtures only: the simulated 34-room property and a synthetic PMS snapshot. Nothing here is a real property. */
+import { describe, it, expect } from "vitest";
+import { runCycle, emptyContext, sha256Hex, COUNTRY_HOUSE_34, type CycleResult } from "@anesis/engine";
+import { prepareInterventions, transition, originIntact, assessOutcome, closureDossier, deliverablesFor, type InterventionContract } from "../index.js";
+
+const NOW = "2026-10-14T09:00:00Z";
+const base = (): CycleResult => runCycle({ seed: 1, budgetGbp: 16_000, now: NOW, measure: false });
+const withPms = (): CycleResult => runCycle({ seed: 1, budgetGbp: 16_000, now: NOW, measure: false, context: { ...emptyContext(NOW), systems: { pms: { asOf: "2026-10-01", periodDays: 365, rooms: 34, roomNightsSold: 8_600, roomRevenueGbp: 1_640_000, cancellations: 410, noShows: null, otaRoomNights: 4_100, otaCommissionGbp: null, peakOccupancy: null, bookingWindowDays: 21, channels: [], source: "SYNTHETIC test snapshot" } } } });
+const find = (cs: InterventionContract[], id: string) => cs.find((c) => c.decisionPackageRef.interventionId === id)!;
+const human = { by: "Cecilia (founder)", human: true, at: "2026-10-15T10:00:00Z" };
+
+describe("decision-to-execution — contracts from a real cycle", () => {
+  it("1. a funded intervention on verified data: contract cites VERIFIED sources, the binding constraint, the plan, and prepares the right deliverables", () => {
+    const r = withPms(); const cs = prepareInterventions(r, "RUN-001", NOW); const c = find(cs, "I-001");
+    expect(c.decisionStatus).toBe("FUNDED"); expect(c.state).toBe("PREPARED"); expect(c.constraint.isBinding).toBe(true);
+    expect(c.evidence.verified.some((v) => /occupancy|adr|ota_share|room_revenue/.test(v))).toBe(true);
+    expect(c.measurement.preregistration?.sha256).toMatch(/^[0-9a-f]{64}$/); expect(c.measurement.successRule).toBeTruthy(); expect(c.observationWindowWeeks).toBeGreaterThan(0);
+    expect(c.deliverables.map((d) => d.kind)).toEqual(["TECHNICAL_TICKET", "BOOKING_JOURNEY_BRIEF", "MEASUREMENT_PLAN"]);
+    expect(c.deliverables[0]!.body.join("\n")).toMatch(/Reproduction: NOT VERIFIED/);
+    expect(c.deliverables.every((d) => /Not sent, not deployed, not launched/.test(d.notSentNote))).toBe(true);
+    expect(c.approvedCost.status).toBe("UNKNOWN"); expect(c.estimatedBudget.status).toBe("ESTIMATE");
+    expect(c.owner.head).toMatch(/Digital Experience/);
+  });
+  it("2. partial data: simulated sources are hypotheses, unmet requirements are unknowns, confidence states its limits", () => {
+    const c = find(prepareInterventions(base(), "RUN-001", NOW), "I-001");
+    expect(c.simulated).toBe(true); expect(c.evidence.hypotheses.some((h) => /simulated/.test(h))).toBe(true);
+    expect(c.confidence.limits).toContain("cited data are simulated"); expect(c.baseline.status).toBe("HYPOTHESIS");
+  });
+  it("3. contradictory data (a verified occupancy that contradicts the simulated funnel): the contract keeps both classes apart and does not reconcile them silently", () => {
+    const r = runCycle({ seed: 1, budgetGbp: 16_000, now: NOW, measure: false, context: { ...emptyContext(NOW), systems: { pms: { asOf: "2026-10-01", periodDays: 365, rooms: 34, roomNightsSold: 12_000, roomRevenueGbp: 900_000, cancellations: null, noShows: null, otaRoomNights: null, otaCommissionGbp: null, peakOccupancy: null, bookingWindowDays: null, channels: [], source: "SYNTHETIC contradictory snapshot" } } } });
+    const cs = prepareInterventions(r, "RUN-001", NOW); const c = cs[0]!;
+    expect(c.evidence.verified.length).toBeGreaterThan(0); expect(c.evidence.hypotheses.length).toBeGreaterThan(0);
+    expect(c.sources.filter((s) => s.cls === "VERIFIED").every((s) => s.source === "CONN-PMS")).toBe(true);
+    expect(c.sources.filter((s) => s.cls === "HYPOTHESIS").every((s) => /simulated/.test(s.note))).toBe(true);
+  });
+  it("4. no known budget: an UNKNOWN estimate stays UNKNOWN in the contract and in the brief", () => {
+    const c = find(prepareInterventions(base(), "RUN-001", NOW), "I-001");
+    const unknownBudget: InterventionContract = { ...c, estimatedBudget: { kind: "estimated_intervention_budget", amountGbp: null, status: "UNKNOWN", assumptions: ["no basis"], source: "none" } };
+    const ds = deliverablesFor(unknownBudget);
+    expect(ds[0]!.body.join("\n")).toMatch(/Estimated budget: UNKNOWN/); expect(ds[0]!.body.join("\n")).not.toMatch(/£0/);
+  });
+  it("5. authorisation needs a named human: the engine cannot authorise; a human can, and the approval is recorded with the budget", () => {
+    const r = withPms(); const c0 = find(prepareInterventions(r, "RUN-001", NOW), "I-001"); const budget = r.records.find((x) => x.id === "I-001")!.budget;
+    const s = transition(c0, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
+    expect(() => transition(s, { to: "AUTHORISED", actor: { by: "engine", human: false, at: NOW }, budget })).toThrow(/requires a named human/);
+    const a = transition(s, { to: "AUTHORISED", actor: human, budget, approvedAmountGbp: 7_500, note: "approved at £7,500" });
+    expect(a.contract.state).toBe("AUTHORISED"); expect(a.contract.approvedCost.amountGbp).toBe(7_500); expect(a.contract.approvedCost.status).toBe("OBSERVED"); expect(a.budget?.status).toBe("AUTHORISED");
+    expect(a.contract.history.at(-1)).toMatchObject({ by: "Cecilia (founder)", human: true, from: "SUBMITTED", to: "AUTHORISED" });
+    expect(originIntact(a.contract, sha256Hex)).toBe(true);
+  });
+  it("6. forbidden transitions throw: PREPARED → IN_EXECUTION, CLOSED → anything, EXECUTED without evidence", () => {
+    const r = withPms(); const c0 = find(prepareInterventions(r, "RUN-001", NOW), "I-001"); const budget = r.records.find((x) => x.id === "I-001")!.budget;
+    expect(() => transition(c0, { to: "IN_EXECUTION", actor: human })).toThrow(/not allowed/);
+    const s = transition(c0, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
+    const a = transition(s, { to: "AUTHORISED", actor: human, budget }); const e = transition(a.contract, { to: "IN_EXECUTION", actor: human, budget: a.budget! });
+    expect(() => transition(e.contract, { to: "EXECUTED", actor: human })).toThrow(/requires execution evidence/);
+    const done = transition(e.contract, { to: "EXECUTED", actor: human, evidence: ["deployment record 2026-11-02"], budget: e.budget! });
+    const closed = transition(done.contract, { to: "CLOSED", actor: human, budget: done.budget! });
+    expect(() => transition(closed.contract, { to: "IN_EXECUTION", actor: human })).toThrow(/not allowed/);
+    expect(closed.contract.version).toBe(6); expect(closed.contract.history).toHaveLength(6); expect(originIntact(closed.contract, sha256Hex)).toBe(true);
+    expect(closureDossier(closed.contract).body.some((l) => /EXECUTED by Cecilia/.test(l))).toBe(true);
+  });
+  it("7. unmet prerequisites block authorisation", () => {
+    const cs = prepareInterventions(base(), "RUN-001", NOW); const blocked = cs.find((c) => c.prerequisites.status === "UNRESOLVED") ?? { ...cs[0]!, prerequisites: { dependsOn: ["I-001"], status: "UNRESOLVED", unmet: ["I-001 must be executed first"] }, dataRequest: null };
+    const s = transition(blocked, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
+    expect(() => transition(s, { to: "AUTHORISED", actor: human })).toThrow(/prerequisites unmet/);
+  });
+  it("8. an intervention whose indicator cannot be measured says so: no success rule, no pre-registration, NOT_MEASURABLE", () => {
+    const cs = prepareInterventions(base(), "RUN-001", NOW); const c = cs.find((x) => x.decisionStatus !== "FUNDED")!;
+    expect(c.measurement.successRule).toBeNull(); expect(c.measurement.preregistration).toBeNull();
+    const o = assessOutcome(c, { before: 0.0068, after: 0.009, unit: "ratio", measurement: null });
+    expect(o.incrementality).toBe("NOT_MEASURABLE"); expect(o.observedChange).toBeCloseTo(0.0022, 4);
+  });
+  it("9. an observed improvement is not incrementality: without a counterfactual, or with an altered plan, or inconclusive", () => {
+    const c = find(prepareInterventions(withPms(), "RUN-001", NOW), "I-001");
+    expect(assessOutcome(c, { before: 0.0068, after: 0.0121, unit: "ratio", measurement: null }).incrementality).toBe("NOT_ESTABLISHED");
+    expect(assessOutcome(c, { before: 0.0068, after: 0.0121, unit: "ratio", measurement: { status: "ESTABLISHED", planIntact: false, incrementalPointGbp: 50_000, placeboPassed: true } }).reason).toMatch(/altered/);
+    expect(assessOutcome(c, { before: 0.0068, after: 0.0121, unit: "ratio", measurement: { status: "INCONCLUSIVE", planIntact: true, incrementalPointGbp: 10_000, placeboPassed: true } }).incrementality).toBe("NOT_ESTABLISHED");
+    expect(assessOutcome(c, { before: 0.0068, after: 0.0121, unit: "ratio", measurement: { status: "ESTABLISHED", planIntact: true, incrementalPointGbp: 50_000, placeboPassed: true } }).incrementality).toBe("ESTABLISHED");
+    expect(assessOutcome(c, { before: null, after: 0.0121, unit: "ratio", measurement: null }).observedNote).toMatch(/unknown/);
+  });
+  it("10. insufficient evidence produces a DATA_REQUEST, not a brief, and cannot be authorised", () => {
+    const cs = prepareInterventions(base(), "RUN-001", NOW); const c = cs.find((x) => x.dataRequest)!;
+    expect(c).toBeTruthy(); expect(c.deliverables.map((d) => d.kind)).toContain("DATA_REQUEST"); expect(c.deliverables.map((d) => d.kind)).not.toContain("ACQUISITION_BRIEF");
+    expect(c.dataRequest!.missing.length).toBeGreaterThan(0); expect(c.dataRequest!.decisionItWouldInform).toMatch(/whether to fund/);
+    const s = transition(c, { to: "SUBMITTED", actor: { by: "engine", human: false, at: NOW } }).contract;
+    expect(() => transition(s, { to: "AUTHORISED", actor: human })).toThrow(/data request is open/);
+  });
+  it("11. reproducible: the same cycle prepares identical contracts and hashes", () => {
+    const a = prepareInterventions(withPms(), "RUN-001", NOW), b = prepareInterventions(withPms(), "RUN-001", NOW);
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b)); expect(a.map((c) => c.originSha256)).toEqual(b.map((c) => c.originSha256));
+  });
+  it("an analytical intervention never gets an acquisition brief; a demand intervention gets one only when funded", () => {
+    const cs = prepareInterventions(base(), "RUN-001", NOW);
+    for (const c of cs) { const kinds = c.deliverables.map((d) => d.kind); if (c.decisionStatus !== "FUNDED") expect(kinds).not.toContain("ACQUISITION_BRIEF"); if (c.constraint.kind === "CONVERSION" && c.decisionStatus === "FUNDED") expect(kinds).not.toContain("ACQUISITION_BRIEF"); }
+  });
+});

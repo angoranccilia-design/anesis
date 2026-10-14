@@ -5,6 +5,7 @@ import { PgModelStore } from "./store.js";
 import { claim, complete, enqueue, fail, recoverExpired, type Job } from "./queue.js";
 import { trace } from "./trace.js";
 import { latestImport } from "./imports.js";
+import { persistPrepared } from "./interventions.js";
 
 export interface WorkerDeps {
   readonly spec?: PropertySpec;                 // the property this runtime serves (one for now; the model store holds many)
@@ -69,6 +70,7 @@ async function cycle(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Pr
   const next = appendCycle(model, result, { id: runId, at: now });
   await store.save(next);
   await trace(db, { jobId: job.id, runId, propertyId: spec.id, kind: "model", type: "MODEL_PERSISTED", state: "done", detail: modelSummary(next, now), at: now, durationMs: Date.now() - t0 });
+  await persistPrepared(db, result, runId, now, job.id);
   const cadence = Number(job.payload.cadenceDays ?? deps.cadenceDays ?? 7);
   const nextAt = addDays(job.runAt, cadence);
   const s = await scheduleCycle(db, spec.id, nextAt, cadence);
