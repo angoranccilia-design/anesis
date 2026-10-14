@@ -33,7 +33,7 @@ describe("first Commercial Assay — synthetic, end to end", () => {
     expect(r.diagnosis.binding).toBe("C-002"); expect(r.diagnosis.notAssessable).toEqual(expect.arrayContaining(["C-001", "C-003", "C-004"]));
     expect(r.diagnosis.actualGbp).toBeCloseTo(r.property.observations.find((o) => o.metric === "room_revenue")!.value, 0);
     for (const l of r.allocation.lines) if (l.interventionId !== "I-002") expect(l.status).not.toBe("FUNDED");
-    const i2 = r.allocation.lines.find((l) => l.interventionId === "I-002")!; expect(["FUNDED", "INVESTIGATE"]).toContain(i2.status);
+    const i2 = r.allocation.lines.find((l) => l.interventionId === "I-002")!; expect(i2.status).toBe("INVESTIGATE"); expect(i2.blockedBy[0]).toMatch(/price-parity study/);   // the engine asks for the £1,500 study before the £4,500 commitment: an information purchase first
     const tr = await tracesFor(db, "RUN-001"); expect(tr.some((t) => t.type === "EVIDENCE_WITHHELD")).toBe(true); expect(tr.some((t) => t.type === "OUTCOME_SIMULATED")).toBe(false);
     contractId = "INT-RUN-001-I-002";
   });
@@ -42,20 +42,26 @@ describe("first Commercial Assay — synthetic, end to end", () => {
     const blocked = list.find((x) => x.interventionId === "I-001")!; const bc = (await loadIntervention(db, blocked.id))!; expect(bc.dataRequest).not.toBeNull();
     await transitionIntervention(db, blocked.id, { to: "SUBMITTED", actor: { by: "engine", human: false, at: T1 } });
     await expect(transitionIntervention(db, blocked.id, { to: "AUTHORISED", actor: human(T1) })).rejects.toThrow(/data request is open/);
-    const c = (await loadIntervention(db, contractId))!;
-    if (c.dataRequest) { expect(c.decisionStatus).toBe("INVESTIGATE"); return; }   // honest stop: the synthetic data did not clear VOI; the rest of the path is proven in step 3 only when funded
+    const inv = (await loadIntervention(db, contractId))!; expect(inv.decisionStatus).toBe("INVESTIGATE"); expect(inv.deliverables.map((d) => d.kind)).toContain("DATA_REQUEST");
     await transitionIntervention(db, contractId, { to: "SUBMITTED", actor: { by: "engine", human: false, at: T1 } });
+    await expect(transitionIntervention(db, contractId, { to: "AUTHORISED", actor: human(T1) })).rejects.toThrow(/data request is open/);
+    // the establishment carries out the study (by humans) and records it; the next cycle no longer asks for it and decides on the evidence
+    await saveRegisters(db, P.id, { informationObtained: { "I-002": { study: "OTA vs direct price-parity study", source: "SYNTHETIC study report, 2026-10-05", asOf: "2026-10-05", note: "parity gaps found on 3 of 5 OTAs" } } });
+    const T2 = "2026-10-08T09:00:00.000Z"; await db.query("update runtime_jobs set run_at = $1 where state = 'queued'", [T2]);
+    expect((await runOnce(db, { offline: true, now: () => T2 })).processed[0]?.outcome).toBe("done");
+    const r2 = (await loadCycleResult(db, P.id, "RUN-002"))!.result; expect(r2.allocation.lines.find((l) => l.interventionId === "I-002")!.status).toBe("FUNDED"); expect(r2.plan?.interventionIds).toContain("I-002");
+    expect((await loadIntervention(db, contractId))!.state).toBe("WITHDRAWN");   // the INVESTIGATE proposal is superseded, never duplicated
+    contractId = "INT-RUN-002-I-002"; expect((await loadIntervention(db, contractId))!.decisionStatus).toBe("FUNDED");
+    await transitionIntervention(db, contractId, { to: "SUBMITTED", actor: { by: "engine", human: false, at: T2 } });
     await expect(transitionIntervention(db, contractId, { to: "AUTHORISED", actor: { by: "engine", human: false, at: T1 } })).rejects.toThrow(/requires a named human/);
-    const before = (await loadIntervention(db, contractId))!;
     await transitionIntervention(db, contractId, { to: "AUTHORISED", actor: human("2026-10-02T09:00:00.000Z"), approvedAmountGbp: 4_000 });
-    await db.query("update interventions set version = version + 1 where id = $1", [contractId]);   // someone else moved it
-    const stale = { ...before };
-    void stale; await expect(transitionIntervention(db, contractId, { to: "IN_EXECUTION", actor: human("2026-10-02T10:00:00.000Z") })).resolves.toBeTruthy();   // transitionIntervention re-reads: fine
-    await db.query("update interventions set version = version - 1 where id = $1", [contractId]);   // restore a coherent version for the rest
+    await db.query("update interventions set version = version + 1 where id = $1", [contractId]);   // another writer moved the row between read and write
+    await expect(transitionIntervention(db, contractId, { to: "IN_EXECUTION", actor: human("2026-10-02T10:00:00.000Z") })).rejects.toThrow(/concurrent update/);   // C5: detected, not silently lost
+    await db.query("update interventions set version = version - 1 where id = $1", [contractId]);
+    await transitionIntervention(db, contractId, { to: "IN_EXECUTION", actor: human("2026-10-02T10:00:00.000Z") });
   });
   it("3. execution with proof and cost, measurement on the property's own history (NOT_ESTABLISHED), closure dossier; the result traces back to the cited observations", async () => {
-    const c = (await loadIntervention(db, contractId))!;
-    if (c.dataRequest) return;
+    const c = (await loadIntervention(db, contractId))!; expect(c.state).toBe("IN_EXECUTION");
     const x = await transitionIntervention(db, contractId, { to: "EXECUTED", actor: human("2026-08-03T09:00:00.000Z"), proofs: [{ kind: "ticket", reference: "BE-77 direct-rate parity", note: "booking engine vendor ticket" }], actualSpendGbp: 3_800 });
     expect(x.execution.actualSpend).toMatchObject({ status: "OBSERVED", amountGbp: 3_800 });
     const m = await measureIntervention(db, contractId, human("2026-10-01T09:00:00.000Z"), 8);
@@ -68,8 +74,8 @@ describe("first Commercial Assay — synthetic, end to end", () => {
   it("4. persistence across a restart: reopening the database shows the model, the contract in its final state and the import", async () => {
     await db.close();
     db = await openDatabase({ databaseUrl: undefined, pgliteDir: join(dir, "db") }); await migrate(db);
-    const m = await new PgModelStore(db).load(P.id); expect(m?.cycles).toHaveLength(1); expect(m?.cycles[0]!.evidencePolicy).toBe("verified_only");
-    const c = (await loadIntervention(db, contractId))!; expect(["CLOSED", "PREPARED"]).toContain(c.state); expect(c.history.length).toBeGreaterThanOrEqual(1);
+    const m = await new PgModelStore(db).load(P.id); expect(m?.cycles).toHaveLength(2); expect(m?.cycles[1]!.evidencePolicy).toBe("verified_only"); expect(m?.cycles[1]!.selected).toEqual(["I-002"]);
+    const c = (await loadIntervention(db, contractId))!; expect(c.state).toBe("CLOSED"); expect(c.history.map((h) => h.to)).toEqual(["PREPARED", "SUBMITTED", "AUTHORISED", "IN_EXECUTION", "EXECUTED", "MEASURED", "CLOSED"]); expect(c.history.slice(2).every((h) => h.human && h.by === "Cecilia <c@example.test>")).toBe(true);
     expect((await db.query("select 1 from pms_imports where property_id = $1", [P.id])).rows).toHaveLength(1);
   });
 });

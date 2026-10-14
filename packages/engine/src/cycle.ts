@@ -59,6 +59,7 @@ export interface CycleInput {
   readonly openInterventions?: readonly OpenIntervention[];   // committed on earlier contracts (C6): not re-proposed, remembered
   readonly evidencePolicy?: EvidencePolicy;                  // verified_only: nothing simulated or undocumented reaches a conclusion (the runtime's only mode)
   readonly benchmarkSources?: BenchSources;                  // documented provenance of declared benchmarks; required for a constraint to be assessable under verified_only
+  readonly informationObtained?: Readonly<Record<string, { readonly study: string; readonly source: string; readonly asOf: string }>>;   // information purchases already carried out, by intervention id: the option is consumed, the decision proceeds on the evidence
   readonly cycleNumber?: number;
   readonly now?: string;
   readonly measure?: boolean;
@@ -121,7 +122,7 @@ function weeklySeriesFrom(pms: PmsSnapshot | undefined): number[] | null {
 }
 const assessableMap = (d: Diagnosis) => Object.fromEntries(d.constraints.map((c) => [c.id, { assessable: c.assessable, missing: c.missing }]));
 
-function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>, open: Readonly<Record<string, OpenIntervention>>, ev: { policy: EvidencePolicy; benchSources: BenchSources; realSeries: number[] | null }) {
+function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>, open: Readonly<Record<string, OpenIntervention>>, ev: { policy: EvidencePolicy; benchSources: BenchSources; realSeries: number[] | null; obtained: Readonly<Record<string, { study: string; source: string; asOf: string }>> }) {
   return (spec: PropertySpec, B: BenchMap, budget: number): DecisionEval & { d: Diagnosis; items: Intervention[]; voi: VoiResult[]; alloc: Allocation; prop: SimulatedProperty } => {
     const sim = simulateProperty(spec, seed, now);
     const merged = mergeObservations(sim.observations, observationsFromSystems(ctx.systems, now));
@@ -130,7 +131,8 @@ function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, m
     const assessable = assessableMap(d);
     const funnel = { mobileShare: obsValue(prop, "sessions.mobile_share").value, convMobile: obsValue(prop, "conv.mobile").value, convDesktop: obsValue(prop, "conv.desktop").value, bookingValue: obsValue(prop, "booking_value_avg").value };
     const items = interventions(d, funnel, cal, qualityFor, { rooms: spec.rooms, occupancy: spec.occupancy, peakOccupancy: spec.peakOccupancy, weekendShare: spec.weekendShare, adrGbp: spec.adrGbp })
-      .map((i) => (ev.policy === "verified_only" && i.addresses.some((cid) => assessable[cid] && !assessable[cid]!.assessable) ? { ...i, effectIfWorksGbp: { low: 0, high: 0 }, confidenceBasis: `withheld: ${i.addresses.filter((cid) => assessable[cid] && !assessable[cid]!.assessable).join(", ")} not assessable on verified data` } : i));
+      .map((i) => (ev.policy === "verified_only" && i.addresses.some((cid) => assessable[cid] && !assessable[cid]!.assessable) ? { ...i, effectIfWorksGbp: { low: 0, high: 0 }, confidenceBasis: `withheld: ${i.addresses.filter((cid) => assessable[cid] && !assessable[cid]!.assessable).join(", ")} not assessable on verified data` } : i))
+      .map((i) => (i.informationOption && ev.obtained[i.id] ? { ...i, informationOption: null, confidenceBasis: `${i.confidenceBasis}; information obtained: ${ev.obtained[i.id]!.study} (${ev.obtained[i.id]!.source}, ${ev.obtained[i.id]!.asOf})` } : i));   // an information purchase carried out is no longer purchasable: the decision proceeds on the evidence
     const voi = items.map(valueOfInformation);
     const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations), open, assessable });
     const statuses: Record<string, string> = {}; for (const l of alloc.lines) statuses[l.interventionId] = l.status;
@@ -212,7 +214,7 @@ export function runCycle(input: CycleInput): CycleResult {
   }
   const requirementsFor = (obs: readonly Observation[]): Record<string, RequirementsResult> => { const out: Record<string, RequirementsResult> = {}; for (const id of ids) out[id] = checkRequirements(id, obs, ctx.systems, qualityForSource); return out; };
   const open: Record<string, OpenIntervention> = {}; for (const o of input.openInterventions ?? []) open[o.interventionId] = o;
-  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor, open, { policy, benchSources, realSeries });
+  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor, open, { policy, benchSources, realSeries, obtained: input.informationObtained ?? {} });
   const base = evaluate(spec, B, input.budgetGbp);
   const items = base.items, voi = base.voi, allocation = base.alloc;
   const baseSig: DecisionSignature = { binding: base.binding, funded: base.funded, blocked: base.blocked };
@@ -313,7 +315,9 @@ export function runCycle(input: CycleInput): CycleResult {
     const l = allocation.lines.find((x) => x.interventionId === i.id)!;
     const c0 = diagnosis.constraints.find((c) => c.id === i.addresses[0]);
     const depResolved = i.mustFollow.length && i.mustFollow.every((m) => resolved.some((r) => items.find((x) => x.id === m)?.addresses.includes(r.constraintId)));
-    const depStatus: InterventionRecord["dependencyStatus"] = !i.mustFollow.length ? "NONE" : depResolved ? "RESOLVED_BY_MEASUREMENT" : i.mustFollow.every((m) => decision.selected.includes(m)) ? "SATISFIED" : "UNRESOLVED";
+    // Mirrors the allocation rule: a dependency is moot when the constraint it addresses shows no gap or is not assessable (attainment 1); it is unresolved only when that constraint binds and the dependency is not funded.
+    const depMissing = i.mustFollow.filter((m) => { const dep = items.find((x) => x.id === m); const cd = dep && diagnosis.constraints.find((c) => c.id === dep.addresses[0]); return !decision.selected.includes(m) && !(cd && cd.attainment >= 1) && !resolved.some((r) => dep?.addresses.includes(r.constraintId)); });
+    const depStatus: InterventionRecord["dependencyStatus"] = !i.mustFollow.length ? "NONE" : depResolved ? "RESOLVED_BY_MEASUREMENT" : depMissing.length === 0 ? "SATISFIED" : "UNRESOLVED";
     const level: InterventionRecord["approvalLevel"] = i.costGbp >= 50_000 ? 4 : i.costGbp > 0 ? 3 : 1;
     const inPlan = plan?.interventionIds.includes(i.id) ?? false;
     const terms = ctx.partnership ?? NO_TERMS;

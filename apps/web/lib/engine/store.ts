@@ -92,7 +92,7 @@ export async function executeRun(req: RunRequest, persistence: Persistence | nul
   const regs = await registers();
   const evidencePolicy = req.evidencePolicy ?? (declared.id === COUNTRY_HOUSE_34.id ? "simulated_allowed" : "verified_only");
   const benchmarkSources = Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, { source: b.source, asOf: b.asOf }]));
-  const input: CycleInput = { evidencePolicy, benchmarkSources, seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: { ...Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, b.value])), ...req.benchmarks }, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
+  const input: CycleInput = { evidencePolicy, benchmarkSources, informationObtained: regs.informationObtained ?? {}, seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: { ...Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, b.value])), ...req.benchmarks }, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
   const t0 = Date.now();
   const result = runCycle(input);
   const run: RunRecord = {
