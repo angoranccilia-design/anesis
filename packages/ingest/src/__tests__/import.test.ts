@@ -127,6 +127,12 @@ B5,2026-09-01,2026-09-03,weird status,120,GBP,Some Tour Partner`;
     expect(nights(oq)!.status).toBe("MODELLED"); expect(nights(oq)!.value).toBeGreaterThan(trueAnnualNights * 1.3);   // the summer projection overstates the year: that is why it is MODELLED, not VERIFIED
     expect(nights(oq)!.assumptions.join(" ")).toMatch(/seasonal bias/); expect(oq.find((x) => x.metric === "occupancy")).toMatchObject({ status: "VERIFIED", confidence: 0.9 });
     expect(nights(om)).toBeUndefined(); expect(om.map((o) => o.metric)).toEqual(["rooms"]);
+    // the property's own weekly history and average stay travel with the snapshot
+    expect(year.weekly.length).toBeGreaterThanOrEqual(52); expect(year.weekly.every((w) => /^\d{4}-\d{2}-\d{2}$/.test(w.weekStart) && new Date(w.weekStart + "T00:00:00Z").getUTCDay() === 1)).toBe(true);
+    expect(year.weekly.reduce((a, w) => a + w.roomNights, 0)).toBe(year.metrics.roomNightsSold); expect(year.weekly.reduce((a, w) => a + (w.revenueGbp ?? 0), 0)).toBeCloseTo(year.metrics.roomRevenueGbp!, 0);
+    const summerWeeks = year.weekly.filter((w) => w.weekStart >= "2026-07-06" && w.weekStart < "2026-08-24"), winterWeeks = year.weekly.filter((w) => w.weekStart >= "2026-01-05" && w.weekStart < "2026-02-23");
+    expect(summerWeeks[0]!.roomNights).toBeGreaterThan(winterWeeks[0]!.roomNights * 2);
+    expect(year.metrics.avgStayNights).toBe(1); expect(year.snapshot!.avgStayNights).toBe(1); expect(oy.find((o) => o.metric === "booking_value_avg")).toMatchObject({ value: 200, status: "MODELLED", source: "CONN-PMS" });
     const cy = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false, context: { ...emptyContext(T), systems: { pms: year.snapshot! } } });
     expect(cy.verifiedMetrics).toEqual(expect.arrayContaining(["room_nights", "occupancy", "adr", "room_revenue", "ota_share"])); expect(cy.dataQualityNotes.some((n) => /CONN-PMS/.test(n))).toBe(false);
     const cq = runCycle({ seed: 1, budgetGbp: 16_000, now: T, measure: false, context: { ...emptyContext(T), systems: { pms: quarter.snapshot! } } });

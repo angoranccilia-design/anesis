@@ -22,7 +22,7 @@ export function riskAdjustedValue(i: Intervention, all: readonly Intervention[],
 }
 
 import type { RequirementsResult } from "./requirements.js";
-export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number; readonly requirements?: Readonly<Record<string, RequirementsResult>>; readonly open?: Readonly<Record<string, OpenIntervention>> }
+export interface AllocateOptions { readonly resolvedConstraints?: readonly { constraintId: string; by: string; at: string }[]; readonly qualityFactor?: (interventionId: string) => number; readonly requirements?: Readonly<Record<string, RequirementsResult>>; readonly open?: Readonly<Record<string, OpenIntervention>>; readonly assessable?: Readonly<Record<string, { assessable: boolean; missing: readonly string[] }>> }
 
 export function allocate(items: readonly Intervention[], d: Diagnosis, voi: readonly VoiResult[], budgetGbp: number, P: Params = PARAMS, opts: AllocateOptions = {}): Allocation {
   const reserve = budgetGbp * P.reserveShare, usable = budgetGbp - reserve;
@@ -35,6 +35,9 @@ export function allocate(items: readonly Intervention[], d: Diagnosis, voi: read
     // Continuity (audit C6): an intervention a human has committed to is in progress, not a candidate. Its capital was approved
     // on its own contract in an earlier cycle; it is not re-proposed, not re-budgeted, and this cycle's budget is not charged for it.
     const o = opts.open?.[i.id];
+    // Evidence policy (chantier B): an intervention aimed at a constraint that is not assessable on verified data is blocked with the exact list of what is missing; nothing is funded on a simulated gap.
+    const unassessed = i.addresses.map((cid) => ({ cid, a: opts.assessable?.[cid] })).filter((x) => x.a && !x.a.assessable);
+    if (unassessed.length) { lines.push({ interventionId: i.id, allocatedGbp: 0, riskAdjustedValueGbp: 0, expectedValueGbp: 0, funded: false, status: "BLOCKED", blockedBy: unassessed.map((x) => `INSUFFICIENT EVIDENCE: ${x.cid} is not assessable on verified data — ${x.a!.missing.join("; ")}`), requiredCondition: `supply: ${[...new Set(unassessed.flatMap((x) => x.a!.missing))].join(", ")}`, qualityFactor: opts.qualityFactor?.(i.id) ?? 1 }); continue; }
     if (o) { lines.push({ interventionId: i.id, allocatedGbp: 0, riskAdjustedValueGbp: rav, expectedValueGbp: ev, funded: false, status: "IN_PROGRESS", blockedBy: [`in progress: contract ${o.contractId} is ${o.state} since ${o.since}${o.awaitingMeasurement ? "; awaiting its measurement record" : ""}; not re-proposed in this cycle`], requiredCondition: o.awaitingMeasurement ? `measurement record on ${o.contractId}, then decision re-run` : `${o.contractId} executed and measured, then decision re-run`, qualityFactor: opts.qualityFactor?.(i.id) ?? 1 }); continue; }
     const blocked: string[] = []; let condition: string | null = null; let status: InterventionStatus | null = null;
     const factor = byFactor(i.actsOn);
@@ -45,7 +48,8 @@ export function allocate(items: readonly Intervention[], d: Diagnosis, voi: read
     while (factorForWalk && CONSUMED_BY[f]) {
       if (offPeak && CONSUMED_BY[f] === "capacity") break; // off-peak demand does not consume peak capacity
       const next = CONSUMED_BY[f]!; const consumer = byFactor(next);
-      if (consumer && consumer.attainment + 0.1 < factorForWalk.attainment) {
+      if (consumer && opts.assessable?.[consumer.id] && !opts.assessable[consumer.id]!.assessable) { blocked.push(`downstream ${consumer.factor} (${consumer.id}) is not assessable on verified data: ${opts.assessable[consumer.id]!.missing.join("; ")}; acting upstream of an unknown is not a decision`); condition ??= `make ${consumer.id} assessable`; status ??= "BLOCKED"; }
+      else if (consumer && consumer.attainment + 0.1 < factorForWalk.attainment) {
         const res = resolved.find((r) => r.constraintId === consumer.id);
         if (res) { blocked.length; /* no block */ }
         else {

@@ -31,7 +31,8 @@ export interface ImportResult {
   readonly period: { readonly from: string | null; readonly to: string | null; readonly days: number | null; readonly coverage: number | null };   // coverage: share of days in the window with at least one stay night
   readonly counts: { readonly rows: number; readonly kept: number; readonly cancelled: number; readonly noShows: number; readonly duplicates: number; readonly modified: number; readonly conflicting: number; readonly excludedOther: number };
   readonly issues: Reconciled["issues"];
-  readonly metrics: { readonly roomNightsSold: number | null; readonly roomRevenueGbp: number | null; readonly adrGbp: number | null; readonly occupancy: number | null; readonly revparGbp: number | null; readonly otaShare: number | null; readonly cancellationRate: number | null; readonly bookingWindowDays: number | null; readonly peakOccupancy: number | null; readonly basis: Record<string, string> };
+  readonly weekly: readonly { readonly weekStart: string; readonly roomNights: number; readonly revenueGbp: number | null }[];   // the property's own weekly history, ISO weeks
+  readonly metrics: { readonly avgStayNights: number | null; readonly roomNightsSold: number | null; readonly roomRevenueGbp: number | null; readonly adrGbp: number | null; readonly occupancy: number | null; readonly revparGbp: number | null; readonly otaShare: number | null; readonly cancellationRate: number | null; readonly bookingWindowDays: number | null; readonly peakOccupancy: number | null; readonly basis: Record<string, string> };
   readonly channels: { readonly name: string; readonly cls: string; readonly roomNights: number; readonly revenueGbp: number | null }[];
   readonly snapshot: PmsSnapshot | null;             // null when the engine could not be fed honestly (rooms or room nights unknown)
   readonly quality: DataQuality;
@@ -114,10 +115,23 @@ export function importPmsExport(opts: ImportOptions): ImportResult {
   const coverage = days && nightDays.size ? Math.min(1, nightDays.size / days) : null;
   const peakOccupancy = rooms && coverage !== null && coverage >= 0.9 && days !== null && days >= 28 ? Math.min(1, Math.max(...perDay.values()) / rooms) : null; if (peakOccupancy !== null) basis.peakOccupancy = "max daily occupied rooms ÷ declared rooms (coverage ≥ 90 % over ≥ 28 days)";
   const bookingWindowDays = windows.length ? windows.sort((a, b) => a - b)[Math.floor(windows.length / 2)]! : null;
+  // The property's own weekly history (ISO weeks, Monday start): room nights per night, revenue spread evenly over each stay's nights; null when a stay's revenue is unknown.
+  const weekOf = (iso: string) => { const d = new Date(iso + "T00:00:00Z"); const dow = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - dow); return d.toISOString().slice(0, 10); };
+  const weekly = new Map<string, { roomNights: number; revenueGbp: number | null }>();
+  for (const k of kept) {
+    if (!k.arrival || !k.departure || !from || !to) continue;
+    const roomsPer = k.rooms ?? 1; const a = Math.max(Date.parse(k.arrival), Date.parse(from)), b = Math.min(Date.parse(k.departure), Date.parse(to)); const nights = Math.max(0, Math.round((b - a) / 86_400_000)); if (nights <= 0) continue;
+    let rev: number | null = null; if (k.revenue !== null) { const cur = (k.currency ?? fileCurrency ?? "").toUpperCase(); rev = cur === "GBP" ? k.revenue : cur && fx[cur] ? k.revenue * fx[cur]! : null; }
+    const perNight = rev === null ? null : rev / Math.max(1, Math.round((Date.parse(k.departure) - Date.parse(k.arrival)) / 86_400_000));
+    for (let t = a; t < b; t += 86_400_000) { const wk = weekOf(new Date(t).toISOString().slice(0, 10)); const cur = weekly.get(wk) ?? { roomNights: 0, revenueGbp: 0 }; cur.roomNights += roomsPer; cur.revenueGbp = cur.revenueGbp === null || perNight === null ? null : cur.revenueGbp + perNight * roomsPer; weekly.set(wk, cur); }
+  }
+  const weeklySeries = [...weekly.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([weekStart, v]) => ({ weekStart, roomNights: v.roomNights, revenueGbp: v.revenueGbp === null ? null : Math.round(v.revenueGbp * 100) / 100 }));
+  const stayNights = stays.map((k) => Math.max(0, daysBetween(k.arrival!, k.departure!))).filter((n) => n > 0);
+  const avgStayNights = stayNights.length ? stayNights.reduce((p, q) => p + q, 0) / stayNights.length : null;
   const commissionGbp = missing.includes("commission") ? null : kept.reduce((a, k) => a + (k.commission ?? 0), 0);
   const channels = [...byChannel.entries()].map(([name, c]) => ({ name, cls: c.cls, roomNights: c.nights, revenueGbp: c.revenue })).sort((a, b) => b.roomNights - a.roomNights);
   const snapshot: PmsSnapshot | null = rooms && roomNightsSold !== null && days && from && to ? {
-    asOf: to, periodDays: days, rooms, roomNightsSold, roomRevenueGbp: revenueGbp, cancellations, noShows, otaRoomNights, otaCommissionGbp: commissionGbp, peakOccupancy, bookingWindowDays,
+    weekly: weeklySeries, avgStayNights, asOf: to, periodDays: days, rooms, roomNightsSold, roomRevenueGbp: revenueGbp, cancellations, noShows, otaRoomNights, otaCommissionGbp: commissionGbp, peakOccupancy, bookingWindowDays,
     channels: channels.map((c) => ({ name: c.name, roomNights: c.roomNights, revenueGbp: c.revenueGbp ?? 0 })), source: `file import ${opts.filename} sha256 ${sha256(bytes).slice(0, 12)}; period to ${to}; ${collectedAt ? `exported ${collectedAt}` : "export date not declared"}; imported ${importedAt}`,
   } : null;
   const expected: Field[] = ["reservationId", "arrival", "departure", "status", "revenue", "channel", "bookingDate"];
@@ -151,7 +165,8 @@ export function importPmsExport(opts: ImportOptions): ImportResult {
     period: { from, to, days, coverage },
     counts: { rows: rows.length, kept: kept.length, cancelled: rec.excluded.filter((e) => e.why === "CANCELLED").length, noShows: rec.excluded.filter((e) => e.why === "NO_SHOW").length, duplicates: rec.excluded.filter((e) => e.why === "EXACT_DUPLICATE").length, modified: rec.excluded.filter((e) => e.why === "MODIFIED_RESERVATION").length, conflicting: rec.excluded.filter((e) => e.why === "CONFLICTING_RESERVATION").length, excludedOther: rec.excluded.filter((e) => !["CANCELLED", "NO_SHOW", "EXACT_DUPLICATE", "MODIFIED_RESERVATION", "CONFLICTING_RESERVATION"].includes(e.why)).length },
     issues: rec.issues,
-    metrics: { roomNightsSold, roomRevenueGbp: revenueGbp, adrGbp: adr, occupancy, revparGbp: revpar, otaShare: otaRoomNights !== null && roomNightsSold ? otaRoomNights / roomNightsSold : null, cancellationRate: cancellations !== null && roomNightsSold !== null ? cancelledNights / Math.max(1, roomNights + cancelledNights) : null, bookingWindowDays, peakOccupancy, basis },
+    weekly: weeklySeries,
+    metrics: { avgStayNights, roomNightsSold, roomRevenueGbp: revenueGbp, adrGbp: adr, occupancy, revparGbp: revpar, otaShare: otaRoomNights !== null && roomNightsSold ? otaRoomNights / roomNightsSold : null, cancellationRate: cancellations !== null && roomNightsSold !== null ? cancelledNights / Math.max(1, roomNights + cancelledNights) : null, bookingWindowDays, peakOccupancy, basis },
     channels, snapshot, quality: q,
     recency: { periodEnd: to, collectedAt, importedAt, daysPeriodEndToCollection: toCollection, daysPeriodEndToImport: toImport, statement: recencyStatement },
     sufficiency: { verdict, window: { days, cls: wcls, minimumDays: ANNUALISATION_MIN_DAYS, fullYearDays: FULL_YEAR_DAYS, note: windowNote }, canCompute: can, cannotCompute: cannot, nextData: [...new Set(next)] },

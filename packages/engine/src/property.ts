@@ -47,6 +47,23 @@ export const COUNTRY_HOUSE_34: PropertySpec = {
   peakOccupancy: 0.86, staffingCoverage: 0.95, weekendShare: 0.58, roomsOutOfOrder: 1,
 };
 
+/** The property as the data describe it: every figure a connected system supplies replaces the declared one. What no system supplies stays declared, and the evidence policy keeps it out of any conclusion. */
+export function specFromSnapshots(base: PropertySpec, sys: import("./context/types.js").SystemSnapshots): PropertySpec {
+  let s = base; const p = sys.pms;
+  if (p) {
+    s = { ...s, rooms: p.rooms, occupancy: p.roomNightsSold / Math.max(1, p.rooms * p.periodDays) };
+    if (p.roomRevenueGbp !== null) s = { ...s, adrGbp: p.roomRevenueGbp / Math.max(1, p.roomNightsSold) };
+    if (p.otaRoomNights !== null) s = { ...s, otaShare: p.otaRoomNights / Math.max(1, p.roomNightsSold) };
+    if (p.otaCommissionGbp !== null && p.otaRoomNights !== null && p.roomRevenueGbp !== null) s = { ...s, otaCommission: p.otaCommissionGbp / Math.max(1, p.otaRoomNights * (p.roomRevenueGbp / Math.max(1, p.roomNightsSold))) };
+    if (p.peakOccupancy !== null) s = { ...s, peakOccupancy: Math.max(p.peakOccupancy, s.occupancy) };
+  }
+  const g = sys.analytics; if (g) s = { ...s, sessionsPerYear: g.sessions * 365 / g.periodDays, mobileShare: g.mobileShare };
+  const b = sys.bookingEngine; if (b) s = { ...s, convMobile: b.mobileConversion, convDesktop: b.desktopConversion, mobileShare: b.mobileShare };
+  const c = sys.crm; if (c) s = { ...s, pastGuests: c.pastGuests, repeatRate: c.repeatRate };
+  for (const a of sys.ads ?? []) s = a.channel === "meta" ? { ...s, metaSpendGbp: a.spendGbp * 365 / a.periodDays } : { ...s, googleSpendGbp: a.spendGbp * 365 / a.periodDays };
+  return s;
+}
+
 export const SOURCES: readonly Source[] = [
   { id: "SRC-SIM-PMS", name: "Simulated PMS export", kind: "simulation", note: "Rooms, occupancy, ADR, room revenue, channel mix. Generated from PropertySpec." },
   { id: "SRC-SIM-WEB", name: "Simulated web analytics", kind: "simulation", note: "Sessions by device, conversion, funnel. Generated from PropertySpec." },

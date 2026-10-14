@@ -22,6 +22,8 @@ export const BENCHMARKS: readonly Benchmark[] = [
   { key: "substitution_to_ota", value: 0.40, unit: "ratio", source: "SRC-BENCH", note: "assumption — share of abandoning direct visitors who book the same stay through an OTA instead (drives deduplication)" },
 ];
 
+/** Provenance of a benchmark value: a documented source declared by the operator with a date. Placeholders have none. */
+export type BenchSources = Readonly<Record<string, { readonly source: string; readonly asOf: string }>>;
 export type BenchMap = Readonly<Record<string, number>>;
 export function benchMap(overrides: Partial<Record<string, number>> = {}): BenchMap {
   const m: Record<string, number> = {};

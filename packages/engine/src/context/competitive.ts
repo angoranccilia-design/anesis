@@ -26,9 +26,11 @@ export function competitiveSignals(spec: PropertySpec, obs: readonly CompetitorO
 }
 
 /** Internal vs environmental attribution from weekly histories (property and comparables). */
-export function attribution(property: readonly number[], comparables: readonly (readonly number[])[], recentWeeks = 8, baseWeeks = 26): { propertyChange: number; marketChange: number; verdict: "internal" | "environmental" | "mixed" | "no_change"; note: string } {
+export function attribution(property: readonly number[], comparables: readonly (readonly number[])[], recentWeeks = 8, baseWeeks = 26): { propertyChange: number; marketChange: number; verdict: "internal" | "environmental" | "mixed" | "no_change" | "not_assessable"; note: string } {
   const change = (s: readonly number[]) => { const r = mean(s.slice(-recentWeeks)), b = mean(s.slice(-recentWeeks - baseWeeks, -recentWeeks)); return b > 0 ? r / b - 1 : 0; };
-  const p = change(property), m = mean(comparables.map(change));
+  const p = change(property);
+  if (!comparables.length) return { propertyChange: p, marketChange: 0, verdict: "not_assessable", note: `property ${(p * 100).toFixed(1)} % (last ${recentWeeks} weeks vs prior ${baseWeeks}); no comparable properties on record, so internal vs environmental cannot be told apart` };
+  const m = mean(comparables.map(change));
   const diff = p - m;
   const verdict = Math.abs(p) < 0.03 && Math.abs(m) < 0.03 ? "no_change" : Math.abs(diff) < 0.03 ? "environmental" : Math.abs(m) < 0.03 ? "internal" : "mixed";
   return { propertyChange: p, marketChange: m, verdict, note: `property ${(p * 100).toFixed(1)} % vs comparables ${(m * 100).toFixed(1)} % (last ${recentWeeks} weeks vs prior ${baseWeeks}); ${verdict === "environmental" ? "the market moved the same way: environmental" : verdict === "internal" ? "comparables did not move: internal" : verdict === "mixed" ? "both moved, by different amounts" : "no material change either side"}` };

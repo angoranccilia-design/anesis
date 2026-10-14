@@ -50,6 +50,9 @@ export type InterventionStatus = "FUNDED" | "BLOCKED" | "INVESTIGATE" | "REJECTE
 /** An intervention a human has committed to in an earlier cycle (its contract is AUTHORISED, IN_EXECUTION, EXECUTED or MEASURED). The next cycle must not re-propose it, re-budget it or measure around it. */
 export interface OpenIntervention { readonly interventionId: string; readonly contractId: string; readonly state: string; readonly budgetStatus: string; readonly approvedGbp: number | null; readonly since: string; readonly planId: string | null; readonly awaitingMeasurement: boolean }
 
+/** Which evidence a cycle may rest on. `verified_only` is the only policy a real property runs under: nothing simulated or undocumented reaches a conclusion. */
+export type EvidencePolicy = "simulated_allowed" | "verified_only";
+
 export interface Constraint {
   readonly id: string;               // "C-001"
   readonly kind: ConstraintKind;
@@ -65,6 +68,8 @@ export interface Constraint {
   readonly status: Status;
   readonly formula: string;
   readonly assumptions: readonly string[];
+  readonly assessable: boolean;      // under the cycle's evidence policy: every input real-backed and every benchmark documented
+  readonly missing: readonly string[]; // what stops it being assessable (metric names, undocumented benchmark keys); empty when assessable
   readonly dependsOn: readonly string[]; // constraint ids upstream in the causal chain
 }
 
@@ -76,8 +81,10 @@ export interface Diagnosis {
   readonly totalAddressableGbp: number;   // naive sum of midpoints
   readonly deduplicatedGbp: Range;        // after overlap removal
   readonly dedupMethod: string;
-  readonly binding: string | null;        // constraint id that limits the system now
+  readonly binding: string | null;        // constraint id that limits the system now; null when nothing is assessable
   readonly bindingWhy: string;
+  readonly evidencePolicy: EvidencePolicy;
+  readonly notAssessable: readonly string[];   // constraint ids excluded from totals and from binding under verified_only
   readonly evidence: readonly string[];
   readonly computedAt: string;
 }

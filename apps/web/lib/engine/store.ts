@@ -67,6 +67,7 @@ export function subscribe(l: (e: EngineEvent & { runId: string }) => void): () =
 
 export interface RunRequest {
   readonly seed?: number; readonly budgetGbp?: number; readonly spec?: Partial<PropertySpec>; readonly benchmarks?: CycleInput["benchmarks"]; readonly params?: CycleInput["params"];
+  readonly evidencePolicy?: CycleInput["evidencePolicy"];   // default: verified_only for a declared real property, simulated_allowed for the simulated demo
   readonly useMemory?: boolean; readonly label?: string; readonly weatherOverride?: WeatherForecast | null; readonly offline?: boolean;
   readonly contextSnapshot?: ExternalContext;          // reuse a previous run's context (exact repeat)
   readonly onEvent?: (e: EngineEvent & { runId: string }) => void;
@@ -88,7 +89,10 @@ export async function executeRun(req: RunRequest, persistence: Persistence | nul
   const fromModel = cycleInputFromModel(m);
   const mem = useMem ? fromModel.memory : [];
   const pmem = useMem ? fromModel.propertyMemory : emptyMemory(spec.id);
-  const input: CycleInput = { seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: req.benchmarks, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
+  const regs = await registers();
+  const evidencePolicy = req.evidencePolicy ?? (declared.id === COUNTRY_HOUSE_34.id ? "simulated_allowed" : "verified_only");
+  const benchmarkSources = Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, { source: b.source, asOf: b.asOf }]));
+  const input: CycleInput = { evidencePolicy, benchmarkSources, seed: req.seed ?? 1, budgetGbp: req.budgetGbp ?? 16_000, spec, benchmarks: { ...Object.fromEntries(Object.entries(regs.benchmarks ?? {}).map(([k, b]) => [k, b.value])), ...req.benchmarks }, params: req.params, memory: mem, propertyMemory: pmem, context, cycleNumber: useMem ? fromModel.cycleNumber : state.seq, now: new Date().toISOString(), bus };
   const t0 = Date.now();
   const result = runCycle(input);
   const run: RunRecord = {

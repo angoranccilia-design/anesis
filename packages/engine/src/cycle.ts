@@ -29,7 +29,10 @@ import { interventionBudget, decisionPackage, HEAD_FOR_FACTOR, HEAD_TITLE, NO_TE
 import { emptyMemory, recall, remember, resolvedConstraints, withOpen, type PropertyMemory } from "./memory.js";
 import { pooledCalibration } from "./portfolio.js";
 import { LEVEL_TIER } from "./governance.js";
-import { emptyContext, qualityFactor, type CommercialAssessment, type ExternalContext, type ExternalSignal, type Perturbation } from "./context/types.js";
+import { emptyContext, qualityFactor, type CommercialAssessment, type ExternalContext, type ExternalSignal, type Perturbation, type PmsSnapshot } from "./context/types.js";
+import { specFromSnapshots } from "./property.js";
+import type { EvidencePolicy } from "./model.js";
+import type { BenchSources } from "./benchmarks.js";
 import { weatherSignals } from "./context/weather.js";
 import { seasonalProfile, type SeasonalProfile } from "./context/seasonality.js";
 import { eventSignals } from "./context/events.js";
@@ -54,6 +57,8 @@ export interface CycleInput {
   readonly enablePooling?: boolean;
   readonly context?: ExternalContext;                     // external signals snapshot (fetched by the application)
   readonly openInterventions?: readonly OpenIntervention[];   // committed on earlier contracts (C6): not re-proposed, remembered
+  readonly evidencePolicy?: EvidencePolicy;                  // verified_only: nothing simulated or undocumented reaches a conclusion (the runtime's only mode)
+  readonly benchmarkSources?: BenchSources;                  // documented provenance of declared benchmarks; required for a constraint to be assessable under verified_only
   readonly cycleNumber?: number;
   readonly now?: string;
   readonly measure?: boolean;
@@ -89,6 +94,7 @@ export interface CycleResult {
   readonly providerBriefs: ProviderBrief[];
   readonly providerReliability: ProviderReliability[];
   readonly verifiedMetrics: string[];
+  readonly seriesSource: "simulated" | "pms_weekly";          // which weekly history seasonality, plausible ranges and observed change rest on
   readonly assay: AssayVerdict;
   readonly allocation: Allocation;
   readonly decision: Decision;
@@ -107,16 +113,26 @@ const OWNERS: Record<string, { owner: string; team: string }> = Object.fromEntri
 const gbp = (x: number) => `£${Math.round(x).toLocaleString("en-GB")}`;
 
 /** Diagnose → interventions → VOI → allocate on a spec. Used by relevance re-runs, sensitivity and thresholds. */
-function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>, open: Readonly<Record<string, OpenIntervention>>) {
+/** The property's own weekly revenue history from the PMS import, usable when at least eight weeks have a known revenue. */
+function weeklySeriesFrom(pms: PmsSnapshot | undefined): number[] | null {
+  const w = pms?.weekly; if (!w || w.length < 8) return null;
+  const vals = w.map((x) => x.revenueGbp); if (vals.some((v) => v === null)) return null;
+  return vals as number[];
+}
+const assessableMap = (d: Diagnosis) => Object.fromEntries(d.constraints.map((c) => [c.id, { assessable: c.assessable, missing: c.missing }]));
+
+function makeEvaluator(seed: number, now: string, P: Params, cal: Calibration, memory: PropertyMemory, qualityFor: (constraintId: string) => number, ctx: ExternalContext, capacityFor: (spec: PropertySpec) => NodeAssessment[], requirementsFor: (obs: readonly Observation[]) => Record<string, RequirementsResult>, open: Readonly<Record<string, OpenIntervention>>, ev: { policy: EvidencePolicy; benchSources: BenchSources; realSeries: number[] | null }) {
   return (spec: PropertySpec, B: BenchMap, budget: number): DecisionEval & { d: Diagnosis; items: Intervention[]; voi: VoiResult[]; alloc: Allocation; prop: SimulatedProperty } => {
     const sim = simulateProperty(spec, seed, now);
     const merged = mergeObservations(sim.observations, observationsFromSystems(ctx.systems, now));
-    const prop: SimulatedProperty = { ...sim, observations: merged.observations };
-    const d = diagnose(prop, B, now, capacityFor(spec));
+    const prop: SimulatedProperty = { ...sim, observations: merged.observations, series: ev.realSeries ? { property: ev.realSeries, comparables: [] } : sim.series };
+    const d = diagnose(prop, B, now, capacityFor(spec), { evidencePolicy: ev.policy, benchSources: ev.benchSources });
+    const assessable = assessableMap(d);
     const funnel = { mobileShare: obsValue(prop, "sessions.mobile_share").value, convMobile: obsValue(prop, "conv.mobile").value, convDesktop: obsValue(prop, "conv.desktop").value, bookingValue: obsValue(prop, "booking_value_avg").value };
-    const items = interventions(d, funnel, cal, qualityFor, { rooms: spec.rooms, occupancy: spec.occupancy, peakOccupancy: spec.peakOccupancy, weekendShare: spec.weekendShare, adrGbp: spec.adrGbp });
+    const items = interventions(d, funnel, cal, qualityFor, { rooms: spec.rooms, occupancy: spec.occupancy, peakOccupancy: spec.peakOccupancy, weekendShare: spec.weekendShare, adrGbp: spec.adrGbp })
+      .map((i) => (ev.policy === "verified_only" && i.addresses.some((cid) => assessable[cid] && !assessable[cid]!.assessable) ? { ...i, effectIfWorksGbp: { low: 0, high: 0 }, confidenceBasis: `withheld: ${i.addresses.filter((cid) => assessable[cid] && !assessable[cid]!.assessable).join(", ")} not assessable on verified data` } : i));
     const voi = items.map(valueOfInformation);
-    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations), open });
+    const alloc = allocate(items, d, voi, budget, P, { resolvedConstraints: resolvedConstraints(memory), requirements: requirementsFor(prop.observations), open, assessable });
     const statuses: Record<string, string> = {}; for (const l of alloc.lines) statuses[l.interventionId] = l.status;
     return { binding: d.binding, funded: alloc.lines.filter((l) => l.funded).map((l) => l.interventionId).sort(), blocked: alloc.lines.filter((l) => !l.funded).map((l) => l.interventionId).sort(), statuses, expectedValueGbp: planExpectedValue(items, alloc), d, items, voi, alloc, prop };
   };
@@ -138,17 +154,20 @@ export function runCycle(input: CycleInput): CycleResult {
   const now = input.now ?? new Date().toISOString();
   const n = input.cycleNumber ?? 1;
   const P: Params = { ...PARAMS, ...input.params };
-  const spec: PropertySpec = { ...COUNTRY_HOUSE_34, ...input.spec };
+  const ctx = input.context ?? emptyContext(now);
+  const policy: EvidencePolicy = input.evidencePolicy ?? "simulated_allowed"; const benchSources: BenchSources = input.benchmarkSources ?? {};
+  const declared: PropertySpec = { ...COUNTRY_HOUSE_34, ...input.spec };
+  const spec: PropertySpec = policy === "verified_only" ? specFromSnapshots(declared, ctx.systems) : declared;   // under verified_only the figures a system supplies replace the declared ones
+  const realSeries = policy === "verified_only" ? weeklySeriesFrom(ctx.systems.pms) : null;
   const B = benchMap(input.benchmarks);
   const memory = input.memory ?? [];
   const pmem = withOpen(input.propertyMemory ?? emptyMemory(spec.id), input.openInterventions ?? [], now);
-  const ctx = input.context ?? emptyContext(now);
 
-  bus.emit("CYCLE_STARTED", "OBSERVING", `cycle ${n}, seed ${input.seed}, budget ${gbp(input.budgetGbp)}`);
+  bus.emit("CYCLE_STARTED", "OBSERVING", `cycle ${n}, seed ${input.seed}, budget ${gbp(input.budgetGbp)}; evidence policy ${policy}${policy === "verified_only" ? ` (spec from ${Object.keys(ctx.systems).join(", ") || "no system"}; weekly history ${realSeries ? realSeries.length + " weeks from the PMS" : "none: simulated series withheld"})` : ""}`);
   const simulated = simulateProperty(spec, input.seed, now);
   const verified = observationsFromSystems(ctx.systems, now);
   const mergedObs = mergeObservations(simulated.observations, verified);
-  const property: SimulatedProperty = { ...simulated, observations: mergedObs.observations };
+  const property: SimulatedProperty = { ...simulated, observations: mergedObs.observations, series: realSeries ? { property: realSeries, comparables: [] } : simulated.series };
   const consistency = checkConsistency(simulated);
   const verifiedMetrics = mergedObs.replaced.filter((m) => verified.find((o) => o.metric === m)?.status === "VERIFIED"), projectedMetrics = mergedObs.replaced.filter((m) => !verifiedMetrics.includes(m));
   bus.emit("OBSERVATIONS_READY", "OBSERVING", `${property.observations.length} observations from ${spec.name} (${verifiedMetrics.length ? `${verifiedMetrics.length} VERIFIED from connected systems: ${verifiedMetrics.join(", ")}; ` : ""}${projectedMetrics.length ? `${projectedMetrics.length} PROJECTED (annualised from a partial year): ${projectedMetrics.join(", ")}; ` : ""}${mergedObs.replaced.length ? "the rest " : ""}SIMULATED PROPERTY DATA); consistency ${consistency.length === 0 ? "passed" : "FAILED: " + consistency.join("; ")}`, property.observations.map((o) => o.id));
@@ -178,10 +197,11 @@ export function runCycle(input: CycleInput): CycleResult {
   const qualityFor = (cid: string) => { const c = diagnosisFor(cid); return c ? Math.min(1, ...c.evidence.map((e) => qualityForSource(srcOf(e)))) : 1; };
   let diagnosis0: Diagnosis | null = null;
   const diagnosisFor = (cid: string) => diagnosis0?.constraints.find((c) => c.id === cid);
-  diagnosis0 = diagnose(property, B, now, capacity);
+  diagnosis0 = diagnose(property, B, now, capacity, { evidencePolicy: policy, benchSources });
   const diagnosis = diagnosis0;
   bus.emit("CONSTRAINTS_COMPUTED", "DIAGNOSING", `${diagnosis.constraints.length} constraints (${[...new Set(diagnosis.constraints.map((c) => c.kind))].join(", ")}); total addressable ${gbp(diagnosis.totalAddressableGbp)}; deduplicated ${gbp(diagnosis.deduplicatedGbp.low)}–${gbp(diagnosis.deduplicatedGbp.high)}`, diagnosis.constraints.map((c) => c.id));
   bus.emit("LIMITING_CONSTRAINT", "DIAGNOSING", diagnosis.bindingWhy, diagnosis.binding ? [diagnosis.binding] : []);
+  if (diagnosis.notAssessable.length) bus.emit("EVIDENCE_WITHHELD", "ALERT", `${diagnosis.notAssessable.length} constraint(s) not assessable on verified data and withheld from every total: ${diagnosis.constraints.filter((c) => !c.assessable).map((c) => `${c.id} needs ${c.missing.join(", ")}`).join(" | ")}`, diagnosis.notAssessable);
 
   // Calibration: property learning records, optionally partially pooled with the portfolio
   const ids = ["I-001", "I-002", "I-003", "I-004", "I-005", "I-006"];
@@ -192,7 +212,7 @@ export function runCycle(input: CycleInput): CycleResult {
   }
   const requirementsFor = (obs: readonly Observation[]): Record<string, RequirementsResult> => { const out: Record<string, RequirementsResult> = {}; for (const id of ids) out[id] = checkRequirements(id, obs, ctx.systems, qualityForSource); return out; };
   const open: Record<string, OpenIntervention> = {}; for (const o of input.openInterventions ?? []) open[o.interventionId] = o;
-  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor, open);
+  const evaluate = makeEvaluator(input.seed, now, P, calibrationBefore, pmem, qualityFor, ctx, capacityFor, requirementsFor, open, { policy, benchSources, realSeries });
   const base = evaluate(spec, B, input.budgetGbp);
   const items = base.items, voi = base.voi, allocation = base.alloc;
   const baseSig: DecisionSignature = { binding: base.binding, funded: base.funded, blocked: base.blocked };
@@ -267,7 +287,7 @@ export function runCycle(input: CycleInput): CycleResult {
   if (funded.length) {
     plan = preregister(`MP-${String(n).padStart(3, "0")}`, funded, now);
     bus.emit("PLAN_REGISTERED", "MEASURING", `${plan.id} v${plan.version} sha256 ${plan.sha256.slice(0, 12)}…; expected ${gbp(plan.expectedGbp.low)}–${gbp(plan.expectedGbp.high)} (point ${gbp(plan.expectedPointGbp)}) over ${plan.windowWeeks} weeks`, [plan.id]);
-    if (input.measure !== false) {
+    if (input.measure !== false && policy === "simulated_allowed") {   // a simulated outcome never exists under verified_only
       const r = rng(input.seed * 7919 + 1);
       const o = applyOutcome(property.series, funded, revenue, r);
       outcome = { trueGainGbp: o.trueGainGbp, note: "SIMULATED OUTCOME — hidden from the estimator; each funded intervention works with its declared confidence and, if it works, its effect is drawn inside its range" };
@@ -322,7 +342,7 @@ export function runCycle(input: CycleInput): CycleResult {
   const memoryAfter = remember(pmem, { runId: `cycle-${n}`, spec, diagnosis, decision, statuses, addresses, measurement, plan: plan ? { id: `${plan.id}@v${plan.version}`, interventionIds: plan.interventionIds, expectedPointGbp: plan.expectedPointGbp } : null, learning, open: input.openInterventions ?? [], now });
   bus.emit("MEMORY_UPDATED", "LEARNING", `property memory: ${memoryAfter.decisions.length} decision(s), ${memoryAfter.measured.length} measured intervention(s), ${memoryAfter.failedHypotheses.length} failed hypothesis(es)`);
   bus.emit("CYCLE_COMPLETE", "IDLE", `cycle ${n} complete`);
-  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, plausibleRanges: ranges, sensitivity: sens, thresholds, decisionSensitivity: decSens, capacity, compression: comp.reading, reconciliation, requirements, providerBriefs: briefs, providerReliability: reliability, verifiedMetrics, assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
+  return { input, property, consistency, context: ctx, signals, assessments, fused, seasonality, attribution: attr, dataQualityNotes, diagnosis, exposures, interventions: items, voi, mostSensitiveUnknown, plausibleRanges: ranges, sensitivity: sens, thresholds, decisionSensitivity: decSens, capacity, compression: comp.reading, reconciliation, requirements, providerBriefs: briefs, providerReliability: reliability, verifiedMetrics, seriesSource: realSeries ? "pms_weekly" : "simulated", assay, allocation, decision, records, plan, outcome, measurement, learning, calibrationBefore, calibrationAfter, memoryAfter, events: bus.events };
 }
 
 /** Field-by-field comparison of two runs, with an explanation of what changed the decision. */

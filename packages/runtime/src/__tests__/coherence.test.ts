@@ -7,7 +7,7 @@ import { COUNTRY_HOUSE_34, type PropertySpec } from "@anesis/engine";
 let db: SqlClient;
 const T1 = "2026-10-14T09:00:00.000Z", T2 = "2026-10-21T09:00:00.000Z";
 const B: PropertySpec = { ...COUNTRY_HOUSE_34, id: "PROP-TEST-B", name: "Test B (synthetic)", rooms: 20, location: { name: "Test (synthetic)", lat: 51.5, lon: -0.1, country: "GB" } };
-const csv = (rooms: number) => { const rows = ["id,arrival,departure,status,revenue,currency,channel"]; let k = 0; const start = Date.parse("2025-10-01T00:00:00Z"); for (let d = 0; d < 365; d++) { const a = new Date(start + d * 86_400_000).toISOString().slice(0, 10), b = new Date(start + (d + 1) * 86_400_000).toISOString().slice(0, 10); for (let i = 0; i < Math.round(rooms * 0.55); i++) rows.push(`S${++k},${a},${b},confirmed,140,GBP,${i % 3 ? "Booking.com" : "Website"}`); } return rows.join("\n"); };
+const csv = (rooms: number) => { const rows = ["id,arrival,departure,status,revenue,currency,channel,commission"]; let k = 0; const start = Date.parse("2025-10-01T00:00:00Z"); for (let d = 0; d < 365; d++) { const a = new Date(start + d * 86_400_000).toISOString().slice(0, 10), b = new Date(start + (d + 1) * 86_400_000).toISOString().slice(0, 10); for (let i = 0; i < Math.round(rooms * 0.55); i++) rows.push(i % 3 ? `S${++k},${a},${b},confirmed,140,GBP,Booking.com,21` : `S${++k},${a},${b},confirmed,140,GBP,Website,0`); } return rows.join("\n"); };   // commission column: OTA statements are part of the first Assay's inputs
 beforeAll(async () => { db = await openDatabase({ databaseUrl: undefined, pgliteDir: undefined }); await migrate(db); });
 afterAll(async () => { await db.close(); });
 
@@ -25,7 +25,7 @@ describe("C — properties, grants, registers, results", () => {
     expect(await operatorMayAccess(db, "op-2", "PROP-TEST-B")).toBe(true); expect(await operatorMayAccess(db, "op-2", COUNTRY_HOUSE_34.id)).toBe(false); expect(await propertiesOf(db, "op-2")).toEqual(["PROP-TEST-B"]);
   });
   it("registers written for B are read by B's cycle and not by A's; a new import discards the context snapshot without manual intervention", async () => {
-    await saveRegisters(db, "PROP-TEST-B", { events: [{ id: "EV-1", name: "Synthetic festival", startDate: "2026-11-01", endDate: "2026-11-02", venue: "nearby", distanceKm: 3, expectedAttendance: 5000, category: "festival", enteredBy: "operator", source: "operator register", evidenceNote: "test" } as never] });
+    await saveRegisters(db, "PROP-TEST-B", { benchmarks: { "ota_share.target": { value: 0.35, source: "SYNTHETIC test source", asOf: "2026-01-01" }, "ota.shiftable.low": { value: 0.15, source: "SYNTHETIC", asOf: "2026-01-01" }, "ota.shiftable.high": { value: 0.35, source: "SYNTHETIC", asOf: "2026-01-01" } }, events: [{ id: "EV-1", name: "Synthetic festival", startDate: "2026-11-01", endDate: "2026-11-02", venue: "nearby", distanceKm: 3, expectedAttendance: 5000, category: "festival", enteredBy: "operator", source: "operator register", evidenceNote: "test" } as never] });
     expect((await loadRegisters(db, "PROP-TEST-B")).events).toHaveLength(1); expect((await loadRegisters(db, COUNTRY_HOUSE_34.id)).events).toHaveLength(0);
     const dir = mkdtempSync(join(tmpdir(), "anesis-coh-")); const file = join(dir, "b.csv"); writeFileSync(file, csv(20));
     await scheduleCycle(db, "PROP-TEST-B", T1, 7);
@@ -38,12 +38,18 @@ describe("C — properties, grants, registers, results", () => {
     const ev = (await db.query<{ detail: string }>("select detail from runtime_traces where property_id = 'PROP-TEST-B' and type = 'CONN-EVENTS' order by id desc limit 1")).rows[0];
     expect(ev?.detail).toMatch(/1 operator-entered event/);
     const mB = await new PgModelStore(db).load("PROP-TEST-B"); expect(mB?.cycles).toHaveLength(2); expect(mB?.cycles[1]!.verifiedMetrics).toEqual(expect.arrayContaining(["occupancy", "adr"]));
-    expect(mB?.spec.id).toBe("PROP-TEST-B");
+    expect(mB?.spec.id).toBe("PROP-TEST-B"); expect(mB?.spec.rooms).toBe(20); expect(mB?.spec.adrGbp).toBe(140);   // the profile comes from the import, not from the simulated spec
+    // simulated vs real gap: cycle 1 (no import) assessed nothing; cycle 2 (import + documented OTA benchmarks) assesses C-002 only, and says what the rest needs
+    expect(mB?.cycles[0]!.evidencePolicy).toBe("verified_only"); expect(mB?.cycles[0]!.bindingConstraintId).toBeNull(); expect(mB?.cycles[0]!.selected).toEqual([]);
+    expect(mB?.cycles[1]!.bindingConstraintId).toBe("C-002"); expect(mB?.cycles[1]!.notAssessable).toEqual(expect.arrayContaining(["C-001", "C-003", "C-004"]));
+    const r2 = await loadCycleResult(db, "PROP-TEST-B", "RUN-002"); const c2 = r2!.result.diagnosis.constraints.find((c) => c.id === "C-002")!;
+    expect(c2.evidence.every((id) => { const o = r2!.result.property.observations.find((x) => x.id === id)!; return o.status === "VERIFIED" || (o.status === "MODELLED" && o.source === "CONN-PMS"); })).toBe(true);   // no simulated evidence behind the binding constraint
+    expect(r2!.result.seriesSource).toBe("pms_weekly");
     const mA = await new PgModelStore(db).load(COUNTRY_HOUSE_34.id); expect(mA).toBeNull();   // the other property was never touched
   });
   it("the full cycle result is persisted and re-readable: a contract's cited observation is found with its evidence chain after a restart", async () => {
     const stored = await loadCycleResult(db, "PROP-TEST-B", "RUN-002"); expect(stored).toBeTruthy();
-    expect(stored!.result.property.observations.length).toBeGreaterThan(10); expect(stored!.result.diagnosis.binding).toBeTruthy();
+    expect(stored!.result.property.observations.length).toBeGreaterThan(10); expect(stored!.result.diagnosis.binding).toBe("C-002");
     const c = (await db.query<{ run_id: string; contract: { sources: { id: string }[] } }>("select run_id, contract from interventions where property_id = 'PROP-TEST-B' order by prepared_at desc limit 1")).rows[0];
     const cycleOfContract = await loadCycleResult(db, "PROP-TEST-B", c!.run_id);
     const cited = c!.contract.sources[0]!.id; const obs = cycleOfContract!.result.property.observations.find((o) => o.id === cited);

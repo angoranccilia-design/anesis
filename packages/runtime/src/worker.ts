@@ -79,11 +79,13 @@ async function cycle(db: SqlClient, job: Job, deps: WorkerDeps, now: string): Pr
   }
   const context = (await latestSnapshot(db, spec.id, 6 * 3600_000, now)) ?? (await collect(db, job, deps, now));
   const open = await openInterventions(db, spec.id);
+  const regs = await registersFor(db, spec.id, deps);
+  const benchmarks = Object.fromEntries(Object.entries(regs.benchmarks).map(([k, b]) => [k, b.value])); const benchmarkSources = Object.fromEntries(Object.entries(regs.benchmarks).map(([k, b]) => [k, { source: b.source, asOf: b.asOf }]));
   const runId = `RUN-${String(model.cycles.length + 1).padStart(3, "0")}`;
   const bus = new EngineBus(); const rows: Promise<void>[] = [];
   bus.subscribe((e) => { rows.push(trace(db, { jobId: job.id, runId, propertyId: spec.id, kind: "engine", type: e.type, state: e.state, detail: e.detail, at: e.at })); });
   const input = cycleInputFromModel(model);
-  const result = runCycle({ seed: model.cycles.length + 1, budgetGbp: deps.budgetGbp ?? 16_000, now, spec, memory: input.memory, propertyMemory: input.propertyMemory, cycleNumber: input.cycleNumber, context, bus, openInterventions: open.committed, measure: false });   // no simulated outcome in the runtime: a measurement is a MEASURED transition on a contract, with its record (C6)
+  const result = runCycle({ seed: model.cycles.length + 1, budgetGbp: deps.budgetGbp ?? 16_000, now, spec, memory: input.memory, propertyMemory: input.propertyMemory, cycleNumber: input.cycleNumber, context, bus, openInterventions: open.committed, measure: false, evidencePolicy: spec.id === COUNTRY_HOUSE_34.id ? "simulated_allowed" : "verified_only", benchmarks, benchmarkSources });   // a real property runs verified_only: nothing simulated or undocumented reaches a conclusion; only the built-in simulated property (labelled as such) may run on simulated evidence   // no simulated outcome in the runtime: a measurement is a MEASURED transition on a contract, with its record (C6)
   await Promise.all(rows);
   const next = appendCycle(model, result, { id: runId, at: now, jobKey: job.key });
   const cadence = Number(job.payload.cadenceDays ?? deps.cadenceDays ?? 7);

@@ -26,6 +26,7 @@ export interface CycleEntry {
   readonly seed: number; readonly budgetGbp: number;
   readonly contextFetchedAt: string; readonly connected: readonly string[]; readonly verifiedMetrics: readonly string[];
   readonly bindingConstraintId: string | null; readonly bindingWhy: string;
+  readonly evidencePolicy: "simulated_allowed" | "verified_only"; readonly notAssessable: readonly string[];
   readonly decisionId: string; readonly question: string; readonly selected: readonly string[]; readonly governanceLevel: 0 | 1 | 2 | 3 | 4;
   readonly wouldChangeIf: number;
   readonly preregistration: { readonly planId: string; readonly version: number; readonly sha256: string; readonly expectedPointGbp: number; readonly windowWeeks: number } | null;
@@ -64,7 +65,7 @@ export function appendCycle(m: PropertyModel, r: CycleResult, meta: { readonly i
   const entry: CycleEntry = {
     id: meta.id, at: meta.at, cycleNumber: r.input.cycleNumber ?? m.cycles.length + 1, seed: r.input.seed, budgetGbp: r.input.budgetGbp,
     contextFetchedAt: r.context.fetchedAt, connected: r.context.connectors.filter((c) => c.status === "CONNECTED").map((c) => c.id), verifiedMetrics: [...r.verifiedMetrics],
-    bindingConstraintId: r.diagnosis.binding, bindingWhy: r.diagnosis.bindingWhy,
+    bindingConstraintId: r.diagnosis.binding, bindingWhy: r.diagnosis.bindingWhy, evidencePolicy: r.diagnosis.evidencePolicy, notAssessable: [...r.diagnosis.notAssessable],
     decisionId: r.decision.id, question: r.decision.question, selected: [...r.decision.selected], governanceLevel: r.decision.governance.level, wouldChangeIf: r.decision.wouldChangeIf.length,
     preregistration: r.plan ? { planId: r.plan.id, version: r.plan.version, sha256: r.plan.sha256, expectedPointGbp: r.plan.expectedPointGbp, windowWeeks: r.plan.windowWeeks } : null,
     budgets: r.records.map((x) => ({ interventionId: x.id, decisionStatus: x.decisionStatus, budgetStatus: x.budget.status, estimatedGbp: x.budget.estimated.amountGbp, estimateStatus: x.budget.estimated.status, approvedGbp: x.budget.approved.amountGbp, approvalLevel: x.approvalLevel, owner: x.owner })),
@@ -90,7 +91,7 @@ export function parseModel(json: string): PropertyModel {
   if (typeof m.propertyId !== "string" || !Array.isArray(m.cycles) || !Array.isArray(m.calibration) || !m.memory || !m.spec) throw new Error("PropertyModel is incomplete");
   // Fields added within schema 1 (C6): absent in models written before them, read as empty — nothing is invented.
   const memory = { ...m.memory, executions: m.memory.executions ?? [] };
-  const cycles = m.cycles.map((c) => ({ ...c, inProgress: c.inProgress ?? [], jobKey: c.jobKey ?? null }));
+  const cycles = m.cycles.map((c) => ({ ...c, inProgress: c.inProgress ?? [], jobKey: c.jobKey ?? null, evidencePolicy: c.evidencePolicy ?? "simulated_allowed", notAssessable: c.notAssessable ?? [] }));
   return { ...m, memory, cycles } as PropertyModel;
 }
 

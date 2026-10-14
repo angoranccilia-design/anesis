@@ -51,7 +51,8 @@ export function observationsFromSystems(sys: SystemSnapshots, nowIso: string): O
       // Absent fields are null and produce no observation: the simulated or declared value stays, flagged as such, and the
       // data-requirements check reports what is missing. Nothing below treats "unknown" as zero.
       if (p.roomRevenueGbp !== null) {
-        add("adr", p.roomRevenueGbp / Math.max(1, p.roomNightsSold), "GBP/night", "CONN-PMS", "room revenue ÷ occupied room nights", p.asOf, w, "ratio");
+        const adr = add("adr", p.roomRevenueGbp / Math.max(1, p.roomNightsSold), "GBP/night", "CONN-PMS", "room revenue ÷ occupied room nights", p.asOf, w, "ratio");
+        if (p.avgStayNights) { const id = `OBV-${String(++n).padStart(3, "0")}`; out.push({ id, metric: "booking_value_avg", value: (p.roomRevenueGbp / Math.max(1, p.roomNightsSold)) * p.avgStayNights, unit: "GBP", period: w.period, source: "CONN-PMS", timestamp: p.asOf, transformation: `adr × average stay (${p.avgStayNights.toFixed(2)} nights, from the reservations)`, assumptions: [...w.assumptions], confidence: w.ratioConfidence, status: "MODELLED", evidence: [adr] }); }
         if (p.otaCommissionGbp !== null && p.otaRoomNights !== null) add("ota_commission_rate", p.otaCommissionGbp / Math.max(1, p.otaRoomNights * (p.roomRevenueGbp / Math.max(1, p.roomNightsSold))), "ratio", "CONN-PMS", "commission paid ÷ OTA room revenue", p.asOf, w, "ratio");
       }
       if (p.otaRoomNights !== null) add("ota_share", p.otaRoomNights / Math.max(1, p.roomNightsSold), "ratio", "CONN-PMS", "OTA room nights ÷ room nights", p.asOf, w, "ratio");
